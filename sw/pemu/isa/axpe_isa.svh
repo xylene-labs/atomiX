@@ -4,6 +4,10 @@
 `ifndef AXPE_ISA_SVH
 `define AXPE_ISA_SVH
 
+// This header exports the whole instruction set. A consumer using a
+// subset of it is the normal case, not a defect.
+/* verilator lint_off UNUSEDPARAM */
+
 localparam int AXPE_WORD_W = 32;
 localparam int AXPE_REGS   = 8;
 localparam int AXPE_REG_W  = 16;
@@ -61,4 +65,5 @@ localparam logic [2:0] AXPE_COND_NC = 3'd4;
 localparam logic [2:0] AXPE_COND_T = 3'd5;
 localparam logic [2:0] AXPE_COND_NT = 3'd6;
 
+/* verilator lint_on UNUSEDPARAM */
 `endif

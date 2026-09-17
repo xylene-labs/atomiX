@@ -60,9 +60,17 @@ LEF files under `ihp-sg13g2/libs.ref/sg13g2_sram/lef/`, against a 6×4 die of
 
 **This inverts the assumption the gate was opened on.** A 256-instruction,
 32-bit program memory is impossible in flip-flops — more storage than the whole
-die holds — and costs **6.9% of the die** as a macro. 512 instructions costs
-11.1%. The constraint on program size was never area; it was the choice of
-storage primitive, and one route is roughly fifteen times denser than the other.
+die holds — and costs **6.9% of the die** as a macro. The constraint on program
+size was never area; it was the choice of storage primitive, and one route is
+roughly fifteen times denser than the other.
+
+**But 256 words is a ceiling the ISA imposes, not a budget choice.** `BR` and
+`CALL` targets are eight bits, so nothing past word 255 can be jumped to
+however large the store is. The 512x32 macro at 11.1% buys addressable nothing.
+Raising the ceiling is an ISA change — a wider target field, or paging — and it
+would cost encoding bits that are already spent. RTL elaboration at
+`IMEM_WORDS=512` is what surfaced this; the parameter sweep the project's own
+knob rule requires is what ran it.
 
 So the instruction store is an SRAM macro, and the remaining risk is
 *integration*, not budget: Tiny Tapeout's own documentation says integrating the
@@ -289,7 +297,9 @@ competition itself was tested rather than assumed.
 
 - PE-02: whether the Tiny Tapeout 6×4 flow accepts an IHP SRAM macro, and what
   the real cells-per-tile figure is. Macro footprints are measured (§2.1); these
-  two are not.
+  two are not. The depth question is settled at 256 by the eight-bit branch
+  target, so `RM_IHPSG13_1P_256x32_c2_bm_bist` at 6.9% is the candidate unless
+  the ISA gains a wider target.
 - PE-03: instruction width, register count and datapath width, under §2's ceiling.
 - Target clock frequency, and therefore the fastest protocol bit rate reachable.
 - Whether the 8×4 tile option becomes available, and what it would buy.

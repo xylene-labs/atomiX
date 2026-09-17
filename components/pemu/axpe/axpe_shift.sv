@@ -90,11 +90,16 @@ module axpe_shift #(
     wire       bit_next = tx_value[pos_next];
     wire       is_last  = (index + 5'd1 == total);
 
-    // One pin write per cycle for the data line, one for the clock.
+    // One pin write per cycle for the data line, one for the clock. The mask
+    // is UIO_PINS wide, not a hardcoded byte: a profile may carry fewer pins
+    // than the Tiny Tapeout harness supplies.
+    localparam [UIO_PINS-1:0] PIN_ONE = {{(UIO_PINS-1){1'b0}}, 1'b1};
+
     task automatic write_pin(input [3:0] pin, input logic level);
         begin
-            set_mask  = set_mask  | (8'd1 << pin);
-            set_value = (set_value & ~(8'd1 << pin)) | (level ? (8'd1 << pin) : 8'd0);
+            set_mask  = set_mask | (PIN_ONE << pin);
+            set_value = (set_value & ~(PIN_ONE << pin))
+                      | (level ? (PIN_ONE << pin) : {UIO_PINS{1'b0}});
         end
     endtask
 

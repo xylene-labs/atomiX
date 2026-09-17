@@ -155,6 +155,10 @@ def render_sv(isa: dict[str, Any]) -> str:
         "`ifndef AXPE_ISA_SVH",
         "`define AXPE_ISA_SVH",
         "",
+        "// This header exports the whole instruction set. A consumer using a",
+        "// subset of it is the normal case, not a defect.",
+        "/* verilator lint_off UNUSEDPARAM */",
+        "",
         f"localparam int AXPE_WORD_W = {isa['encoding']['width']};",
         f"localparam int AXPE_REGS   = {isa['registers']['count']};",
         f"localparam int AXPE_REG_W  = {isa['registers']['width']};",
@@ -173,7 +177,7 @@ def render_sv(isa: dict[str, Any]) -> str:
     lines += ["", "// Branch conditions"]
     for name, value in isa["conditions"].items():
         lines.append(f"localparam logic [2:0] AXPE_COND_{name} = 3'd{value};")
-    lines += ["", "`endif", ""]
+    lines += ["", "/* verilator lint_on UNUSEDPARAM */", "`endif", ""]
     return "\n".join(lines)
 
 

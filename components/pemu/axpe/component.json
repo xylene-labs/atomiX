@@ -15,7 +15,7 @@
     "imem_words": {
       "default": 256,
       "define": "AXPE_IMEM_WORDS",
-      "doc": "Program memory depth in 32-bit words. On CMOS5L this is an IHP SRAM macro: 256 words costs 6.9% of a 6x4 die and 512 costs 11.1%, measured from the PDK LEF. In flip-flops 256 words would exceed the whole die, which is why the storage primitive rather than the depth is the real constraint. The assembler refuses a program longer than this value, so raising it is what buys firmware room."
+      "doc": "Program memory depth in 32-bit words. Capped in practice at 256 by the ISA: BR and CALL targets are eight bits, so a larger store holds words nothing can jump to. On CMOS5L this is an IHP SRAM macro, 256 words costing 6.9% of a 6x4 die, measured from the PDK LEF; in flip-flops the same depth would exceed the whole die, which is why the storage primitive rather than the depth was ever the constraint. The assembler refuses a program longer than this value."
     },
     "reg_count": {
       "default": 8,
