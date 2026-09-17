@@ -1,0 +1,90 @@
+{
+  "schema": 1,
+  "checkpoint": "PE-05 first RTL differential slice",
+  "date": "2026-09-17",
+  "evidence_kind": "host-rtl-model-cosimulation",
+  "base_commit": "0e1a39562f77573ba7ef52f6d57034a9403a593a",
+  "source_state": "uncommitted working tree; no commit-pinned approval claimed",
+  "tools": {
+    "verilator": "Verilator 5.050 2026-07-01 rev v5.050-60-g3d2421f3b",
+    "host_compiler": "g++ (Ubuntu 11.4.0-1ubuntu1~22.04.3) 11.4.0"
+  },
+  "inputs_sha256": {
+    "components/pemu/axpe/axpe.sv": "b634b186984b524385c0d3c6a934e1bd085ce6586525f6c0690fa28706b913f2",
+    "components/pemu/axpe/axpe_timing.sv": "f027badac4187026c884a000019660684fc40f3707ff9647b91494757faf189a",
+    "components/pemu/axpe/axpe_shift.sv": "e30806b80cfa6372a14cdff575f38f9d42ae3624bba4ec695eebeace77cc2a09",
+    "sim/pemu/axpe_cosim.cpp": "515b4a6474dc656897300a7c0287d443db329ea3e9aa522c231d61f3e3ac9736",
+    "sw/pemu/model/axpe_model.c": "9e2b882e9dd2af1a5f57d4ae00da2caf915c0c113e63602109ecda4a754e2f0e",
+    "sw/pemu/isa/axpe-isa.json": "67ce6d7319e80e7914727ebfe80642564fb5e25eebde0f5baf88137049878096"
+  },
+  "command": "make pemu-cosim-check",
+  "verification": [
+    {
+      "command": "make pemu-cosim-check",
+      "result": "pass with five named XFAIL boundaries"
+    },
+    {
+      "command": "make verification-check",
+      "result": "pass"
+    },
+    {
+      "command": "make registry-check",
+      "result": "pass"
+    },
+    {
+      "command": "make verify-smoke",
+      "result": "pass",
+      "stages_passed": 13,
+      "summary": "build/verification/smoke/summary.json"
+    }
+  ],
+  "passing_scope": {
+    "directed": [
+      "scalar encoded delays and HALT duration",
+      "taken branch, CALL and RET"
+    ],
+    "random_programs": 64,
+    "randomized_features": [
+      "delays 0 through 4",
+      "ALU and immediate operations",
+      "pin latch, direction and open-drain effects",
+      "input sampling with register values surfaced through POUT"
+    ]
+  },
+  "expected_failures": [
+    {
+      "boundary": "unclocked SHOUT retirement",
+      "observed": "one extra cycle before the next instruction"
+    },
+    {
+      "boundary": "clocked SHOUT retirement",
+      "observed": "one extra cycle before the next instruction"
+    },
+    {
+      "boundary": "unclocked SHIO retirement",
+      "observed": "data and receive value match after removing one extra handoff cycle"
+    },
+    {
+      "boundary": "clocked CPHA=1 SHIO retirement",
+      "observed": "data, clock and final receive bit match after removing one extra handoff cycle"
+    },
+    {
+      "boundary": "WAITE timeout retirement",
+      "observed": "returned count and T branch match after removing one extra handoff cycle"
+    }
+  ],
+  "defects_fixed": [
+    "timer reset to zero prevented instruction zero from ever issuing",
+    "HALT asserted at issue instead of after its encoded occupancy",
+    "first MSB-first shift bit used the previous transfer's latched bit count",
+    "receive sampling was deferred one cycle and could lose the final CPHA=1 bit",
+    "WAITE timed out at D+1 and did not set T for an edge exactly at D"
+  ],
+  "limits": [
+    "PE-05 is not complete: every long-engine handoff still costs one undeclared cycle",
+    "randomization currently covers scalar/control instructions; shift and WAITE cases are directed",
+    "the harness presents program words combinationally and does not yet validate the claimed synchronous SRAM fetch schedule",
+    "host cosimulation only: no formal proof, synthesis/P&R, FPGA or silicon evidence",
+    "PE-02 SRAM integration gate remains open"
+  ]
+}

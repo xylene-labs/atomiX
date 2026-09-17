@@ -159,15 +159,19 @@ being discipline anyone can slip on and becomes a build step.
 
 ## 4. The verification claim
 
-PE-04 now has an executable [draft host model](../sw/pemu/model/README.md),
-checked by `make pemu-model-check`. It covers scalar instructions, bounded
-waits and unclocked shifts. Pin-effect phases and shift writeback conventions
-are provisional; clocked shifts explicitly refuse execution. The existing UART
-firmware disagrees with the exact waveform oracle, and autobaud undercounts
-known pulses by the intervening instruction time under these conventions.
-These failures are retained as regression cases in the
-[host evidence](../research/benchmarks/axpe-model.json), not counted as protocol
-passes. PE-04 remains Active until the timing decisions and firmware are fixed.
+PE-04 has an executable [host model](../sw/pemu/model/README.md), checked by
+`make pemu-model-check`. UART now matches the platform waveform oracle,
+autobaud measures known pulses exactly, and clocked shifts cover all four SPI
+modes; the development failures that led to those corrections remain in the
+[host evidence](../research/benchmarks/axpe-model.json).
+
+PE-05's first [RTL differential checkpoint](../research/benchmarks/axpe-cosim.json)
+compares Verilated pin/output traces and elapsed cycles with that model. The
+scalar/control path passes 64 deterministic randomized programs. Directed
+`WAITE` and shift cases retain one explicit XFAIL: the RTL inserts an undeclared
+cycle when handing control back to the issue state. Until that bubble is
+removed, this is defect evidence rather than a cycle-for-cycle conformance
+claim, and PE-06 remains blocked.
 
 The competition's second judging axis is methodology, and it is where this
 project has the most to offer. The headline claim is a property of the ISA

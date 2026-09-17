@@ -82,16 +82,19 @@ FPGA environment once per shell: `source "$HOME/opt/oss-cad-suite/environment"`.
 ### Protocol emulator host checkpoint
 
 ```bash
-make pemu-model-check   # ISA drift, assembler, draft C model and firmware gaps
+make pemu-model-check   # ISA drift, assembler, C model and firmware checks
+make pemu-cosim-check   # Verilated RTL against the C model, including known XFAILs
 ```
 
-Requires a host C compiler and Python, with no FPGA tools or hardware. This
-stage runs in smoke, quick CI and nightly verification. It checks ISA drift, the
-assembler, and the host model, and runs the UART, autobaud and SPI firmware,
-with UART matching the platform waveform oracle exactly. Clocked shifts are
-specified and modelled across all four SPI modes. I2C firmware and a platform
-oracle for SPI remain open, and this is a model result rather than RTL, FPGA,
-or silicon evidence. See [model conventions](../sw/pemu/model/README.md).
+The model command requires a host C compiler and Python. The cosimulation adds
+Verilator and checks the RTL pin/output trace cycle by cycle against that model.
+Both run in smoke, quick CI and nightly verification. The differential stage
+passes scalar/control timing plus 64 deterministic randomized programs. It also
+pins one known extra handoff cycle after `WAITE` and the shift engine as XFAILs;
+those are recorded gaps, not conformance passes. I2C firmware and a platform
+oracle for SPI remain open, and none of these are FPGA or silicon evidence. See
+[model conventions](../sw/pemu/model/README.md) and the
+[PE-05 evidence](../research/benchmarks/axpe-cosim.json).
 
 ### Choose / inspect a profile
 ```bash

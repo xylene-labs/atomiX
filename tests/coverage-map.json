@@ -492,6 +492,10 @@
     ".:pemu-model-check": {
       "kind": "suite",
       "stage": "pemu-model"
+    },
+    ".:pemu-cosim-check": {
+      "kind": "suite",
+      "stage": "pemu-cosim"
     }
   }
 }

@@ -63,7 +63,7 @@ module axpe #(
     reg [AW-1:0]       call_stack [0:CALL_DEPTH-1];
     reg [SW-1:0]       sp;
     reg [1:0]          state;
-    reg                stopped, faulted;
+    reg                stopped, faulted, halt_pending;
 
     wire [7:0]  uio_padded = {{(8-UIO_PINS){1'b0}}, uio_in};
     wire [15:0] pad_in     = {ui_in, uio_padded};
@@ -126,13 +126,15 @@ module axpe #(
     wire       wait_now  = pad_in[wait_pin];
     reg        wait_prev;
     reg [DELAY_BITS-1:0] wait_count;
+    wire [DELAY_BITS-1:0] wait_elapsed =
+        wait_count + {{(DELAY_BITS-1){1'b0}}, 1'b1};
     wire [DELAY_BITS-1:0] wait_bound =
         (delay == {DELAY_BITS{1'b0}}) ? {{(DELAY_BITS-1){1'b0}}, 1'b1} : delay;
     wire wait_hit = (wait_edge == 2'd0) ? (~wait_prev &  wait_now)
                   : (wait_edge == 2'd1) ? ( wait_prev & ~wait_now)
                   : (wait_edge == 2'd2) ? ( wait_prev ^  wait_now)
                                         :  wait_now;
-    wire wait_timeout = (wait_count >= wait_bound);
+    wire wait_timeout = (wait_elapsed >= wait_bound);
 
     // ---- ALU --------------------------------------------------------------
     wire [REG_W-1:0] src_a = regs[ra];
@@ -239,9 +241,9 @@ module axpe #(
     always @(*) begin
         cell_load = 1'b0;
         sh_start  = 1'b0;
-        if (state == S_EXEC && cell_last && !reject) begin
+        if (state == S_EXEC && cell_last && !reject && !halt_pending) begin
             if (is_shift) sh_start = 1'b1;
-            else          cell_load = 1'b1;
+            else if (op != AXPE_OP_WAITE) cell_load = 1'b1;
         end
     end
 
@@ -260,6 +262,7 @@ module axpe #(
             state     <= S_EXEC;
             stopped   <= 1'b0;
             faulted   <= 1'b0;
+            halt_pending <= 1'b0;
             wait_prev <= 1'b1;
             wait_count <= {DELAY_BITS{1'b0}};
         end else begin
@@ -269,7 +272,11 @@ module axpe #(
 
             case (state)
             S_EXEC: if (cell_last) begin
-                if (reject) begin
+                if (halt_pending) begin
+                    halt_pending <= 1'b0;
+                    stopped <= 1'b1;
+                    state <= S_STOP;
+                end else if (reject) begin
                     faulted <= 1'b1;
                     state   <= S_STOP;
                 end else if (is_shift) begin
@@ -301,7 +308,9 @@ module axpe #(
                     AXPE_OP_CALL:   begin call_stack[sp[DW-1:0]] <= pc + {{(AW-1){1'b0}}, 1'b1};
                                            sp <= sp + {{(SW-1){1'b0}}, 1'b1}; end
                     AXPE_OP_RET:    sp <= sp - {{(SW-1){1'b0}}, 1'b1};
-                    AXPE_OP_HALT:   begin stopped <= 1'b1; state <= S_STOP; end
+                    // Effects happen at issue, but HALT retires only after
+                    // its full max(D,1) occupancy, like the golden model.
+                    AXPE_OP_HALT:   halt_pending <= 1'b1;
                     default: ;
                     endcase
                     if (op != AXPE_OP_HALT) pc <= next_pc;
@@ -312,9 +321,10 @@ module axpe #(
                 wait_prev  <= wait_now;
                 wait_count <= wait_count + {{(DELAY_BITS-1){1'b0}}, 1'b1};
                 if (wait_hit || wait_timeout) begin
-                    regs[ra] <= {{(REG_W-DELAY_BITS){1'b0}},
-                                 wait_count + {{(DELAY_BITS-1){1'b0}}, 1'b1}};
-                    ft       <= ~wait_hit;
+                    regs[ra] <= {{(REG_W-DELAY_BITS){1'b0}}, wait_elapsed};
+                    // Reaching the bound is a timeout even if the selected
+                    // edge is also present on that final permitted sample.
+                    ft       <= wait_timeout;
                     pc       <= next_pc;
                     state    <= S_EXEC;
                 end

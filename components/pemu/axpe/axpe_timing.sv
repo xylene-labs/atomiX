@@ -26,10 +26,13 @@ module axpe_timing #(
 
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n)
-            remaining <= {DELAY_BITS{1'b0}};
+            // One means ready: the first instruction can issue on the first
+            // active edge, and an idle engine remains ready rather than
+            // falling into a zero state from which `last` can never recover.
+            remaining <= {{(DELAY_BITS-1){1'b0}}, 1'b1};
         else if (load)
             remaining <= cell_cycles;
-        else if (remaining != {DELAY_BITS{1'b0}})
+        else if (remaining > {{(DELAY_BITS-1){1'b0}}, 1'b1})
             remaining <= remaining - 1'b1;
     end
 endmodule

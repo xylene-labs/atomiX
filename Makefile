@@ -403,7 +403,10 @@ pemu-model-check:
 	$(PYTHON) sw/pemu/as/check_axpe_as.py
 	$(PYTHON) sw/pemu/model/check_axpe_model.py
 
-.PHONY: pemu-model-check
+pemu-cosim-check: pemu-model-check
+	$(MAKE) -C sim/pemu check
+
+.PHONY: pemu-model-check pemu-cosim-check
 
 # `validate` checks the manifest; `self-test` checks the runner, by running a
 # suite built to go wrong: a stage whose tool is missing, one naming a

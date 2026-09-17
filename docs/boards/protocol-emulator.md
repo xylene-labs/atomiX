@@ -18,8 +18,8 @@ card instead of taking time from the submission. All owners are unassigned.
 | PE-01: competition entry and template baseline | P0 | Ready | Sign-up form and asic-competition@janestreet.com | Register, record the confirmed rules and any template updates, and pull the CMOS5L Verilog template into `asic/tt-axpe/` unmodified |
 | PE-02: area and memory feasibility gate | P0 | Active | PE-01 template for the macro trial | Macro footprints measured 2026-09-17; remaining slice is confirming the Tiny Tapeout 6×4 flow accepts an SRAM macro, and measuring real cells per tile |
 | PE-03: `axpe` ISA specification | P0 | Review | PE-02 budget | Done: `axpe-isa.json` is the single source, `axpe-isa.md` is generated from it, and `WAITE` returns its elapsed cycle count |
-| PE-04: golden model and assembler | P0 | Active | PE-03 timing decisions | Draft C model, assembler and host checks run via `make pemu-model-check`; settle shift/effect timing and correct the reproduced UART/autobaud gaps before closing |
-| PE-05: RTL and cycle-for-cycle cosimulation | P0 | Next | PE-04 | `components/pemu/axpe/` passes `make pemu-check` against the golden model on randomised programs |
+| PE-04: golden model and assembler | P0 | Active | PE-03 timing decisions | Model, assembler, UART/autobaud and four-mode clocked shifts pass via `make pemu-model-check`; close only after effect/reset/fault conventions receive commit-pinned review |
+| PE-05: RTL and cycle-for-cycle cosimulation | P0 | Active | PE-04 | Scalar/control RTL matches the model across 64 deterministic randomized programs; remove the recorded one-cycle `WAITE`/shift handoff gap before promoting the gate to `make pemu-check` |
 | PE-06: timing-determinism proof | P0 | Next | PE-05 | Every instruction proved to retire in its declared cycle count, `WAITE` bounded by its timeout |
 | PE-07: UART, SPI and I2C firmware | P0 | Active | PE-05 for RTL | UART conforms to the platform oracle and SPI mode 0 runs full duplex against a modelled peer; I2C and independent reference cross-checks remain |
 | PE-08: profile knobs exercised | P1 | Next | PE-05 | `configs/sim-axpe-tiny.json` runs every declared knob at a non-default value with limits derived from the build's own defines |
@@ -58,6 +58,29 @@ This is a reviewable partial checkpoint, not PE-04 completion or protocol
 conformance. Next: review pin-effect and shift timing, complete clocked shifts,
 then repair and check firmware against independent references. PE-02's macro
 flow gate remains open; no RTL, synthesis/P&R, FPGA or silicon result is claimed.
+
+### PE-05 checkpoint — 2026-09-17
+
+The first Verilated differential harness now compares `uio` latch, open-drain
+enable, `uo_out`, terminal status and elapsed cycles against the C golden model.
+Scalar/control timing passes a directed branch/call/return case and 64 seeded
+random programs with varied delays, ALU operations, pin effects and input
+sampling.
+
+The comparison found and fixed four RTL defects: the core could not issue after
+reset because the timer entered a non-ready zero state; HALT ignored its encoded
+duration; the first MSB-first shift bit used the previous transfer's bit count;
+and receive samples landed one cycle late, losing the final CPHA=1 bit. It also
+fixed `WAITE` returning `D+1` on timeout and setting `T` incorrectly when an edge
+arrived exactly at the bound.
+
+One architectural gap remains explicit: returning from `WAITE` or any shift to
+the main issue state inserts one cycle not declared by the ISA. Directed
+unclocked, clocked, full-duplex CPHA=1 and timeout cases reproduce exactly one
+removable cycle and are reported as XFAIL, so this is not yet the PE-05 passing
+slice and PE-06 cannot start. Evidence is host RTL/model cosimulation only in
+[`axpe-cosim.json`](../../research/benchmarks/axpe-cosim.json); no synthesis,
+P&R, FPGA or silicon claim is made.
 
 | Phase | Cards | By |
 |---|---|---|

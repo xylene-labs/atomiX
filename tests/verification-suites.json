@@ -693,7 +693,7 @@
       ]
     },
     "pemu-model": {
-      "label": "Draft axpe ISA, assembler and host model; known protocol gaps retained",
+      "label": "axpe ISA, assembler and host model protocol checks",
       "command": [
         "make",
         "pemu-model-check"
@@ -703,6 +703,20 @@
         "make",
         "python3",
         "cc"
+      ]
+    },
+    "pemu-cosim": {
+      "label": "Draft axpe RTL differential check; scalar randomized pass and long-engine XFAILs",
+      "command": [
+        "make",
+        "pemu-cosim-check"
+      ],
+      "timeout_seconds": 180,
+      "requires": [
+        "make",
+        "python3",
+        "cc",
+        "verilator"
       ]
     }
   },
@@ -719,7 +733,8 @@
       "live-rtl",
       "candidate-registry",
       "live-closed-loop",
-      "pemu-model"
+      "pemu-model",
+      "pemu-cosim"
     ],
     "ci-quick": [
       "requirements",
@@ -733,7 +748,8 @@
       "cosim-directed",
       "diagrams",
       "brand-assets",
-      "pemu-model"
+      "pemu-model",
+      "pemu-cosim"
     ],
     "analysis": [
       "static-analysis",
@@ -792,7 +808,8 @@
       "kernel-storage-mutation",
       "diagrams",
       "brand-assets",
-      "pemu-model"
+      "pemu-model",
+      "pemu-cosim"
     ],
     "randomized": [
       "randomized-fuzz",

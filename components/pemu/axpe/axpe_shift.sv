@@ -50,8 +50,7 @@ module axpe_shift #(
     reg  [1:0]  state;
     reg  [4:0]  index;          // which bit of the transfer
     reg  [4:0]  total;
-    reg         sample_due;     // capture pad_in on the next edge
-    reg  [3:0]  sample_pos;   // 0..REG_W-1
+    reg  [REG_W-1:0] rx_latch;
 
     wire timer_last;
     reg  timer_load;
@@ -86,8 +85,10 @@ module axpe_shift #(
 
     wire [3:0] pos_now  = position(index[3:0], total[3:0], cfg_ord);
     wire [3:0] pos_next = position(index[3:0] + 4'd1, total[3:0], cfg_ord);
+    wire [3:0] pos_issue = position(4'd0, nbits[3:0], cfg_ord);
     wire       bit_now  = tx_value[pos_now];
     wire       bit_next = tx_value[pos_next];
+    wire       bit_issue = tx_value[pos_issue];
     wire       is_last  = (index + 5'd1 == total);
 
     // One pin write per cycle for the data line, one for the clock. The mask
@@ -108,27 +109,16 @@ module axpe_shift #(
             state      <= S_IDLE;
             index      <= 5'd0;
             total      <= 5'd0;
-            rx_value   <= {REG_W{1'b0}};
-            sample_due <= 1'b0;
-            sample_pos <= 4'd0;
+            rx_latch   <= {REG_W{1'b0}};
         end else begin
-            // A sample issued last cycle lands now, so the captured level is
-            // the pad during the first cycle of its phase, matching the model.
-            if (sample_due) begin
-                rx_value[sample_pos] <= pad_in[cfg_din];
-                sample_due <= 1'b0;
-            end
-
             case (state)
             S_IDLE: if (start) begin
                 index <= 5'd0;
                 total <= nbits;
-                rx_value <= {REG_W{1'b0}};
+                rx_latch <= {REG_W{1'b0}};
                 state <= clocked ? S_CLK_A : S_UNCLK;
-                if (!clocked && take_data) begin
-                    sample_due <= 1'b1;
-                    sample_pos <= position(4'd0, nbits[3:0], cfg_ord);
-                end
+                if (!clocked && take_data)
+                    rx_latch[pos_issue] <= pad_in[cfg_din];
             end
 
             S_UNCLK: if (timer_last) begin
@@ -136,28 +126,19 @@ module axpe_shift #(
                     state <= S_IDLE;
                 end else begin
                     index <= index + 5'd1;
-                    if (take_data) begin
-                        sample_due <= 1'b1;
-                        sample_pos <= pos_next;
-                    end
+                    if (take_data) rx_latch[pos_next] <= pad_in[cfg_din];
                 end
             end
 
             S_CLK_A: if (timer_last) begin
                 state <= S_CLK_B;
                 // cpha=0 samples on the leading edge we are about to take.
-                if (!cfg_cpha && take_data) begin
-                    sample_due <= 1'b1;
-                    sample_pos <= pos_now;
-                end
+                if (!cfg_cpha && take_data) rx_latch[pos_now] <= pad_in[cfg_din];
             end
 
             S_CLK_B: if (timer_last) begin
                 // cpha=1 samples on the trailing edge.
-                if (cfg_cpha && take_data) begin
-                    sample_due <= 1'b1;
-                    sample_pos <= pos_now;
-                end
+                if (cfg_cpha && take_data) rx_latch[pos_now] <= pad_in[cfg_din];
                 if (is_last) begin
                     state <= S_IDLE;
                 end else begin
@@ -185,7 +166,9 @@ module axpe_shift #(
             timer_load  = 1'b1;
             timer_delay = clocked ? half : whole;
             if (clocked) write_pin(cfg_clk, cfg_cpol);
-            if (drive_data && (!clocked || !cfg_cpha)) write_pin(cfg_dout, bit_now);
+            // total is latched on this same edge, so the first bit must use
+            // the incoming count rather than the previous transfer's total.
+            if (drive_data && (!clocked || !cfg_cpha)) write_pin(cfg_dout, bit_issue);
         end
 
         S_UNCLK: if (timer_last) begin
@@ -214,6 +197,16 @@ module axpe_shift #(
         end
         default: ;
         endcase
+    end
+
+    // Usually the sampled result is already registered before `done`. In
+    // CPHA=1 the last sample and `done` share the trailing edge, so forward
+    // that pad value combinationally to the parent just as a pipelined ALU
+    // forwards a result at retirement.
+    always @(*) begin
+        rx_value = rx_latch;
+        if (state == S_CLK_B && timer_last && is_last && cfg_cpha && take_data)
+            rx_value[pos_now] = pad_in[cfg_din];
     end
 endmodule
 
