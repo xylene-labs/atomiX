@@ -102,6 +102,15 @@ firmware must never re-open a board claim or trigger re-synthesis.
   toolchain is complete in oss-cad-suite, so PE-09 is not tool-blocked; what it
   needs is a `.cst` exposing a PMOD header, since the board currently constrains
   only `clk_50mhz`, `button_s1`, `uart_rx` and `uart_tx`.
+- 2026-09-17: no removable storage is needed, and microSD is not an option on
+  this board. Only `board.ulx3s_45f` and `board.ulx3s_85f` declare `micro-sd`;
+  `board.tangprimer25k` declares none, so `block.spi-sd` is not a peer we can
+  reach here. An SD card would also be a poor first SPI target -- the CMD0 /
+  CMD8 / ACMD41 init may not fit 256 instructions, and a peer that can be told
+  to misbehave is worth more during bring-up than an independent one. USB mass
+  storage is not reachable at all: it needs a full host stack, and the
+  low-speed USB stretch goal means 1.5 Mbps signalling, for which the peer
+  would be an old keyboard or mouse rather than a drive.
 - 2026-09-17: no protocol peer hardware is owned, and buying one is deferred to
   December rather than assumed. UART therefore earns board evidence for free
   against the host's USB-serial stack -- an independent implementation by any
