@@ -24,7 +24,7 @@ card instead of taking time from the submission. All owners are unassigned.
 | PE-07: UART, SPI and I2C firmware | P0 | Active | PE-05 for RTL | UART conforms to the platform oracle and SPI mode 0 runs full duplex against a modelled peer; I2C and independent reference cross-checks remain |
 | PE-08: profile knobs exercised | P1 | Next | PE-05 | `configs/sim-axpe-tiny.json` runs every declared knob at a non-default value with limits derived from the build's own defines |
 | PE-13: firmware-vs-fixed-logic experiment | P0 | Active | PE-05, PE-07 for full results | Plan and workload validate today; the comparison against `uart.mmio16550` under one oracle is what makes the premise measured rather than asserted |
-| PE-09: Tang Primer bring-up | P1 | Next | PE-05; Dock access; a `.cst` exposing a PMOD header | UART against the host's own USB-serial stack, which is an independent implementation and needs no purchase. SPI and I2C peers are deferred |
+| PE-09: Tang Primer bring-up | P1 | Next | PE-05; Dock access; a `.cst` exposing a PMOD header; peer hardware arriving | UART against CP2102, SPI against a Pi Pico 2 target, I2C against an AT24C256. Add a capture-clock divider so the 24 MS/s analyzer can witness edge placement in `axpe` cycles |
 | PE-10: CMOS5L synthesis and place-and-route | P0 | Next | PE-07, PE-02 | Actual area and timing at the chosen clock, violations recorded as found |
 | PE-11: gate-level firmware simulation | P1 | Next | PE-10 | The same three firmware images pass post-P&R netlist simulation |
 | PE-12: submission package | P0 | Next | PE-06, PE-07, PE-10 | `make tt-export` produces the Tiny Tapeout repository from this tree, with the write-up and evidence index |
@@ -102,6 +102,28 @@ firmware must never re-open a board claim or trigger re-synthesis.
   toolchain is complete in oss-cad-suite, so PE-09 is not tool-blocked; what it
   needs is a `.cst` exposing a PMOD header, since the board currently constrains
   only `clk_50mhz`, `button_s1`, `uart_rx` and `uart_tx`.
+- 2026-09-17: protocol peer hardware ordered, which resolves the deferred I2C
+  question and gives every mandatory protocol a hardware peer: a Pi Pico 2 with
+  breadboard and jumpers, a CP2102 USB-UART, a 24 MS/s 8-channel logic
+  analyzer, and an AT24C256 I2C EEPROM. All 3.3 V, so no level shifting.
+  Three consequences to design for, before PE-09 is pulled:
+  - **The analyzer cannot resolve cycles at the board clock.** 24 MS/s is
+    41.7 ns per sample against a 20 ns period. It decodes protocol rates with
+    room to spare (208 samples per UART bit at 115200, 240 per I2C bit at
+    100 kHz, 24 per SPI bit at 1 MHz) but cannot witness the `max(D,1)` rule.
+    Captured-waveform evidence and cycle-exact timing stay separate claims.
+  - **A capture clock makes it cycle-exact.** Running `axpe` from a divided
+    clock at about 1 MHz gives roughly 24 samples per `axpe` cycle, and the
+    rule is relative to `axpe`'s own clock, so edge placement can then be
+    checked in cycles against the workload oracle on real hardware. The FPGA
+    wrapper should carry a capture-clock divider from the start; it is the only
+    route we have to physical evidence for the headline property.
+  - **I2C needs pull-ups, and open-drain is why.** `axpe` never drives an
+    open-drain pin high, so without pull-ups SDA and SCL float and I2C fails
+    silently. Confirm the EEPROM module carries them before debugging firmware.
+    The AT24C256 also uses two-byte word addressing, unlike the AT24C02
+    originally considered, so a transaction costs more instructions against
+    `imem_words`.
 - 2026-09-17: no removable storage is needed, and microSD is not an option on
   this board. Only `board.ulx3s_45f` and `board.ulx3s_85f` declare `micro-sd`;
   `board.tangprimer25k` declares none, so `block.spi-sd` is not a peer we can
