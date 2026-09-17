@@ -13,9 +13,9 @@ ASIC dependency audit can start independently without a board or PDK.
 | [AX-10: native CPU and RTL execution adapters](../design-checklist.md#ax-10) | P0 | Done | AX-01 | Define the adapter contract and implement one native integer workload against the shared oracle, without invoking FPGA or RISC-V tools |
 | [AX-12: ISS and emulator adapters](../design-checklist.md#ax-12) | P1 | Done | AX-10 | Separate aXsim/QEMU adapters run one exact ELF fixture; QEMU-required conformance covers refusals, bounds, and failed replay |
 | [AX-11: compiler/runtime and hardware co-design experiments](../design-checklist.md#ax-11) | P1 | Done | AX-10, AX-02, AX-03 | GCC `-O0`/`-O2` and a complete SIMT-algorithm/lane-count control passed exact oracles with replayable identities |
-| [RX-08: ASIC portability dependency audit](../research-checklist.md#rx-08) | P1 | Ready | Existing RTL and manifests | Inventory memory, arithmetic, initialization, reset/clock, and I/O assumptions for one small block; identify required technology boundaries |
+| [RX-08: ASIC portability dependency audit](../research-checklist.md#rx-08) | P1 | Active | Existing RTL and manifests | Executed by [PE-02](protocol-emulator.md) on `axpe`: measure CMOS5L cells per tile and storage density, and decide the instruction store before any encoding is fixed |
 | [AX-13: external accelerator backend](../design-checklist.md#ax-13) | P2 | Next | AX-10, AX-03; a supported device/runtime for execution | Inventory available compute devices and choose one workload/adapter only when an actual target is accessible |
-| [RX-09: technology-mapped implementation feasibility](../research-checklist.md#rx-09) | P2 | Next | RX-08; accessible libraries, tools, and compute budget | Specify a bounded synthesis/physical-design experiment for the audited block, with named constraints and required reports |
+| [RX-09: technology-mapped implementation feasibility](../research-checklist.md#rx-09) | P0 | Next | RX-08; IHP-Open-PDK and the Tiny Tapeout CMOS5L flow | Executed by [PE-10](protocol-emulator.md): full CMOS5L synthesis and place-and-route of `axpe`, with actual area and timing at the chosen clock |
 
 ## What keeps this work focused
 
@@ -29,10 +29,18 @@ backend; it does not mandate CUDA, a specific vendor, an NPU purchase, or a
 remote service. If access is absent when its execution slice is pulled, mark
 that slice Blocked. CPU fallbacks can be separately identified candidates.
 
-RX-08 and RX-09 earn an ASIC feasibility decision. Foundry selection, tapeout,
-and purchasing are later work, with their own prerequisites. Existing Primer
-limits stay local to those profiles; they do not size host experiments or
-future technology targets.
+RX-08 and RX-09 earn an ASIC feasibility decision. Existing Primer limits stay
+local to those profiles; they do not size host experiments or future technology
+targets.
+
+As of 2026-09-17 both cards have a concrete vehicle: `axpe`, on the
+[protocol emulator board](protocol-emulator.md). The Jane Street CMOS5L
+competition supplies what these cards previously lacked — a selected block, an
+accessible PDK and flow, a fixed area and timing budget, and a deadline. That
+changes how the work is executed, not what it may claim. A place-and-route
+result remains a place-and-route result; foundry selection and any fabrication
+decision keep their own prerequisites, and submitting a design to a shuttle is
+not a silicon claim. Nothing taped out exists until it returns measured.
 
 Current commands remain in [workflow.md](../workflow.md). New adapters must
 add focused conformance checks and appropriate suite coverage before closure;

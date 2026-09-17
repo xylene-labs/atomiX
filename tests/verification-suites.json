@@ -691,6 +691,19 @@
         "make",
         "python3"
       ]
+    },
+    "pemu-model": {
+      "label": "Draft axpe ISA, assembler and host model; known protocol gaps retained",
+      "command": [
+        "make",
+        "pemu-model-check"
+      ],
+      "timeout_seconds": 120,
+      "requires": [
+        "make",
+        "python3",
+        "cc"
+      ]
     }
   },
   "suites": {
@@ -705,7 +718,8 @@
       "axsim-directed",
       "live-rtl",
       "candidate-registry",
-      "live-closed-loop"
+      "live-closed-loop",
+      "pemu-model"
     ],
     "ci-quick": [
       "requirements",
@@ -718,7 +732,8 @@
       "candidate-registry",
       "cosim-directed",
       "diagrams",
-      "brand-assets"
+      "brand-assets",
+      "pemu-model"
     ],
     "analysis": [
       "static-analysis",
@@ -776,7 +791,8 @@
       "kernel-hardening",
       "kernel-storage-mutation",
       "diagrams",
-      "brand-assets"
+      "brand-assets",
+      "pemu-model"
     ],
     "randomized": [
       "randomized-fuzz",

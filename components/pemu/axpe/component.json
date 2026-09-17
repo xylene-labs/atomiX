@@ -1,0 +1,58 @@
+{
+  "schema": 1,
+  "id": "pemu.axpe",
+  "kind": "pemu",
+  "title": "Timed-ISA protocol emulator with measured-wait",
+  "sources": [
+    "components/pemu/axpe/axpe.sv",
+    "components/pemu/axpe/axpe_decode.sv",
+    "components/pemu/axpe/axpe_timing.sv",
+    "components/pemu/axpe/axpe_shift.sv",
+    "components/pemu/axpe/axpe_pads.sv"
+  ],
+  "stock_soc_module": "axpe",
+  "parameters": {
+    "imem_words": {
+      "default": 256,
+      "define": "AXPE_IMEM_WORDS",
+      "doc": "Program memory depth in 32-bit words. On CMOS5L this is an IHP SRAM macro: 256 words costs 6.9% of a 6x4 die and 512 costs 11.1%, measured from the PDK LEF. In flip-flops 256 words would exceed the whole die, which is why the storage primitive rather than the depth is the real constraint. The assembler refuses a program longer than this value, so raising it is what buys firmware room."
+    },
+    "reg_count": {
+      "default": 8,
+      "define": "AXPE_REGS",
+      "doc": "General registers R0..R(n-1). Costs reg_count * reg_width flip-flops against a whole-die ceiling near 7,680, so this is one of the few knobs that trades directly against the instruction store."
+    },
+    "reg_width": {
+      "default": 16,
+      "define": "AXPE_REG_W",
+      "doc": "Register width in bits. Also the widest value SHOUT/SHIN can move in one instruction and the widest measurement WAITE can return, so narrowing it shortens the longest interval the chip can time."
+    },
+    "delay_bits": {
+      "default": 16,
+      "define": "AXPE_DELAY_BITS",
+      "doc": "Width of the delay field every instruction carries, and therefore the longest single hold or WAITE timeout in cycles. At 50 MHz, 16 bits reaches 1.31 ms, which covers one bit time down to about 763 baud."
+    },
+    "uio_pins": {
+      "default": 8,
+      "define": "AXPE_UIO_PINS",
+      "doc": "Bidirectional protocol pins, each with its own direction and open-drain control. The Tiny Tapeout harness supplies 8; a profile targeting another carrier may have fewer."
+    },
+    "call_depth": {
+      "default": 4,
+      "define": "AXPE_CALL_DEPTH",
+      "doc": "Hardware call stack entries. Each costs clog2(imem_words) flip-flops. Firmware that exceeds it is a build-time error in the assembler rather than a silent overwrite."
+    }
+  },
+  "capabilities": [
+    "timed-isa",
+    "declared-retirement-cycles",
+    "measured-wait",
+    "open-drain-pins",
+    "shift-engine",
+    "bit-bang-uart",
+    "bit-bang-spi",
+    "bit-bang-i2c",
+    "autobaud",
+    "pulse-width-capture"
+  ]
+}

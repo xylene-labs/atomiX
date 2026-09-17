@@ -1,0 +1,259 @@
+{
+  "schema": {
+    "id": "org.atomix.workload",
+    "major": 1,
+    "minor": 0
+  },
+  "kind": "workload",
+  "id": "org.atomix.workload.uart-tx-8n1",
+  "revision": 1,
+  "summary": "UART 8N1 transmit, defined as the exact sequence of transitions on one pin rather than as any machine's behaviour",
+  "operation": "org.atomix.workload.uart-tx-8n1",
+  "parameters": {
+    "clock_hz": 50000000,
+    "baud": 115200,
+    "byte": 165
+  },
+  "buffers": [
+    {
+      "name": "byte",
+      "direction": "org.atomix.input",
+      "element": {
+        "format": "org.atomix.integer",
+        "properties": {
+          "bits": 8,
+          "signed": false,
+          "overflow": "org.atomix.twos-complement-wrap"
+        }
+      },
+      "shape": [
+        1
+      ],
+      "layout": "org.atomix.row-major"
+    },
+    {
+      "name": "transitions",
+      "direction": "org.atomix.output",
+      "element": {
+        "format": "org.atomix.integer",
+        "properties": {
+          "bits": 32,
+          "signed": false,
+          "overflow": "org.atomix.twos-complement-wrap"
+        }
+      },
+      "shape": [
+        "edges",
+        2
+      ],
+      "layout": "org.atomix.row-major"
+    }
+  ],
+  "oracle": {
+    "kind": "org.atomix.builtin-exact",
+    "operation": "org.atomix.workload.uart-tx-8n1",
+    "properties": {
+      "cycles_per_bit": 434,
+      "bit_order": "org.atomix.lsb-first",
+      "idle_level": 1,
+      "start_bits": 1,
+      "stop_bits": 1
+    }
+  },
+  "cases": [
+    {
+      "name": "byte-0x00-all-zero-data",
+      "parameters": {
+        "clock_hz": 50000000,
+        "baud": 115200,
+        "byte": 0
+      },
+      "inputs": {
+        "byte": [
+          0
+        ]
+      },
+      "expected": {
+        "transitions": [
+          [
+            0,
+            0
+          ],
+          [
+            3906,
+            1
+          ]
+        ]
+      }
+    },
+    {
+      "name": "byte-0xff-all-one-data",
+      "parameters": {
+        "clock_hz": 50000000,
+        "baud": 115200,
+        "byte": 255
+      },
+      "inputs": {
+        "byte": [
+          255
+        ]
+      },
+      "expected": {
+        "transitions": [
+          [
+            0,
+            0
+          ],
+          [
+            434,
+            1
+          ]
+        ]
+      }
+    },
+    {
+      "name": "byte-0xa5-mixed",
+      "parameters": {
+        "clock_hz": 50000000,
+        "baud": 115200,
+        "byte": 165
+      },
+      "inputs": {
+        "byte": [
+          165
+        ]
+      },
+      "expected": {
+        "transitions": [
+          [
+            0,
+            0
+          ],
+          [
+            434,
+            1
+          ],
+          [
+            868,
+            0
+          ],
+          [
+            1302,
+            1
+          ],
+          [
+            1736,
+            0
+          ],
+          [
+            2604,
+            1
+          ],
+          [
+            3038,
+            0
+          ],
+          [
+            3472,
+            1
+          ]
+        ]
+      }
+    },
+    {
+      "name": "byte-0x55-alternating",
+      "parameters": {
+        "clock_hz": 50000000,
+        "baud": 115200,
+        "byte": 85
+      },
+      "inputs": {
+        "byte": [
+          85
+        ]
+      },
+      "expected": {
+        "transitions": [
+          [
+            0,
+            0
+          ],
+          [
+            434,
+            1
+          ],
+          [
+            868,
+            0
+          ],
+          [
+            1302,
+            1
+          ],
+          [
+            1736,
+            0
+          ],
+          [
+            2170,
+            1
+          ],
+          [
+            2604,
+            0
+          ],
+          [
+            3038,
+            1
+          ],
+          [
+            3472,
+            0
+          ],
+          [
+            3906,
+            1
+          ]
+        ]
+      }
+    },
+    {
+      "name": "framing-single-bit-and-stop",
+      "parameters": {
+        "clock_hz": 50000000,
+        "baud": 115200,
+        "byte": 1
+      },
+      "inputs": {
+        "byte": [
+          1
+        ]
+      },
+      "expected": {
+        "transitions": [
+          [
+            0,
+            0
+          ],
+          [
+            434,
+            1
+          ],
+          [
+            868,
+            0
+          ],
+          [
+            3906,
+            1
+          ]
+        ]
+      }
+    }
+  ],
+  "metrics": [
+    "org.atomix.metric.execute-cycles",
+    "org.atomix.metric.cell-area-um2"
+  ],
+  "extensions": {}
+}

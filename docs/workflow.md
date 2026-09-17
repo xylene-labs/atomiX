@@ -79,6 +79,20 @@ FPGA environment once per shell: `source "$HOME/opt/oss-cad-suite/environment"`.
 
 ## 2. Build
 
+### Protocol emulator host checkpoint
+
+```bash
+make pemu-model-check   # ISA drift, assembler, draft C model and firmware gaps
+```
+
+Requires a host C compiler and Python, with no FPGA tools or hardware. This
+stage runs in smoke, quick CI and nightly verification. It checks ISA drift, the
+assembler, and the host model, and runs the UART, autobaud and SPI firmware,
+with UART matching the platform waveform oracle exactly. Clocked shifts are
+specified and modelled across all four SPI modes. I2C firmware and a platform
+oracle for SPI remain open, and this is a model result rather than RTL, FPGA,
+or silicon evidence. See [model conventions](../sw/pemu/model/README.md).
+
 ### Choose / inspect a profile
 ```bash
 make component-list                              # catalog of selectable components
@@ -693,7 +707,7 @@ must not be able to change what is published.
 Deployment needs one manual setting per repository: **Settings → Pages → Build
 and deployment → Source: GitHub Actions**. Until that is set the build job
 still runs every check; only the deploy step fails. Once enabled the site is at
-`https://scynth-labs.github.io/atomiX/`.
+`https://xylene-labs.github.io/atomiX/`.
 
 `make adapter-check` proves what a passing run never shows: the native leg
 builds and runs with every RISC-V, Verilator, and FPGA tool shadowed by a

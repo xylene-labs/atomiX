@@ -1,0 +1,9 @@
+{
+  "schema": 1,
+  "id": "pemu.none",
+  "kind": "pemu",
+  "title": "No protocol emulator",
+  "sources": [],
+  "stock_soc_module": null,
+  "capabilities": []
+}

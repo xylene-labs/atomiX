@@ -1,0 +1,115 @@
+{
+  "schema": 1,
+  "id": "axpe",
+  "title": "atomiX protocol emulator timed ISA",
+  "doc": "Single source of truth for the axpe instruction set. The assembler, the C golden model, the SystemVerilog decoder, the formal properties, and the instruction tables in axpe-isa.md are all generated or loaded from this file. An implementation cannot disagree with the specification, because neither is written twice.",
+
+  "encoding": {
+    "width": 32,
+    "fields": {
+      "op":    {"hi": 31, "lo": 27, "doc": "opcode"},
+      "a":     {"hi": 26, "lo": 24, "doc": "destination or primary register"},
+      "b":     {"hi": 23, "lo": 21, "doc": "source register, or high bits of imm8"},
+      "x":     {"hi": 20, "lo": 16, "doc": "bit count, shift amount, or low bits of imm8"},
+      "delay": {"hi": 15, "lo":  0, "doc": "D, carried by every instruction"}
+    },
+    "overlays": {
+      "imm8": {"fields": ["b", "x"], "doc": "8-bit immediate spanning b and x; an instruction uses either a source register or an immediate, never both"}
+    }
+  },
+
+  "timing": {
+    "fixed":   {"formula": "max(D,1)",         "exact": true,  "doc": "Occupies exactly D cycles, and at least one. D is the cell duration, not an addition to a fetch cycle, so a pin driven with D=434 is held for exactly 434 cycles and a waveform lands on exact multiples of its bit period."},
+    "perbit":  {"formula": "n*max(D,1)",       "exact": true,  "doc": "n bits, each occupying exactly D cycles, with no setup cycle. Both n and D are encoded, so the cost is static."},
+    "bounded": {"formula": "w, 1<=w<=max(D,1)", "exact": false, "doc": "Waits for an external event, so the cost is data-dependent. The instruction occupies exactly the cycles it waited, which is also the value it returns, so two consecutive waits measure an interval without bias. D is a hard timeout and the proof uses that worst case."}
+  },
+
+  "shapes": {
+    "none":      {"operands": [],                  "doc": "no operands"},
+    "imm8":      {"operands": ["imm8"],            "doc": "8-bit immediate"},
+    "reg":       {"operands": ["reg"],             "doc": "one register"},
+    "reg_n":     {"operands": ["reg", "nbits"],    "doc": "register and a bit count of 1..16"},
+    "reg_reg":   {"operands": ["reg", "reg"],      "doc": "destination and source register"},
+    "reg_imm8":  {"operands": ["reg", "imm8"],     "doc": "register and an 8-bit immediate"},
+    "reg_shift": {"operands": ["reg", "shift"],    "doc": "register and a shift amount of 0..16"},
+    "branch":    {"operands": ["cond", "target"],  "doc": "condition and a branch target"},
+    "target":    {"operands": ["target"],          "doc": "a branch target"}
+  },
+
+  "conditions": {
+    "ALWAYS": 0, "Z": 1, "NZ": 2, "C": 3, "NC": 4, "T": 5, "NT": 6
+  },
+
+  "aliases": {
+    "NOP": {"expands_to": "DELAY", "operands": [], "doc": "NOP is not an opcode. It is DELAY 0, and saying so here keeps the instruction count honest."}
+  },
+
+  "groups": {
+    "timing":  "Timing",
+    "pins":    "Pins",
+    "measure": "Measurement",
+    "shift":   "Shift engine",
+    "alu":     "ALU",
+    "control": "Control"
+  },
+
+  "instructions": [
+    {"mnemonic": "DELAY",  "opcode":  0, "shape": "none",      "timing": "fixed",   "group": "timing",  "doc": "Nothing, for D cycles."},
+
+    {"mnemonic": "PINSET", "opcode":  1, "shape": "imm8",      "timing": "fixed",   "group": "pins",    "doc": "uio pins in the mask go high, or release if open-drain."},
+    {"mnemonic": "PINCLR", "opcode":  2, "shape": "imm8",      "timing": "fixed",   "group": "pins",    "doc": "uio pins in the mask go low."},
+    {"mnemonic": "PINTOG", "opcode":  3, "shape": "imm8",      "timing": "fixed",   "group": "pins",    "doc": "uio pins in the mask invert."},
+    {"mnemonic": "PINW",   "opcode":  4, "shape": "reg",       "timing": "fixed",   "group": "pins",    "doc": "uio outputs take Ra[7:0]."},
+    {"mnemonic": "POUT",   "opcode":  5, "shape": "reg",       "timing": "fixed",   "group": "pins",    "doc": "uo_out takes Ra[7:0]."},
+    {"mnemonic": "PINR",   "opcode":  6, "shape": "reg",       "timing": "fixed",   "group": "pins",    "doc": "Ra takes {ui_in[7:0], uio_in[7:0]}, both groups sampled with no skew."},
+    {"mnemonic": "PDIR",   "opcode":  7, "shape": "imm8",      "timing": "fixed",   "group": "pins",    "doc": "uio direction mask, 1 = drive."},
+    {"mnemonic": "PDRN",   "opcode":  8, "shape": "imm8",      "timing": "fixed",   "group": "pins",    "doc": "uio open-drain mask. Required for I2C, which cannot be expressed without it."},
+
+    {"mnemonic": "WAITE",  "opcode":  9, "shape": "reg_imm8",  "timing": "bounded", "group": "measure", "returns_time": true,
+     "doc": "Wait for the selected edge with timeout D. Ra takes the number of cycles actually waited, and T is set if and only if the wait reached D. The returned count is what lets firmware measure an unknown peer's timing instead of only reproducing a known one.",
+     "imm8_layout": [
+       {"name": "pin",  "hi": 3, "lo": 0, "doc": "uio[0..7] as 0-7, ui_in[0..7] as 8-15"},
+       {"name": "edge", "hi": 5, "lo": 4, "doc": "0 rising, 1 falling, 2 either, 3 level-high"}
+     ]},
+
+    {"mnemonic": "SHCFG",  "opcode": 10, "shape": "reg",       "timing": "fixed",   "group": "shift",   "doc": "Shift engine wiring takes Ra."},
+    {"mnemonic": "SHOUT",  "opcode": 11, "shape": "reg_n",     "timing": "perbit",  "group": "shift",   "doc": "Clock n bits out of Ra, each bit occupying D cycles."},
+    {"mnemonic": "SHIN",   "opcode": 12, "shape": "reg_n",     "timing": "perbit",  "group": "shift",   "doc": "Clock n bits into Ra."},
+    {"mnemonic": "SHIO",   "opcode": 13, "shape": "reg_n",     "timing": "perbit",  "group": "shift",   "doc": "Full duplex: out and in together, which is what SPI wants."},
+
+    {"mnemonic": "MOV",    "opcode": 16, "shape": "reg_reg",   "timing": "fixed",   "group": "alu",     "doc": "Ra takes Rb."},
+    {"mnemonic": "ADD",    "opcode": 17, "shape": "reg_reg",   "timing": "fixed",   "group": "alu",     "flags": "ZC", "doc": "Ra += Rb."},
+    {"mnemonic": "SUB",    "opcode": 18, "shape": "reg_reg",   "timing": "fixed",   "group": "alu",     "flags": "ZC", "doc": "Ra -= Rb."},
+    {"mnemonic": "AND",    "opcode": 19, "shape": "reg_reg",   "timing": "fixed",   "group": "alu",     "flags": "Z",  "doc": "Ra &= Rb."},
+    {"mnemonic": "OR",     "opcode": 20, "shape": "reg_reg",   "timing": "fixed",   "group": "alu",     "flags": "Z",  "doc": "Ra |= Rb."},
+    {"mnemonic": "XOR",    "opcode": 21, "shape": "reg_reg",   "timing": "fixed",   "group": "alu",     "flags": "Z",  "doc": "Ra ^= Rb."},
+    {"mnemonic": "SHL",    "opcode": 22, "shape": "reg_shift", "timing": "fixed",   "group": "alu",     "flags": "C",  "doc": "Ra <<= x, C takes the last bit out."},
+    {"mnemonic": "SHR",    "opcode": 23, "shape": "reg_shift", "timing": "fixed",   "group": "alu",     "flags": "C",  "doc": "Ra >>= x, C takes the last bit out."},
+    {"mnemonic": "LDIL",   "opcode": 24, "shape": "reg_imm8",  "timing": "fixed",   "group": "alu",     "doc": "Ra[7:0] takes imm8, high byte preserved."},
+    {"mnemonic": "LDIH",   "opcode": 25, "shape": "reg_imm8",  "timing": "fixed",   "group": "alu",     "doc": "Ra[15:8] takes imm8, low byte preserved."},
+    {"mnemonic": "ADDI",   "opcode": 26, "shape": "reg_imm8",  "timing": "fixed",   "group": "alu",     "flags": "ZC", "doc": "Ra += imm8."},
+    {"mnemonic": "CMP",    "opcode": 27, "shape": "reg_reg",   "timing": "fixed",   "group": "alu",     "flags": "ZC", "doc": "Ra - Rb discarded, flags kept."},
+
+    {"mnemonic": "BR",     "opcode": 28, "shape": "branch",    "timing": "fixed",   "group": "control", "doc": "Branch if the condition holds. Costs 1 + D whether taken or not; a branch that were cheaper untaken would break the central property."},
+    {"mnemonic": "CALL",   "opcode": 29, "shape": "target",    "timing": "fixed",   "group": "control", "doc": "Push PC+1 and jump."},
+    {"mnemonic": "RET",    "opcode": 30, "shape": "none",      "timing": "fixed",   "group": "control", "doc": "Pop."},
+    {"mnemonic": "HALT",   "opcode": 31, "shape": "none",      "timing": "fixed",   "group": "control", "doc": "Stop fetching."}
+  ],
+
+  "reserved_opcodes": [14, 15],
+
+  "registers": {
+    "count": 8,
+    "width": 16,
+    "doc": "R0-R7. Kept narrow and few because the measured flip-flop ceiling for a 6x4 die is around 7,680 total."
+  },
+
+  "shcfg_layout": [
+    {"name": "clk",  "hi":  3, "lo":  0, "doc": "clock pin index; 15 means no clock pin, which is how UART borrows the shift engine"},
+    {"name": "dout", "hi":  7, "lo":  4, "doc": "data-out pin index"},
+    {"name": "din",  "hi": 11, "lo":  8, "doc": "data-in pin index"},
+    {"name": "ord",  "hi": 12, "lo": 12, "doc": "0 LSB-first, 1 MSB-first"},
+    {"name": "cpol", "hi": 13, "lo": 13, "doc": "idle clock level"},
+    {"name": "cpha", "hi": 14, "lo": 14, "doc": "0 samples on the leading edge, 1 on the trailing"}
+  ]
+}

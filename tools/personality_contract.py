@@ -232,6 +232,32 @@ def builtin_result(path: Path, operation: str, parameters: dict[str, Any],
                 for column in range(n)
             ])
         return {"c": result}
+    if operation == "org.atomix.workload.uart-tx-8n1":
+        values = inputs.get("byte")
+        if not isinstance(values, list) or len(values) != 1:
+            raise error(path, "UART oracle input byte must be a single element")
+        byte = int(values[0])
+        if not 0 <= byte <= 0xFF:
+            raise error(path, f"UART oracle byte {byte} is not one octet")
+        clock_hz, baud = int(parameters["clock_hz"]), int(parameters["baud"])
+        if baud <= 0 or clock_hz <= 0:
+            raise error(path, "UART oracle needs a positive clock_hz and baud")
+        cycles_per_bit = clock_hz // baud
+        if cycles_per_bit < 1:
+            raise error(path, f"{baud} baud is faster than a {clock_hz} Hz clock can frame")
+        # The workload is the waveform, not any machine's behaviour: one start
+        # bit low, eight data bits least-significant first, one stop bit high,
+        # on a line that idles high.  Only transitions are recorded, so a run
+        # of equal bits produces no edge and the oracle stays implementation
+        # neutral -- a firmware bit-banger and a fixed UART have to agree here
+        # without sharing a register map, a clock domain, or an ISA.
+        levels = [0] + [(byte >> index) & 1 for index in range(8)] + [1]
+        transitions, previous = [], 1
+        for index, level in enumerate(levels):
+            if level != previous:
+                transitions.append([index * cycles_per_bit, level])
+                previous = level
+        return {"transitions": transitions}
     raise error(path, f"no built-in oracle for {operation!r}")
 
 

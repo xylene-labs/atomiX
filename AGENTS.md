@@ -1,5 +1,41 @@
 # atomiX agent instructions
 
+## Current focus — CMOS5L protocol emulator, until 2027-01-18
+
+**This section is temporary and is removed once the competition closes.** It
+narrows what to work on. It does not suspend any rule below it; the mission
+constraints, evidence rules, and Git safety rules apply to this work unchanged.
+
+The project's whole work-in-progress limit belongs to `axpe`, a timed-ISA
+protocol emulator entered in the Jane Street open-source CMOS5L ASIC
+competition. Read [`docs/protocol-emulator.md`](docs/protocol-emulator.md) for
+the design and [`docs/boards/protocol-emulator.md`](docs/boards/protocol-emulator.md)
+for the card queue; pull from that board unless asked otherwise.
+
+- **M0 delivery work is paused, not abandoned.** No card is withdrawn and no
+  evidence is invalidated. AX-04 stays pullable only because it needs two people
+  who are not the implementer, so it costs this lane nothing.
+- `axpe` executes [RX-08](docs/research-checklist.md#rx-08) and
+  [RX-09](docs/research-checklist.md#rx-09). It does not create a parallel ASIC
+  track, and it does not license a silicon claim: submitting to a shuttle is not
+  fabrication, and nothing taped out exists until it returns measured.
+- The competition is judged on unique functionality **and on verification
+  methodology**. Evidence discipline is part of the deliverable here, not
+  overhead on it. Record gaps, timing violations, and failures as found — a
+  submission that states its own limits scores better than one that hides them.
+- The deadline is external and fixed. When a card slips, take scope out of a
+  later card rather than time out of the submission.
+
+### Team
+
+Three parties work this repository during the competition: the maintainer,
+Claude, and Codex. More than one agent is therefore active by default, so
+`gator-tools/skills/multi-agent-coordination/SKILL.md` applies to this work
+rather than being reserved for exceptional cases. Claim before you edit, and
+keep claims, reviews, and design questions in `.git/multi-agent-coordination/`.
+Two agents silently editing the same RTL or the same ISA table is the failure
+this lane can least afford.
+
 ## Mission and constraints
 
 - Keep atomiX a replaceable, component/profile-driven hardware/software

@@ -398,6 +398,13 @@ synth-baseline:
 	@test -n "$(REPORT)" || { echo "usage: make synth-baseline REPORT=<sweep.json>"; exit 2; }
 	$(PYTHON) tools/synth_baseline.py check $(REPORT)
 
+pemu-model-check:
+	$(PYTHON) tools/axpe_isa.py check
+	$(PYTHON) sw/pemu/as/check_axpe_as.py
+	$(PYTHON) sw/pemu/model/check_axpe_model.py
+
+.PHONY: pemu-model-check
+
 # `validate` checks the manifest; `self-test` checks the runner, by running a
 # suite built to go wrong: a stage whose tool is missing, one naming a
 # configuration that does not resolve, and one the suite asks for but never

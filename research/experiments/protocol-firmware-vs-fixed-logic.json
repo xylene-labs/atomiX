@@ -1,0 +1,351 @@
+{
+  "schema": {
+    "id": "org.atomix.experiment-plan",
+    "major": 1,
+    "minor": 1
+  },
+  "kind": "experiment-plan",
+  "id": "org.atomix.experiment.protocol-firmware-vs-fixed-logic",
+  "revision": 1,
+  "summary": "One UART frame, two unrelated machines: firmware on the axpe timed ISA and the fixed-function mmio16550, judged by the same pin-transition oracle across the model, RTL simulation, FPGA, and a CMOS5L flow",
+  "claim": "org.atomix.same-workload",
+  "workload": {
+    "id": "org.atomix.workload.uart-tx-8n1",
+    "revision": 1,
+    "parameters": {
+      "clock_hz": 50000000,
+      "baud": 115200,
+      "byte": 165
+    },
+    "cases": [
+      "byte-0x00-all-zero-data",
+      "byte-0xff-all-one-data",
+      "byte-0xa5-mixed",
+      "byte-0x55-alternating",
+      "framing-single-bit-and-stop"
+    ]
+  },
+  "implementations": [
+    {
+      "id": "org.atomix.implementation.uart-axpe-firmware",
+      "class": "org.atomix.axpe-firmware-program",
+      "summary": "Seven-instruction axpe routine that bit-bangs 8N1 with the bit period carried in each instruction's delay field",
+      "requires": [
+        "org.atomix.capability.timed-isa",
+        "org.atomix.capability.declared-retirement-cycles",
+        "org.atomix.capability.shift-engine",
+        "org.atomix.capability.bit-bang-uart"
+      ],
+      "build": {
+        "kind": "org.atomix.axpe-assembler",
+        "value": {
+          "source": "sw/pemu/firmware/uart.s",
+          "assembler": "sw/pemu/as/axpe_as.py",
+          "entry": "uart_tx",
+          "imem_words": 256
+        }
+      }
+    },
+    {
+      "id": "org.atomix.implementation.uart-mmio16550-fixed",
+      "class": "org.atomix.rtl-design",
+      "summary": "The existing atomiX 16550-subset UART, where the same framing is fixed logic and the bit period is a divisor register",
+      "requires": [
+        "org.atomix.capability.thr",
+        "org.atomix.capability.lsr",
+        "org.atomix.capability.tx-backpressure"
+      ],
+      "build": {
+        "kind": "org.atomix.component-selection",
+        "value": {
+          "component": "components/uart/mmio16550/component.json",
+          "top": "uart"
+        }
+      }
+    }
+  ],
+  "targets": [
+    {
+      "id": "org.atomix.target.axpe-golden-model",
+      "class": "org.atomix.native-host",
+      "adapter": "org.atomix.adapter.native-cpu",
+      "summary": "The axpe C golden model running as an ordinary host process, with no SoC, board, or bitstream",
+      "capabilities": [
+        "org.atomix.capability.timed-isa",
+        "org.atomix.capability.declared-retirement-cycles",
+        "org.atomix.capability.shift-engine",
+        "org.atomix.capability.bit-bang-uart",
+        "org.atomix.capability.monotonic-clock",
+        "org.atomix.capability.process-timeout"
+      ],
+      "measurement_domain": "org.atomix.domain.host-elapsed",
+      "profile": null
+    },
+    {
+      "id": "org.atomix.target.axpe-rtl-sim",
+      "class": "org.atomix.rtl-simulator",
+      "adapter": "org.atomix.adapter.rtl-role-simulator",
+      "summary": "Verilator model of pemu.axpe at its manifest defaults, sampling the uio pins every cycle",
+      "capabilities": [
+        "org.atomix.capability.timed-isa",
+        "org.atomix.capability.declared-retirement-cycles",
+        "org.atomix.capability.shift-engine",
+        "org.atomix.capability.bit-bang-uart",
+        "org.atomix.capability.deterministic-model-cycles",
+        "org.atomix.capability.process-timeout"
+      ],
+      "measurement_domain": "org.atomix.domain.model-cycles",
+      "profile": {
+        "kind": "org.atomix.component-selection",
+        "value": {
+          "component": "components/pemu/axpe/component.json",
+          "top": "axpe",
+          "parameters": {
+            "imem_words": 256,
+            "reg_count": 8,
+            "reg_width": 16
+          }
+        }
+      }
+    },
+    {
+      "id": "org.atomix.target.uart16550-rtl-sim",
+      "class": "org.atomix.rtl-simulator",
+      "adapter": "org.atomix.adapter.rtl-role-simulator",
+      "summary": "Verilator model of uart.mmio16550, sampling the same pin with the same oracle",
+      "capabilities": [
+        "org.atomix.capability.thr",
+        "org.atomix.capability.lsr",
+        "org.atomix.capability.tx-backpressure",
+        "org.atomix.capability.deterministic-model-cycles",
+        "org.atomix.capability.process-timeout"
+      ],
+      "measurement_domain": "org.atomix.domain.model-cycles",
+      "profile": {
+        "kind": "org.atomix.component-selection",
+        "value": {
+          "component": "components/uart/mmio16550/component.json",
+          "top": "uart",
+          "parameters": {}
+        }
+      }
+    },
+    {
+      "id": "org.atomix.target.axpe-cmos5l",
+      "class": "org.atomix.asic-flow",
+      "adapter": "org.atomix.adapter.cmos5l-openlane",
+      "summary": "IHP CMOS5L synthesis and place-and-route of pemu.axpe through the Tiny Tapeout flow, reporting mapped cell area and timing at the chosen clock",
+      "capabilities": [
+        "org.atomix.capability.timed-isa",
+        "org.atomix.capability.declared-retirement-cycles",
+        "org.atomix.capability.shift-engine",
+        "org.atomix.capability.bit-bang-uart",
+        "org.atomix.capability.technology-mapped-area",
+        "org.atomix.capability.static-timing"
+      ],
+      "measurement_domain": "org.atomix.domain.asic-area",
+      "profile": {
+        "kind": "org.atomix.component-selection",
+        "value": {
+          "component": "components/pemu/axpe/component.json",
+          "top": "axpe",
+          "parameters": {
+            "imem_words": 256,
+            "reg_count": 8,
+            "reg_width": 16
+          }
+        }
+      }
+    },
+    {
+      "id": "org.atomix.target.uart16550-cmos5l",
+      "class": "org.atomix.asic-flow",
+      "adapter": "org.atomix.adapter.cmos5l-openlane",
+      "summary": "The same CMOS5L flow applied to the fixed-function UART, so the area comparison is made on one technology with one tool",
+      "capabilities": [
+        "org.atomix.capability.thr",
+        "org.atomix.capability.lsr",
+        "org.atomix.capability.tx-backpressure",
+        "org.atomix.capability.technology-mapped-area",
+        "org.atomix.capability.static-timing"
+      ],
+      "measurement_domain": "org.atomix.domain.asic-area",
+      "profile": {
+        "kind": "org.atomix.component-selection",
+        "value": {
+          "component": "components/uart/mmio16550/component.json",
+          "top": "uart",
+          "parameters": {}
+        }
+      }
+    }
+  ],
+  "candidates": [
+    {
+      "id": "org.atomix.candidate.uart-axpe-model",
+      "implementation": "org.atomix.implementation.uart-axpe-firmware",
+      "target": "org.atomix.target.axpe-golden-model",
+      "parameters": {},
+      "work": {
+        "unit": "org.atomix.uart-frame",
+        "count": 5
+      }
+    },
+    {
+      "id": "org.atomix.candidate.uart-axpe-rtl",
+      "implementation": "org.atomix.implementation.uart-axpe-firmware",
+      "target": "org.atomix.target.axpe-rtl-sim",
+      "parameters": {},
+      "work": {
+        "unit": "org.atomix.uart-frame",
+        "count": 5
+      },
+      "sweep": {
+        "target_parameters": {
+          "imem_words": [
+            64,
+            256,
+            512
+          ],
+          "reg_width": [
+            8,
+            16
+          ]
+        }
+      }
+    },
+    {
+      "id": "org.atomix.candidate.uart-fixed-rtl",
+      "implementation": "org.atomix.implementation.uart-mmio16550-fixed",
+      "target": "org.atomix.target.uart16550-rtl-sim",
+      "parameters": {},
+      "work": {
+        "unit": "org.atomix.uart-frame",
+        "count": 5
+      }
+    },
+    {
+      "id": "org.atomix.candidate.uart-axpe-cmos5l",
+      "implementation": "org.atomix.implementation.uart-axpe-firmware",
+      "target": "org.atomix.target.axpe-cmos5l",
+      "parameters": {},
+      "work": {
+        "unit": "org.atomix.uart-frame",
+        "count": 5
+      }
+    },
+    {
+      "id": "org.atomix.candidate.uart-fixed-cmos5l",
+      "implementation": "org.atomix.implementation.uart-mmio16550-fixed",
+      "target": "org.atomix.target.uart16550-cmos5l",
+      "parameters": {},
+      "work": {
+        "unit": "org.atomix.uart-frame",
+        "count": 5
+      }
+    }
+  ],
+  "metrics": [
+    {
+      "id": "org.atomix.metric.work-items",
+      "unit": "org.atomix.unit.item",
+      "direction": "org.atomix.context-only",
+      "domain": "org.atomix.domain.context",
+      "applicability": {
+        "org.atomix.native-host": "org.atomix.required",
+        "org.atomix.rtl-simulator": "org.atomix.required",
+        "org.atomix.asic-flow": "org.atomix.required"
+      }
+    },
+    {
+      "id": "org.atomix.metric.oracle-cases-passed",
+      "unit": "org.atomix.unit.count",
+      "direction": "org.atomix.context-only",
+      "domain": "org.atomix.domain.context",
+      "applicability": {
+        "org.atomix.native-host": "org.atomix.required",
+        "org.atomix.rtl-simulator": "org.atomix.required",
+        "org.atomix.asic-flow": "org.atomix.required"
+      }
+    },
+    {
+      "id": "org.atomix.metric.firmware-bytes",
+      "unit": "org.atomix.unit.byte",
+      "direction": "org.atomix.context-only",
+      "domain": "org.atomix.domain.context",
+      "applicability": {
+        "org.atomix.native-host": "org.atomix.required",
+        "org.atomix.rtl-simulator": "org.atomix.required",
+        "org.atomix.asic-flow": "org.atomix.required"
+      }
+    },
+    {
+      "id": "org.atomix.metric.protocols-expressible",
+      "unit": "org.atomix.unit.count",
+      "direction": "org.atomix.context-only",
+      "domain": "org.atomix.domain.context",
+      "applicability": {
+        "org.atomix.native-host": "org.atomix.required",
+        "org.atomix.rtl-simulator": "org.atomix.required",
+        "org.atomix.asic-flow": "org.atomix.required"
+      }
+    },
+    {
+      "id": "org.atomix.metric.execute-cycles",
+      "unit": "org.atomix.unit.cycle",
+      "direction": "org.atomix.lower-is-better",
+      "domain": "org.atomix.domain.model-cycles",
+      "applicability": {
+        "org.atomix.native-host": "org.atomix.inapplicable",
+        "org.atomix.rtl-simulator": "org.atomix.required",
+        "org.atomix.asic-flow": "org.atomix.inapplicable"
+      }
+    },
+    {
+      "id": "org.atomix.metric.host-elapsed-median",
+      "unit": "org.atomix.unit.second",
+      "direction": "org.atomix.lower-is-better",
+      "domain": "org.atomix.domain.host-elapsed",
+      "applicability": {
+        "org.atomix.native-host": "org.atomix.required",
+        "org.atomix.rtl-simulator": "org.atomix.inapplicable",
+        "org.atomix.asic-flow": "org.atomix.inapplicable"
+      }
+    },
+    {
+      "id": "org.atomix.metric.cell-area-um2",
+      "unit": "org.atomix.unit.micrometre-squared",
+      "direction": "org.atomix.lower-is-better",
+      "domain": "org.atomix.domain.asic-area",
+      "applicability": {
+        "org.atomix.native-host": "org.atomix.inapplicable",
+        "org.atomix.rtl-simulator": "org.atomix.inapplicable",
+        "org.atomix.asic-flow": "org.atomix.required"
+      }
+    },
+    {
+      "id": "org.atomix.metric.sequential-cells",
+      "unit": "org.atomix.unit.count",
+      "direction": "org.atomix.lower-is-better",
+      "domain": "org.atomix.domain.asic-area",
+      "applicability": {
+        "org.atomix.native-host": "org.atomix.inapplicable",
+        "org.atomix.rtl-simulator": "org.atomix.inapplicable",
+        "org.atomix.asic-flow": "org.atomix.required"
+      }
+    }
+  ],
+  "budget": {
+    "max_candidates": 12,
+    "per_candidate_seconds": 3600,
+    "repetitions": 3
+  },
+  "policy": {
+    "correctness": "org.atomix.hard-gate",
+    "missing_measurement": "org.atomix.unavailable-not-zero",
+    "ranking": "org.atomix.pareto-no-composite",
+    "cross_domain_ranking": "org.atomix.forbidden",
+    "resource_claims": "org.atomix.require-matched-evidence"
+  },
+  "extensions": {}
+}

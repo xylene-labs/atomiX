@@ -7,16 +7,26 @@ AX-10 closed the same day. No row here is assigned to a person.
 
 | Board | Purpose | First pull |
 |---|---|---|
+| [Protocol emulator](protocol-emulator.md) | `axpe` for the CMOS5L ASIC competition; executes RX-08/RX-09 against a real PDK and deadline | PE-01: enter the competition and pull the CMOS5L template unmodified |
 | [Delivery](delivery.md) | Usable experiments, component SDK, reproducible release | AX-04: two independent reproductions of the experiment alpha |
 | [Execution targets](targets.md) | Native execution, compiler/runtime work, emulators, accelerators, and ASIC feasibility | RX-08: audit one small RTL block's FPGA dependencies before technology mapping |
 | [Research](research.md) | Test optimization and adaptation value; retire technical uncertainty | RX-04: distinguish unavailable telemetry from observed zero |
 | [Hardware](hardware.md) | Earn repeatable claims on the available Tang Primer 25K Dock | HW-01: consolidate and repeat the exact runtime-image evidence |
 
-M0 ran AX-01 → AX-10 → AX-02 → AX-03, all closed, and now waits on AX-04. That
-last card is the default next task, and it is the one a single developer cannot
-finish alone: it needs two people other than the implementer to run
-[the walkthrough](../experiment-alpha.md) and report what happened. Independent
-research and lab rows are options when the appropriate capacity or equipment is
+**2026-09-17: M0 is paused until 2027-01-18.** The work-in-progress limit belongs
+to the [protocol emulator board](protocol-emulator.md) for that period. The
+CMOS5L competition deadline is externally fixed and not ours to move, whereas
+M0's remaining card is not time-bound, so the competition takes the cycle and M0
+resumes after the submission. Paused is not abandoned: no M0 card is withdrawn,
+no evidence is invalidated, and nothing about the milestone's acceptance criteria
+changes.
+
+M0 ran AX-01 → AX-10 → AX-02 → AX-03, all closed, and waits on AX-04. That last
+card is the one a single developer cannot finish alone: it needs two people other
+than the implementer to run [the walkthrough](../experiment-alpha.md) and report
+what happened. It therefore stays pullable during the pause if two such people
+become available, since it costs the paused lane nothing. Independent research
+and lab rows are options when the appropriate capacity or equipment is
 available; separate boards do not imply concurrent commitments.
 
 ## Priority and state

@@ -1,0 +1,147 @@
+{
+  "schema": 1,
+  "checkpoint": "PE-04 host-model slice: max(D,1) timing, clocked-cell semantics, UART/autobaud/SPI firmware",
+  "date": "2026-09-17",
+  "evidence_kind": "host-model",
+  "base_commit": "dd5d571624a3e3043a8d4ead338321d39c9c1356",
+  "source_state": "uncommitted working tree; supersedes the draft slice recorded earlier the same day, whose findings are retained below",
+  "tools": {
+    "cc": "cc (Ubuntu 11.4.0-1ubuntu1~22.04.3) 11.4.0",
+    "python": "Python 3.10.12"
+  },
+  "inputs_sha256": {
+    "research/personalities/workloads/uart-tx-8n1.json": "eaf25e89b6a2896e53a9c9091b7c8034197339a4208ffe324704b7af9818028d",
+    "sw/pemu/as/axpe_as.py": "673246dcee61c013f9feb181755d15e5b39c987fb0316325f8cc0a9487d6db20",
+    "sw/pemu/as/check_axpe_as.py": "956f8e8568cc177959e3c28d5e199eebbacb80c0d79480a3dda93bf8265cd451",
+    "sw/pemu/firmware/autobaud.s": "a9b1acfbf8ef4c81d2d840efe6139ba8f1d9b251611a6745aff9655cd1b44830",
+    "sw/pemu/firmware/spi.s": "e0a3d76f6b8563755d3cdf15a811ad04f7035649b4c61f75204c6f29bc2060e2",
+    "sw/pemu/firmware/uart.s": "b3a30e7dc2e8b07c2bec3fbba3beb5b5f6cce7ded1072dc551b2c02a6d98500a",
+    "sw/pemu/isa/axpe-isa.json": "67ce6d7319e80e7914727ebfe80642564fb5e25eebde0f5baf88137049878096",
+    "sw/pemu/isa/axpe-isa.md": "9f0b04295f6d2339c70fd5a06853df990cb83c4cb0ea23589354bc3926755d23",
+    "sw/pemu/isa/axpe_isa.h": "99ab00cb25460ecce3a092b54c2004da6d481c422fa1e7ed28c63784d36ced61",
+    "sw/pemu/model/README.md": "0be6dc1ad5b805e7e7333647b968de16ce3fc1a217f5c076413cb50baed929ae",
+    "sw/pemu/model/axpe_model.c": "9e2b882e9dd2af1a5f57d4ae00da2caf915c0c113e63602109ecda4a754e2f0e",
+    "sw/pemu/model/axpe_model.h": "5ef1b618845e024d34de96a8ad4ab4ae2228b02c703b7b9cc592ea65f94b79ff",
+    "sw/pemu/model/check_axpe_model.py": "4924d440ac76c445e74d5c717206f52ce5ab64b3641635957c780242e84f40cb",
+    "tools/axpe_isa.py": "6035e43317495178dc40957b30165175650004de95f9d103dcb8ab5d1694b3a8"
+  },
+  "commands": [
+    {
+      "command": "make pemu-model-check",
+      "result": "pass",
+      "model_test_groups": 16,
+      "random_alu_seed": "0xA4FE",
+      "random_alu_cases": 800
+    },
+    {
+      "command": "make verification-check",
+      "result": "pass"
+    },
+    {
+      "command": "make verify-smoke",
+      "result": "pass",
+      "stages_passed": 12,
+      "summary": "build/verification/smoke/summary.json"
+    },
+    {
+      "command": "make registry-check",
+      "result": "pass"
+    },
+    {
+      "command": "ruff check --config ruff.toml tools/ sw/pemu/",
+      "result": "pass"
+    },
+    {
+      "command": "make experiment-check",
+      "result": "pass"
+    }
+  ],
+  "firmware_findings": [
+    {
+      "firmware": "uart.s",
+      "result": "matches the exact waveform oracle",
+      "cases": 5,
+      "oracle": "research/personalities/workloads/uart-tx-8n1.json",
+      "routine_cycles": 4344,
+      "closed_form": "4 + 10*BAUD, BAUD = 434 at 50 MHz and 115200 baud",
+      "test_status": "conformance pass under the max(D,1) timing rule"
+    },
+    {
+      "firmware": "autobaud.s",
+      "result": "measures pulse width exactly",
+      "low_pulse_cycles": [
+        20,
+        53
+      ],
+      "measured_cycles": [
+        20,
+        53
+      ],
+      "silent_peer_result": 0,
+      "test_status": "conformance pass; requires the two waits to stay adjacent"
+    },
+    {
+      "firmware": "spi.s",
+      "result": "SPI mode 0 full duplex in one SHIO instruction",
+      "routine_cycles": 508,
+      "bit_period_cycles": 50,
+      "sck_hz_at_50mhz": 1000000,
+      "checked": "MOSI bit order and value, SCK edge position, CS assertion window, received byte",
+      "test_status": "model conformance against a modelled peer; no independent reference yet"
+    }
+  ],
+  "limits": [
+    "no I2C firmware, and no platform oracle for SPI; only UART has one",
+    "SPI checked against a modelled peer, not an independent reference implementation",
+    "effect phases, shift writeback, reset and fault behavior remain model conventions",
+    "default register/pin widths only; full PE-08 profile wiring remains open",
+    "host-model evidence only: no RTL equivalence, formal proof, synthesis/P&R, FPGA or silicon",
+    "PE-02 SRAM integration gate remains open"
+  ],
+  "review": {
+    "kind": "working-tree peer review; not commit-pinned quorum",
+    "reviewer": "codex-pe04-review, then claude-pe04-retiming, then claude-pe04-clocked",
+    "finding": "Draft review asked for varying receive patterns, addressed with phase/order, zero-extension and flag tests. The retained discrepancies were then traced to an ISA defect and a firmware defect, both fixed.",
+    "result": "All 16 model test groups pass. UART conforms to the platform oracle, autobaud measures exactly, SPI mode 0 runs full duplex, and ruff is clean across tools/ and sw/pemu/."
+  },
+  "development_failures": [
+    "First test run failed because UART harness omitted assembly constants; harness corrected to assemble the complete unchanged firmware file.",
+    "Retiming broke 8 of 14 model tests whose expectations encoded the 1+D rule; each expected value was rederived from max(D,1) rather than adjusted until it passed.",
+    "Seven ruff findings in check_axpe_model.py (six late-binding closures and one import position) were fixed rather than suppressed.",
+    "Adding clocked shifts broke the reject test, because an unclocked zero-period shift is well defined under max(D,1) and was no longer an error; the case was moved to the supported set rather than the model being made to keep rejecting it."
+  ],
+  "coordination_scope_check": {
+    "result": "reports pre-existing dirty/untracked scaffolding outside claim",
+    "note": "Baseline preserved; no clean scope or commit-pinned readiness claimed. See .git/multi-agent-coordination/ messages."
+  },
+  "superseded_findings": {
+    "note": "The draft slice recorded these as expected discrepancies rather than tuning the expectations to match. That is what made the defect findable, so the finding is kept rather than deleted.",
+    "uart.s": {
+      "observation": "all transitions after the start edge were two cycles late",
+      "routine_cycles": 4347
+    },
+    "autobaud.s": {
+      "observation": "measured 18 and 51 cycles for known 20- and 53-cycle low pulses",
+      "measured_cycles": [
+        18,
+        51
+      ]
+    },
+    "root_causes": [
+      "ISA defect: a 1+D retirement rule makes a bit cell BAUD+1 cycles, so no firmware can place an edge on a multiple of the bit period. The rule is now max(D,1): D is the cell duration and every instruction occupies at least one cycle. This accounted for both UART cycles and one autobaud cycle.",
+      "Firmware defect: autobaud.s had a branch between its two WAITEs, spending a cycle the measurement could not see. The timeout check now follows both waits. This accounted for the second autobaud cycle."
+    ],
+    "changed": [
+      "sw/pemu/isa/axpe-isa.json timing formulas, and every generated artifact",
+      "sw/pemu/as/axpe_as.py cost model and sw/pemu/as/check_axpe_as.py expectations",
+      "sw/pemu/model/axpe_model.c fixed, per-bit and WAITE cycle accounting",
+      "sw/pemu/firmware/autobaud.s wait adjacency"
+    ]
+  },
+  "decisions": {
+    "clocked_cell": "Splits at the half point: data at the cell start, or on the leading edge when cpha=1; clock leading edge at D/2, returning to cpol at D; cpha selects the sampling edge. cpol/cpha give SPI modes 0-3.",
+    "odd_periods": "A clocked period must be even and non-zero. Flooring would give an asymmetric duty cycle the listing no longer states, so it is refused.",
+    "pin_aliasing": "din == dout is legal and is what I2C's SDA is. A clock sharing a pin with either data line, or on an input-only pin, is refused.",
+    "enforcement": "All three are machine rejects before issue, consuming no cycle. SHCFG is loaded from a register, so the configuration is invisible at assembly time and the assembler cannot catch them."
+  }
+}

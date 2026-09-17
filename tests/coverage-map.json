@@ -488,6 +488,10 @@
     "sw/kernel:kernel-config-check-all": {
       "kind": "suite",
       "stage": "kernel-profiles"
+    },
+    ".:pemu-model-check": {
+      "kind": "suite",
+      "stage": "pemu-model"
     }
   }
 }
