@@ -24,7 +24,7 @@ Start from a fresh checkout and record the exact revision before installing or
 running anything:
 
 ```bash
-git clone https://github.com/scynth-labs/atomiX.git
+git clone https://github.com/xylene-labs/atomiX.git
 cd atomiX
 git rev-parse HEAD
 ```

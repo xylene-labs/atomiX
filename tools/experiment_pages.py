@@ -44,7 +44,7 @@ from execution.contract import ROOT, sha256_bytes
 DEFAULT_PLANS = ROOT / "research" / "experiments"
 DEFAULT_RECORDS = DEFAULT_PLANS / "records"
 DEFAULT_OUTPUT = ROOT / "build" / "pages"
-REPOSITORY = "https://github.com/Scynth-Labs/atomiX"
+REPOSITORY = "https://github.com/xylene-labs/atomiX"
 
 STYLE = """\
 :root {

@@ -389,7 +389,7 @@ def sarif(findings, completed):
         runs.append({
             "tool": {"driver": {
                 "name": f"atomiX/{tool}",
-                "informationUri": "https://github.com/Scynth-Labs/atomiX",
+                "informationUri": "https://github.com/xylene-labs/atomiX",
                 "rules": [{"id": r, "shortDescription": {"text": r}} for r in rules],
             }},
             "results": [{
