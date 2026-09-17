@@ -53,6 +53,8 @@ static struct fitness_result run(struct virtual_fpga *fpga,
   trial.oracle_pass = candidate->oracle_pass;
   trial.oracle_cases = 1;
   trial.energy_valid = 0;
+  trial.telemetry_present = FITNESS_TELEMETRY_SAFETY_EVENTS;
+  trial.telemetry_observed = FITNESS_TELEMETRY_SAFETY_EVENTS;
   trial.energy_picojoules = 0;
   trial.before = snapshot(fpga);
   fpga->counters.cycles += candidate->cycles;

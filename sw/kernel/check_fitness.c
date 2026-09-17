@@ -16,6 +16,8 @@ static struct fitness_trial valid_trial(void) {
       .expected_work = 4,
       .oracle_pass = 1,
       .oracle_cases = 3,
+      .telemetry_present = FITNESS_TELEMETRY_SAFETY_EVENTS,
+      .telemetry_observed = FITNESS_TELEMETRY_SAFETY_EVENTS,
       .before = {
           .sequence = 7,
           .cycles = 1000,
@@ -80,6 +82,33 @@ int main(void) {
             "watchdog event lacks reason") ||
       check((result.rejection_mask & FITNESS_REJECT_GENERATION) != 0,
             "generation change lacks reason"))
+    return 1;
+
+  trial = valid_trial();
+  trial.telemetry_present = 0;
+  trial.telemetry_observed = 0;
+  if (check(fitness_evaluate(&trial, &result) == FITNESS_INELIGIBLE,
+            "declined telemetry was eligible") ||
+      check((result.rejection_mask & FITNESS_REJECT_DESCRIPTOR_UNAVAILABLE) != 0,
+            "declined descriptor producer lacks unavailable reason") ||
+      check((result.rejection_mask & FITNESS_REJECT_WATCHDOG_UNAVAILABLE) != 0,
+            "declined watchdog producer lacks unavailable reason"))
+    return 1;
+
+  trial = valid_trial();
+  trial.telemetry_observed &= ~FITNESS_TELEMETRY_DESCRIPTOR_REJECTIONS;
+  if (check(fitness_evaluate(&trial, &result) == FITNESS_INELIGIBLE,
+            "missing telemetry observation was eligible") ||
+      check((result.rejection_mask & FITNESS_REJECT_DESCRIPTOR_UNAVAILABLE) != 0,
+            "missing descriptor observation lacks unavailable reason"))
+    return 1;
+
+  trial = valid_trial();
+  trial.telemetry_present &= ~FITNESS_TELEMETRY_DESCRIPTOR_REJECTIONS;
+  if (check(fitness_evaluate(&trial, &result) == FITNESS_INELIGIBLE,
+            "observation without a producer was eligible") ||
+      check((result.rejection_mask & FITNESS_REJECT_INPUT) != 0,
+            "observation without a producer lacks input-error reason"))
     return 1;
 
   trial = valid_trial();

@@ -717,18 +717,30 @@ that proposes something wrong a rejected candidate rather than an incident.
   `tools/morph_l3_trial.py self-test` and `make l3-check`.  This remains
   simulation-only, with no hardware, persistence, or autonomous-promotion
   claim.
-- [ ] **Telemetry distinguishes zero from unavailable.** Define how a trial
-  records whether rejection and watchdog producers are present and observed.
-  Exercise enabled and declined profiles and a missing-observation case;
-  absent counters must not silently satisfy a zero-event correctness gate.
-  Close with capability-aware fitness/evidence records while preserving the
-  existing Primer opt-out and proposal-only authority.
-- [ ] **Watchdog authority decision.** Specify whether the shell watchdog
-  remains observational or may request isolation, and define who owns any
-  actuation, in-flight transaction behavior, recovery deadline, and rollback.
-  Close the decision with fault-injected simulation and a documented safety
-  contract before changing the current observe-only behavior. No optimizer
-  or telemetry record gains configuration authority through this item.
+- [x] **Telemetry distinguishes zero from unavailable.** A version 1.1 fitness
+  trial records producer presence and counter observation independently for
+  descriptor rejection and watchdog events, binds those claims to a hashed
+  profile, and requires the profile resolver to agree. Unobserved values are
+  `null`, not zero, and either an absent producer or a missing observation makes
+  the trial ineligible with a specific reason and `0xffffffff` fitness.
+  `make fitness-check` exercises the enabled `sim-morph` profile, the existing
+  declined `tangprimer25k-runtime` profile, and an enabled profile missing one
+  observation in both the JSON contract and the freestanding C implementation.
+  This is contract/host-test evidence; it preserves the Primer opt-out and
+  proposal-only authority, and grants no actuation authority.
+- [x] **Watchdog authority decision.** The watchdog remains observe-only unless
+  the immutable manager sets `ISO_CTRL.WATCHDOG_ARM` before a bounded job. An
+  armed expiry asserts isolation and role reset after exactly the configured
+  stalled-cycle deadline; the outstanding request completes once with the
+  fenced zero/no-error response and is never replayed. Recovery-pending remains
+  set while the manager installs the last-known-good role and runs its bounded
+  primary/canary checks, and only a verified `LIVE_ACTIVATE` clears it. `make
+  live-check` compares unarmed and armed fault injection at the non-default
+  threshold of 16 cycles and also proves the producer-declined build cannot arm
+  recovery. This is RTL simulation evidence: the external manager still owns
+  rollback and its end-to-end deadline, no optimizer gains register or
+  configuration authority, and every Primer profile retains its capacity
+  opt-out.
 - [ ] **L3 physical-trial readiness.** Map the reviewed simulated mode and
   dimension cases onto an actually fitting Primer morph loader profile;
   identify unsupported cases rather than assuming the one-PE fabric matches
@@ -773,10 +785,11 @@ results above from reading as general claims.
 ## Immediate queue without hardware
 
 Use the [research board](boards/research.md) for current priority and ownership.
-RX-04 (missing telemetry) is independently pullable now; RX-01 through RX-03
-use the new experiment platform to test search quality, accelerator crossover,
-and adaptive value. The existing power-method decision remains available
-without a fixture; actual measurement does not.
+RX-04 (missing telemetry) is closed; RX-05's watchdog-authority decision is now
+independently pullable. RX-01 through RX-03 use the new experiment platform to
+test search quality, accelerator crossover, and adaptive value. The existing
+power-method decision remains available without a fixture; actual measurement
+does not.
 
 The [targets board](boards/targets.md) also offers RX-08, the ASIC dependency
 audit, without hardware or technology libraries. RX-09 follows only after a
@@ -800,6 +813,13 @@ until then left two `axlivemon` counters reading zero by construction.
 Closed on 2026-08-16: the resident hard GPU+TPU alternative.  Both engines pass
 their workload in one simulated session and the payload-agnostic Tang Primer
 loader profile places and routes at 33.18 MHz; no physical run is claimed.
+
+Closed on 2026-09-15: missing safety telemetry can no longer look like a clean
+zero-event trial. Fitness record version 1.1 binds producer presence to a hashed
+resolved profile, records observation separately, and rejects either an absent
+producer or an unobserved counter. The enabled, Primer-declined, and
+missing-observation cases are host/contract evidence; no new physical claim is
+made.
 
 Closed on 2026-09-03: the partial-image load gate, and with it the first
 positive confinement result.  A role rectangle of rows 1..70 x columns 2..13 on

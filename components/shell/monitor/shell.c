@@ -103,6 +103,8 @@ static int command_evolve(void) {
   trial.expected_work = 10;
   trial.oracle_pass = 1;
   trial.oracle_cases = 1;
+  trial.telemetry_present = FITNESS_TELEMETRY_SAFETY_EVENTS;
+  trial.telemetry_observed = FITNESS_TELEMETRY_SAFETY_EVENTS;
   trial.before.sequence = 10;
   trial.before.cycles = 1000;
   trial.before.work_completed = 100;

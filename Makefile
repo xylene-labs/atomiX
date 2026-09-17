@@ -261,7 +261,8 @@ evolution-check:
 	$(MAKE) -C sw/kernel evolution-check
 
 fitness-check: evolution-check
-	$(PYTHON) tools/live_fitness.py check research/live-fpga/fitness-example.json
+	$(PYTHON) tools/live_fitness.py check research/live-fpga/fitness-example.json \
+	  research/live-fpga/fitness-cases
 	$(PYTHON) tools/live_fitness.py self-test
 
 registry-check:

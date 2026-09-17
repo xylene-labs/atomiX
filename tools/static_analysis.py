@@ -323,6 +323,20 @@ ANALYZERS = [
     ("shell", "Shell", analyse_shell),
 ]
 
+# GitHub code scanning keys an alert lifecycle by the SARIF tool name as well
+# as the upload category. Keep that identity stable even on a clean run: an
+# empty run for atomiX/verilator is what closes old Verilator alerts. A single
+# fallback tool named atomiX/static-analysis cannot close alerts originally
+# uploaded under these analyzer-specific names.
+SARIF_TOOLS = {
+    "rtl": "verilator",
+    "c": "gcc-analyzer",
+    "clang": "clang-analyzer",
+    "cpp": "cppcheck",
+    "ruff": "ruff",
+    "shell": "shellcheck",
+}
+
 
 def content_addressed():
     """Files whose SHA-256 a record under research/ pins.
@@ -353,14 +367,24 @@ def content_addressed():
     return pinned
 
 
-def sarif(findings):
+def sarif(findings, completed):
     levels = {"error": "error", "warning": "warning", "info": "note",
               "style": "note", "note": "note"}
     by_tool = {}
     for f in findings:
         by_tool.setdefault(f["tool"], []).append(f)
+    expected_tools = {SARIF_TOOLS[name] for name in completed}
+    unexpected_tools = set(by_tool) - expected_tools
+    if unexpected_tools:
+        raise ValueError("findings have no completed SARIF analyzer: " +
+                         ", ".join(sorted(unexpected_tools)))
     runs = []
-    for tool, group in sorted(by_tool.items()):
+    # Emit one run for every analyzer that actually completed, including those
+    # with no findings. Do not emit a clean run for a skipped analyzer: that
+    # would incorrectly retire its existing alerts without inspecting code.
+    for name in completed:
+        tool = SARIF_TOOLS[name]
+        group = by_tool.get(tool, [])
         rules = sorted({f["rule"] for f in group})
         runs.append({
             "tool": {"driver": {
@@ -381,8 +405,7 @@ def sarif(findings):
         })
     return {"version": "2.1.0",
             "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
-            "runs": runs or [{"tool": {"driver": {"name": "atomiX/static-analysis"}},
-                              "results": []}]}
+            "runs": runs}
 
 
 def main(argv=None):
@@ -436,7 +459,8 @@ def main(argv=None):
                            for n, _, s, t in report]}, indent=2) + "\n")
     if args.sarif:
         args.sarif.parent.mkdir(parents=True, exist_ok=True)
-        args.sarif.write_text(json.dumps(sarif(findings), indent=2) + "\n")
+        completed = [name for name, _, state, _ in report if state != "SKIPPED"]
+        args.sarif.write_text(json.dumps(sarif(findings, completed), indent=2) + "\n")
 
     print()
     if findings:

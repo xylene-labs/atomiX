@@ -190,7 +190,9 @@ static inline void role_wait_done(void) {
 #define AX_SHELL_ID_MAGIC   0x61585348u /* "aXSH" */
 #define AX_ISO_ISOLATE      0x1u
 #define AX_ISO_ROLE_RESET   0x2u
+#define AX_ISO_WATCHDOG_ARM 0x4u
 #define AX_ISO_STATUS_ISOLATED 0x1u
+#define AX_ISO_STATUS_WATCHDOG_RECOVERY_PENDING 0x2u
 
 #define AX_LIVE_ID          (AX_SHELL_BASE + 0x0100u)
 #define AX_LIVE_VERSION     (AX_SHELL_BASE + 0x0104u)

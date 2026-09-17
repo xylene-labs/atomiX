@@ -16,8 +16,9 @@
 // needed.
 //
 //   0x0000  SHELL_ID    RO     "aXSH"; reads as 0 on a shell without this device
-//   0x0004  ISO_CTRL    R/W    bit0 ISOLATE, bit1 ROLE_RESET
-//   0x0008  ISO_STATUS  RO     bit0 ISOLATED (the fence is in effect)
+//   0x0004  ISO_CTRL    R/W    bit0 ISOLATE, bit1 ROLE_RESET,
+//                              bit2 WATCHDOG_ARM (when role events are built)
+//   0x0008  ISO_STATUS  RO     bit0 ISOLATED, bit1 WATCHDOG_RECOVERY_PENDING
 //
 // While ISOLATE is set:
 //
@@ -176,6 +177,9 @@ module axroleiso #(
   localparam logic [15:0] OFF_GEN_HI     = 16'h013c;
 
   logic isolate_q, role_rst_q, role_irq_q;
+`ifdef AX_LIVE_ROLE_EVENTS
+  logic watchdog_arm_q, watchdog_recovery_pending_q;
+`endif
   logic [31:0] live_sequence;
   logic [63:0] live_cycles;
   logic [63:0] live_work_completed;
@@ -184,9 +188,14 @@ module axroleiso #(
   logic [63:0] live_watchdog_events;
   logic [63:0] live_configuration_generation;
 
-  // ISO_CTRL defines two bits; the rest of a write is discarded rather than
-  // reserved for later, so the upper lanes are deliberately unread.
+  // Keep the declined arm byte-for-byte equivalent to the original two-bit
+  // control. The extra state is compiled out with the producers on tight
+  // profiles rather than leaving an inert control bit in their netlist.
+`ifdef AX_LIVE_ROLE_EVENTS
+  wire unused_wdata_bits = &{1'b0, i_wdata[31:3], d_wdata[31:3]};
+`else
   wire unused_wdata_bits = &{1'b0, i_wdata[31:2], d_wdata[31:2]};
+`endif
 
   wire i_in_range = i_addr >= BASE && i_addr - BASE < 32'h0000_1000;
   wire d_in_range = d_addr >= BASE && d_addr - BASE < 32'h0000_1000;
@@ -217,8 +226,13 @@ module axroleiso #(
   function automatic logic [31:0] read_reg(input logic [15:0] off);
     unique case (off)
       OFF_ID:        read_reg = SHELL_ID;
+`ifdef AX_LIVE_ROLE_EVENTS
+      OFF_CTRL:      read_reg = {29'b0, watchdog_arm_q, role_rst_q, isolate_q};
+      OFF_STATUS:    read_reg = {30'b0, watchdog_recovery_pending_q, isolate_q};
+`else
       OFF_CTRL:      read_reg = {30'b0, role_rst_q, isolate_q};
       OFF_STATUS:    read_reg = {31'b0, isolate_q};
+`endif
       OFF_LIVE_ID:   read_reg = LIVE_ID;
       OFF_LIVE_VER:  read_reg = LIVE_VERSION;
       OFF_LIVE_SEQ:  read_reg = live_sequence;
@@ -346,10 +360,12 @@ module axroleiso #(
   // cycle, so one hung job counts as one event however long it hangs; the
   // per-cycle view is already `live_stall_event`.
   //
-  // Deliberately observational: this counts, and does not isolate.  Making the
-  // watchdog *act* changes what the fence guarantees and when a role can be
-  // torn out from under a driver, which is a safety decision to take on its
-  // own rather than as a side effect of fixing telemetry.
+  // The default is observational. A manager may pre-authorize containment with
+  // ISO_CTRL.WATCHDOG_ARM before starting a job. Expiry then asserts isolation
+  // and role reset in this immutable fence: software cannot issue a later
+  // control write while its role-window transaction is the one that is stuck.
+  // The optimizer never sees this register, and only LIVE_ACTIVATE (written by
+  // the manager after rollback/canary verification) clears recovery-pending.
 `ifdef AX_LIVE_ROLE_EVENTS
   localparam int unsigned WATCHDOG_BITS = $clog2(WATCHDOG_CYCLES);
   logic [WATCHDOG_BITS-1:0] watchdog_count_q;
@@ -427,6 +443,10 @@ endgenerate
       isolate_q  <= 1'b0;
       role_rst_q <= 1'b0;
       role_irq_q <= 1'b0;
+`ifdef AX_LIVE_ROLE_EVENTS
+      watchdog_arm_q <= 1'b0;
+      watchdog_recovery_pending_q <= 1'b0;
+`endif
     end else begin
       // Track the raw line even while isolated. De-isolating a role that is
       // already asserting DONE must not manufacture a fresh completion edge.
@@ -436,11 +456,27 @@ endgenerate
       if (i_valid && !i_err && |i_wstrb && i_off == OFF_CTRL && i_wstrb[0]) begin
         isolate_q  <= i_wdata[0];
         role_rst_q <= i_wdata[1];
+`ifdef AX_LIVE_ROLE_EVENTS
+        watchdog_arm_q <= i_wdata[2];
+`endif
       end
       if (d_valid && !d_err && |d_wstrb && d_off == OFF_CTRL && d_wstrb[0]) begin
         isolate_q  <= d_wdata[0];
         role_rst_q <= d_wdata[1];
+`ifdef AX_LIVE_ROLE_EVENTS
+        watchdog_arm_q <= d_wdata[2];
+`endif
       end
+`ifdef AX_LIVE_ROLE_EVENTS
+      if (live_activation_event)
+        watchdog_recovery_pending_q <= 1'b0;
+      // Safety wins over a same-cycle control write or activation record.
+      if (live_watchdog_event && watchdog_arm_q) begin
+        isolate_q <= 1'b1;
+        role_rst_q <= 1'b1;
+        watchdog_recovery_pending_q <= 1'b1;
+      end
+`endif
     end
   end
 endmodule

@@ -27,6 +27,16 @@ enum fitness_rejection {
   FITNESS_REJECT_GENERATION = 1u << 6,
   FITNESS_REJECT_COUNTERS = 1u << 7,
   FITNESS_REJECT_SCORE_RANGE = 1u << 8,
+  FITNESS_REJECT_DESCRIPTOR_UNAVAILABLE = 1u << 9,
+  FITNESS_REJECT_WATCHDOG_UNAVAILABLE = 1u << 10,
+};
+
+enum fitness_telemetry {
+  FITNESS_TELEMETRY_DESCRIPTOR_REJECTIONS = 1u << 0,
+  FITNESS_TELEMETRY_WATCHDOG_EVENTS = 1u << 1,
+  FITNESS_TELEMETRY_SAFETY_EVENTS =
+      FITNESS_TELEMETRY_DESCRIPTOR_REJECTIONS |
+      FITNESS_TELEMETRY_WATCHDOG_EVENTS,
 };
 
 struct fitness_snapshot {
@@ -46,6 +56,8 @@ struct fitness_trial {
   uint32_t oracle_pass;
   uint32_t oracle_cases;
   uint32_t energy_valid;
+  uint32_t telemetry_present;
+  uint32_t telemetry_observed;
   uint64_t energy_picojoules;
   struct fitness_snapshot before;
   struct fitness_snapshot after;

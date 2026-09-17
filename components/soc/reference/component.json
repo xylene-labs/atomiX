@@ -35,7 +35,7 @@
     "watchdog_cycles": {
       "default": 4096,
       "define": "AX_LIVE_WATCHDOG_CYCLES",
-      "doc": "Cycles a single role-window transfer may stay outstanding before the fence counts one watchdog event. How long is too long depends on the role and the clock, not on the fence, so it is a profile choice: a slow role on a fast clock wants more, a profile that would rather notice a stall early wants less. The default of 4096 is about 164 us at 25 MHz. Only meaningful when live_role_events is on; the counter it feeds does not exist otherwise."
+      "doc": "Cycles a single role-window transfer may stay outstanding before the fence counts one watchdog event and, when the immutable manager pre-arms ISO_CTRL.WATCHDOG_ARM, contains it by asserting isolation and role reset. How long is too long depends on the role and the clock, not on the fence, so it is a profile choice: a slow role on a fast clock wants more, a profile that would rather notice a stall early wants less. The default of 4096 is about 164 us at 25 MHz. Only meaningful when live_role_events is on; the counter and armed recovery it feeds do not exist otherwise."
     },
     "live_role_events": {
       "default": 1,

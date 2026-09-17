@@ -5,7 +5,9 @@ from __future__ import annotations
 
 import argparse
 import copy
+import hashlib
 import re
+import subprocess
 import sys
 from pathlib import Path
 from typing import Any
@@ -15,6 +17,8 @@ import personality_contract as pc
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_ROOT = ROOT / "research" / "live-fpga" / "fitness-example.json"
+DECLINED_ROOT = ROOT / "research" / "live-fpga" / "fitness-cases" / "declined.json"
+MISSING_ROOT = ROOT / "research" / "live-fpga" / "fitness-cases" / "missing-observation.json"
 U32_MAX = (1 << 32) - 1
 U64_MAX = (1 << 64) - 1
 OBJECTIVE = "org.atomix.fitness.cycles-per-work-q10"
@@ -27,14 +31,18 @@ REASONS = (
     (1 << 6, "org.atomix.fitness.reject.generation"),
     (1 << 7, "org.atomix.fitness.reject.counters"),
     (1 << 8, "org.atomix.fitness.reject.score-range"),
+    (1 << 9, "org.atomix.fitness.reject.descriptor-observation-unavailable"),
+    (1 << 10, "org.atomix.fitness.reject.watchdog-observation-unavailable"),
 )
 COUNTERS = (
     "cycles",
     "work_completed",
     "memory_stalls",
+    "configuration_generation",
+)
+SAFETY_COUNTERS = (
     "descriptor_rejections",
     "watchdog_events",
-    "configuration_generation",
 )
 
 
@@ -51,13 +59,67 @@ def positive(path: Path, value: Any, name: str) -> int:
     return result
 
 
-def validate_snapshot(path: Path, value: Any, name: str) -> dict[str, int]:
+def validate_snapshot(path: Path, value: Any, name: str,
+                      producers: dict[str, Any]) -> dict[str, int | None]:
     snapshot = pc.object_value(path, value, name)
-    pc.exact_keys(path, snapshot, name, {"sequence", *COUNTERS})
+    pc.exact_keys(path, snapshot, name,
+                  {"sequence", *COUNTERS, *SAFETY_COUNTERS})
     bounded_int(path, snapshot["sequence"], f"{name}.sequence", U32_MAX)
     for counter in COUNTERS:
         bounded_int(path, snapshot[counter], f"{name}.{counter}", U64_MAX)
+    for counter in SAFETY_COUNTERS:
+        if producers[counter]["observed"]:
+            bounded_int(path, snapshot[counter], f"{name}.{counter}", U64_MAX)
+        elif snapshot[counter] is not None:
+            raise pc.error(path, f"{name}.{counter} must be null when unobserved")
     return snapshot
+
+
+def validate_producers(path: Path, value: Any) -> dict[str, dict[str, bool]]:
+    producers = pc.object_value(path, value, "telemetry.producers")
+    pc.exact_keys(path, producers, "telemetry.producers", set(SAFETY_COUNTERS))
+    for counter in SAFETY_COUNTERS:
+        state = pc.object_value(
+            path, producers[counter], f"telemetry.producers.{counter}")
+        pc.exact_keys(path, state, f"telemetry.producers.{counter}",
+                      {"present", "observed"})
+        if not isinstance(state["present"], bool) or \
+                not isinstance(state["observed"], bool):
+            raise pc.error(path, f"telemetry.producers.{counter} states must be boolean")
+        if state["observed"] and not state["present"]:
+            raise pc.error(path, f"telemetry.producers.{counter} cannot be observed "
+                           "without a producer")
+    return producers
+
+
+def validate_profile(path: Path, value: Any, producers: dict[str, Any]) -> None:
+    profile = pc.object_value(path, value, "telemetry.profile")
+    pc.exact_keys(path, profile, "telemetry.profile", {"path", "sha256"})
+    relative = profile["path"]
+    if not isinstance(relative, str) or not relative:
+        raise pc.error(path, "telemetry.profile.path must be non-empty")
+    profile_path = (ROOT / relative).resolve()
+    try:
+        profile_path.relative_to(ROOT)
+    except ValueError as exc:
+        raise pc.error(path, "telemetry.profile.path must stay inside the checkout") from exc
+    if not profile_path.is_file():
+        raise pc.error(path, f"telemetry profile does not exist: {relative}")
+    digest = hashlib.sha256(profile_path.read_bytes()).hexdigest()
+    if profile["sha256"] != digest:
+        raise pc.error(path, "telemetry.profile.sha256 does not match the profile")
+    resolved = subprocess.run(
+        [sys.executable, str(ROOT / "tools/configure.py"), "resolve",
+         "--config", str(profile_path)], cwd=ROOT, capture_output=True, text=True)
+    if resolved.returncode != 0:
+        raise pc.error(path, "telemetry profile does not resolve: " +
+                       (resolved.stderr.strip() or "unknown resolver failure"))
+    present = "+define+AX_LIVE_ROLE_EVENTS=1" in resolved.stdout.split()
+    for counter in SAFETY_COUNTERS:
+        if producers[counter]["present"] != present:
+            raise pc.error(
+                path, f"telemetry.producers.{counter}.present disagrees with "
+                f"resolved profile {relative}")
 
 
 def delta(before: int, after: int, bits: int) -> int:
@@ -74,6 +136,8 @@ def validate_input(path: Path, document: dict[str, Any]) -> None:
     if document["kind"] != "live-fitness":
         raise pc.error(path, "kind must be 'live-fitness'")
     pc.common(path, document, "org.atomix.live-fitness")
+    if document["schema"]["minor"] != 1:
+        raise pc.error(path, "live-fitness schema must be version 1.1")
 
     candidate = pc.object_value(path, document["candidate"], "candidate")
     pc.exact_keys(path, candidate, "candidate", {"id", "numeric_id"})
@@ -91,13 +155,16 @@ def validate_input(path: Path, document: dict[str, Any]) -> None:
     positive(path, workload["expected_work"], "workload.expected_work")
 
     telemetry = pc.object_value(path, document["telemetry"], "telemetry")
-    pc.exact_keys(path, telemetry, "telemetry", {"schema", "before", "after"})
+    pc.exact_keys(path, telemetry, "telemetry",
+                  {"schema", "profile", "producers", "before", "after"})
     version = pc.object_value(path, telemetry["schema"], "telemetry.schema")
     pc.exact_keys(path, version, "telemetry.schema", {"major", "minor"})
     if version != {"major": 1, "minor": 0}:
         raise pc.error(path, "telemetry.schema must be Live FPGA L0 version 1.0")
-    validate_snapshot(path, telemetry["before"], "telemetry.before")
-    validate_snapshot(path, telemetry["after"], "telemetry.after")
+    producers = validate_producers(path, telemetry["producers"])
+    validate_profile(path, telemetry["profile"], producers)
+    validate_snapshot(path, telemetry["before"], "telemetry.before", producers)
+    validate_snapshot(path, telemetry["after"], "telemetry.after", producers)
 
     oracle = pc.object_value(path, document["oracle"], "oracle")
     pc.exact_keys(
@@ -142,6 +209,10 @@ def derive(document: dict[str, Any]) -> dict[str, Any]:
     telemetry = document["telemetry"]
     before, after = telemetry["before"], telemetry["after"]
     deltas = {name: delta(before[name], after[name], 64) for name in COUNTERS}
+    for name in SAFETY_COUNTERS:
+        state = telemetry["producers"][name]
+        deltas[name] = delta(before[name], after[name], 64) \
+            if state["present"] and state["observed"] else None
     mask = 0
     if delta(before["sequence"], after["sequence"], 32) != 1:
         mask |= 1 << 1
@@ -150,10 +221,14 @@ def derive(document: dict[str, Any]) -> dict[str, Any]:
         mask |= 1 << 2
     if deltas["work_completed"] != document["workload"]["expected_work"]:
         mask |= 1 << 3
-    if deltas["descriptor_rejections"] != 0:
+    if deltas["descriptor_rejections"] not in (0, None):
         mask |= 1 << 4
-    if deltas["watchdog_events"] != 0:
+    if deltas["watchdog_events"] not in (0, None):
         mask |= 1 << 5
+    if deltas["descriptor_rejections"] is None:
+        mask |= 1 << 9
+    if deltas["watchdog_events"] is None:
+        mask |= 1 << 10
     if deltas["configuration_generation"] != 0:
         mask |= 1 << 6
     if deltas["cycles"] == 0 or deltas["memory_stalls"] > deltas["cycles"]:
@@ -271,7 +346,55 @@ def self_test() -> int:
     if wrapped["result"]["evolution_record"]["fitness"] != 5120:
         raise pc.ContractError("self-test computed the wrong wrapped score")
 
-    print("live fitness: SELF-TEST PASS (hard gates, exact score, counter wrap)")
+    declined = load(DECLINED_ROOT)
+    validate_document(DECLINED_ROOT, declined)
+    unavailable = (1 << 9) | (1 << 10)
+    if declined["result"]["eligible"] or \
+            declined["result"]["rejection_mask"] & unavailable != unavailable:
+        raise pc.ContractError("self-test let a declined producer satisfy zero events")
+
+    missing = load(MISSING_ROOT)
+    validate_document(MISSING_ROOT, missing)
+    if missing["result"]["eligible"] or \
+            missing["result"]["rejection_mask"] != 1 << 9:
+        raise pc.ContractError("self-test let a missing observation satisfy zero events")
+
+    impossible = copy.deepcopy(missing)
+    state = impossible["telemetry"]["producers"]["descriptor_rejections"]
+    state.update({"present": False, "observed": True})
+    try:
+        validate_document(Path("<observed-without-producer>"), impossible)
+    except pc.ContractError:
+        pass
+    else:
+        raise pc.ContractError("self-test accepted an observation without a producer")
+
+    disguised = copy.deepcopy(missing)
+    disguised["telemetry"]["before"]["descriptor_rejections"] = 0
+    disguised["telemetry"]["after"]["descriptor_rejections"] = 0
+    try:
+        validate_document(Path("<unobserved-zero>"), disguised)
+    except pc.ContractError:
+        pass
+    else:
+        raise pc.ContractError("self-test accepted zero values for an unobserved counter")
+
+    fabricated = copy.deepcopy(record)
+    fabricated["telemetry"]["producers"]["descriptor_rejections"]["present"] = False
+    fabricated["telemetry"]["producers"]["descriptor_rejections"]["observed"] = False
+    fabricated["telemetry"]["before"]["descriptor_rejections"] = None
+    fabricated["telemetry"]["after"]["descriptor_rejections"] = None
+    fabricated["result"] = derive(fabricated)
+    try:
+        validate_document(Path("<profile-presence-mismatch>"), fabricated)
+    except pc.ContractError:
+        pass
+    else:
+        raise pc.ContractError("self-test accepted producer state that disagrees "
+                               "with the resolved profile")
+
+    print("live fitness: SELF-TEST PASS (hard gates, availability, exact score, "
+          "counter wrap)")
     return 0
 
 

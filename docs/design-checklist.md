@@ -960,7 +960,12 @@ thought of".  These three answer the other question.
   finding arrives with time attached to it.  It uploads SARIF to code scanning,
   and `tools/analysis_issue.py` keeps one issue in sync -- edited in place,
   commented on only when the finding *set* changes, closed when the report comes
-  back clean.
+  back clean.  The SARIF keeps one stable tool identity per analyzer and emits
+  an empty run for each analyzer that completed cleanly; GitHub keys an alert
+  lifecycle by that identity, so replacing six finding-bearing tool runs with
+  one generic empty run would leave resolved alerts open forever.  A skipped
+  analyzer emits no clean run and therefore cannot retire findings for code it
+  did not inspect.
 
   **The sanitizer reports go to the same issue.**  An ASan, LSan or UBSan report
   is the most actionable thing here and the easiest to lose in a log, so

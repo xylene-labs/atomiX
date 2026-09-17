@@ -30,6 +30,8 @@ static constexpr uint32_t kLiveGeneration = kBase + 0x138;
 static constexpr uint32_t kMagic = 0x61585348u;  // "aXSH"
 static constexpr uint32_t kIsolate = 1u << 0;
 static constexpr uint32_t kRoleReset = 1u << 1;
+static constexpr uint32_t kWatchdogArm = 1u << 2;
+static constexpr uint32_t kWatchdogRecoveryPending = 1u << 1;
 static constexpr uint32_t kLiveMagic = 0x61584c56u;  // "aXLV"
 static constexpr uint32_t kLiveVersion10 = 0x00010000u;
 static constexpr uint32_t kLiveSnapshot = 1u;
@@ -353,9 +355,13 @@ int main(int argc, char** argv) {
   top.bus_d_valid = 1;
   top.eval();
   for (int cycle = 0; cycle < kWatchdogCycles * 3; cycle++) tick(&top);
+  check(top.bus_d_ready == 0 && top.role_d_valid == 1 && top.role_rst == 0,
+        "observe-only expiry leaves the stuck transaction and role unchanged");
   top.bus_d_valid = 0;
   set_role(&top, true, 0xdeadbeefu, false);
   top.eval();
+  check(read_reg(&top, kIsoStatus) == 0,
+        "an unarmed watchdog observes without isolating");
   write_reg(&top, kLiveCommand, kLiveSnapshot);
   check(read_reg64(&top, kLiveWatchdogs) == with_events(watchdogs_before, 1),
         "a role that stops answering raises exactly one watchdog event");
@@ -363,6 +369,63 @@ int main(int argc, char** argv) {
   // One hung job is one event however long it hangs -- otherwise the count is
   // just a slow copy of the stall counter and says nothing extra.
   const uint64_t watchdogs_after_first = read_reg64(&top, kLiveWatchdogs);
+#ifdef TB_ROLE_EVENTS
+  // A manager cannot wait for expiry and then issue ISO_CTRL through the same
+  // data master: that master is the transaction which is stuck. It instead
+  // pre-authorizes emergency containment before the job. The immutable fence,
+  // not the optimizer or role, owns the expiry action.
+  write_ctrl(&top, kWatchdogArm);
+  check(read_reg(&top, kIsoCtrl) == kWatchdogArm,
+        "the manager can arm watchdog containment without isolating");
+  set_role(&top, false, 0, false);
+  top.bus_d_valid = 1;
+  top.eval();
+  for (int cycle = 0; cycle < kWatchdogCycles - 1; cycle++) tick(&top);
+  check(top.bus_d_ready == 0 && top.role_d_valid == 1 && top.role_rst == 0,
+        "armed recovery does not fire before the watchdog deadline");
+  tick(&top);
+  check(top.bus_d_ready == 1 && top.bus_d_rdata == 0 && top.bus_d_err == 0,
+        "armed expiry completes the in-flight transaction with the fenced response");
+  check(top.role_d_valid == 0 && top.role_rst == 1,
+        "armed expiry isolates and resets the failed role");
+  // The ready response above retires the old request. It is aborted with zero,
+  // never replayed against the replacement role.
+  tick(&top);
+  top.bus_d_valid = 0;
+  top.eval();
+  check(read_reg(&top, kIsoStatus) ==
+            (kIsolate | kWatchdogRecoveryPending),
+        "armed expiry records watchdog recovery pending");
+  check(read_reg(&top, kIsoCtrl) ==
+            (kIsolate | kRoleReset | kWatchdogArm),
+        "armed expiry preserves the manager's authorization");
+  write_reg(&top, kLiveCommand, kLiveSnapshot);
+  check(read_reg64(&top, kLiveWatchdogs) == watchdogs_after_first + 1,
+        "a second stall episode is a second event, not a per-cycle count");
+
+  // The manager installs the known-good role while fenced, releases it for a
+  // bounded canary, and only then records verified activation. The activation
+  // clears recovery-pending; it does not happen merely because reset dropped.
+  set_role(&top, true, 0x1234abcdu, false);
+  write_ctrl(&top, kIsolate | kWatchdogArm);
+  check(top.role_rst == 0 && read_reg(&top, kIsoStatus) ==
+            (kIsolate | kWatchdogRecoveryPending),
+        "rollback can release reset while the role remains fenced");
+  write_ctrl(&top, kWatchdogArm);
+  top.bus_d_valid = 1;
+  top.eval();
+  check(top.bus_d_ready == 1 && top.bus_d_rdata == 0x1234abcdu,
+        "the known-good rollback role passes its canary");
+  tick(&top);
+  top.bus_d_valid = 0;
+  top.eval();
+  check(read_reg(&top, kIsoStatus) == kWatchdogRecoveryPending,
+        "canary execution alone does not clear recovery-pending");
+  write_reg(&top, kLiveCommand, kLiveActivate);
+  check(read_reg(&top, kIsoStatus) == 0,
+        "verified activation clears watchdog recovery-pending");
+  write_ctrl(&top, 0);
+#else
   set_role(&top, false, 0, false);
   top.bus_d_valid = 1;
   top.eval();
@@ -371,8 +434,9 @@ int main(int argc, char** argv) {
   set_role(&top, true, 0xdeadbeefu, false);
   top.eval();
   write_reg(&top, kLiveCommand, kLiveSnapshot);
-  check(read_reg64(&top, kLiveWatchdogs) == with_events(watchdogs_after_first, 1),
-        "a second stall episode is a second event, not a per-cycle count");
+  check(read_reg64(&top, kLiveWatchdogs) == watchdogs_after_first,
+        "a profile without the producer cannot arm watchdog recovery");
+#endif
 
   // A brief stall is not a watchdog: the shell must not report a role dead for
   // being slow, or the counter cannot be used to justify tearing one out.
@@ -454,6 +518,10 @@ int main(int argc, char** argv) {
     std::fprintf(stderr, "tb_axroleiso: %d FAILURE(S)\n", failures);
     return 1;
   }
+#ifdef TB_ROLE_EVENTS
+  std::puts("watchdog authority: PASS (observe-only, armed containment at "
+            "16 stalled cycles, rollback/canary, manager verification)");
+#endif
   std::puts("tb_axroleiso: PASS");
   return 0;
 }

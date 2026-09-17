@@ -55,7 +55,7 @@ any evolution component or grant configuration authority.
 This is still not a claim that the kernel can evolve an FPGA. Configuration
 actuation and rollback remain later, separately gated capabilities.
 
-## Deterministic fitness record, version 1.0
+## Deterministic fitness record, version 1.1
 
 The selected `fitness` component is separate from the `evolution` component.
 `fitness.cycles-per-work` consumes a trial; `evolution.small`, `.mid`, or
@@ -66,12 +66,18 @@ profiles select `fitness.none` and link no fitness code.
 
 A trial pins the numeric and namespaced candidate identity, workload revision
 and case, expected work count, exact oracle result, optional integer energy in
-picojoules, and two L0 snapshots. It is eligible only when all of these hold:
+picojoules, and two L0 snapshots. Version 1.1 also binds the snapshots to a
+hashed profile and records `present` and `observed` independently for the two
+safety-event producers. The checker resolves that profile and derives producer
+presence from `AX_LIVE_ROLE_EVENTS`; a record cannot award itself a producer
+that its build compiled out. An unobserved counter is `null`, never a zero that
+could be mistaken for evidence. It is eligible only when all of these hold:
 
 - the snapshots are adjacent modulo 2^32;
 - the oracle passed at least one case and recorded an output SHA-256;
 - completed work equals the workload's declared work count;
-- descriptor-rejection and watchdog deltas are zero;
+- descriptor-rejection and watchdog producers are present, both counters were
+  observed, and both deltas are zero;
 - configuration generation is unchanged during the workload;
 - elapsed cycles are non-zero and memory stalls do not exceed elapsed cycles.
 
@@ -89,20 +95,24 @@ fitness `0xffffffff` with the correctness flag clear, so better performance can
 never erase a failed oracle or safety event. Different objective IDs are never
 compared as though their numeric scores had the same meaning.
 
-The complete JSON evidence record is under `research/live-fpga/`; it preserves
-raw snapshots, exact rational metrics, rejection reasons, and the compact
-kernel evolution record. `tools/live_fitness.py` recomputes every derived field
-instead of trusting entered results. The freestanding C implementation uses the
-same rules and a bounded 64-by-32 divider, avoiding floating point and an
-implicit runtime-library dependency on RV32.
+The complete JSON evidence records are under `research/live-fpga/`; they
+preserve raw snapshots, producer/observation state, exact rational metrics,
+rejection reasons, and the compact kernel evolution record. The positive case
+uses `configs/sim-morph.json`, the declined case uses the existing
+`configs/tangprimer25k-runtime.json` opt-out, and the missing-observation case
+keeps the producer enabled but withholds one counter. `tools/live_fitness.py`
+recomputes every derived field instead of trusting entered results. The
+freestanding C implementation carries matching presence and observation masks
+and uses a bounded 64-by-32 divider, avoiding floating point and an implicit
+runtime-library dependency on RV32.
 
 ```bash
 make fitness-check
 ```
 
-This validates the JSON contract, hard-gate negative cases, counter wrap,
-host C implementation, callable code in every evolving RISC-V profile, and the
-exact 32 KiB Primer link/boot gate.
+This validates the JSON contract, enabled/declined/missing-observation cases,
+hard-gate negative cases, counter wrap, host C implementation, callable code in
+every evolving RISC-V profile, and the exact 32 KiB Primer link/boot gate.
 
 ## Content-addressed candidate registry
 
@@ -298,11 +308,51 @@ answering cannot report that it has stopped answering.  The fence already
 watches every role-window transaction, so it counts a stall episode that
 outlasts `WATCHDOG_CYCLES` as one watchdog event — once per episode, however
 long the hang lasts, since the per-cycle view is already `MEMORY_STALLS`.  It
-observes and does not act: making the watchdog *isolate* would change what the
-fence guarantees and when a role can be torn out from under a driver, which is
-a safety decision to take deliberately rather than as a side effect of fixing
-telemetry.  `watchdog_event` remains an input for a future shell-level
-producer.
+observes by default. `watchdog_event` remains an input for another shell-level
+producer; it does not itself authorize isolation.
+
+### Watchdog recovery authority
+
+The authority decision is manager-preauthorized containment, not unconditional
+automatic recovery and not a software reaction after timeout. `ISO_CTRL` adds
+`WATCHDOG_ARM` at bit 2 when role-event producers are compiled in. The manager
+sets it before starting a bounded job. If the fence's own stall watchdog then
+expires, the immutable fence asserts `ISOLATE` and `ROLE_RESET` and latches
+`ISO_STATUS.WATCHDOG_RECOVERY_PENDING` at bit 1. With the arm clear, the same
+expiry remains observation-only. Profiles which decline `live_role_events`
+retain the original two-bit register and cannot arm a producer they omitted.
+
+This split is required by the bus failure itself. A CPU cannot wait until its
+role-window data request is stuck and then issue an `ISO_CTRL` store through
+that same data master. Pre-authorization gives the fence permission to contain
+only that already-bounded failure; it grants no candidate, fitness function, or
+optimizer register access or configuration authority.
+
+The in-flight rule is abort, never retry: on the expiry edge the fence stops
+forwarding `valid`, asserts role reset, and completes the outstanding bus request
+with the ordinary isolated-window response (zero data, no error). That request
+must retire before the manager installs a replacement and is never replayed
+against it. In the configured clock domain containment is active immediately
+after exactly `WATCHDOG_CYCLES` consecutive stalled edges. This is the hardware
+deadline; time from containment through image transfer and verification remains
+the external manager's recorded trial deadline rather than an unproved RTL
+constant.
+
+Recovery remains manager-owned. The manager keeps the failed role fenced,
+installs the last-known-good construction, releases reset while still isolated,
+then releases the fence for the bounded primary/canary checks. A responsive but
+incorrect canary is explicitly re-isolated; another hang is contained because
+the arm remains set. Only the manager's `LIVE_ACTIVATE` write after integrity,
+discovery, and oracle checks clears `WATCHDOG_RECOVERY_PENDING`. Reset release
+or a successful bus response alone does not clear it.
+
+`make live-check` fault-injects both paths at a non-default threshold of 16:
+the unarmed path remains stalled after expiry, while the armed path is still
+transparent after 15 stalled edges and is isolated/reset with a completed
+fenced response after edge 16. It then restores a known-good role, runs the
+canary, proves pending remains set, and clears it only with verified activation.
+This is RTL simulation evidence, not a physical Primer result; every Primer
+profile still declines these producers for capacity.
 
 What is deliberately *not* counted as a rejection: traffic the fence absorbs
 while isolated.  Rediscovering the role by reading the fenced window is the

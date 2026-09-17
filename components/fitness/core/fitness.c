@@ -79,6 +79,10 @@ FITNESS_API int fitness_evaluate(const struct fitness_trial *trial,
 #else
   if (trial->candidate_id == 0 || trial->expected_work == 0)
     out->rejection_mask |= FITNESS_REJECT_INPUT;
+  if (((trial->telemetry_present | trial->telemetry_observed) &
+       ~FITNESS_TELEMETRY_SAFETY_EVENTS) != 0u ||
+      (trial->telemetry_observed & ~trial->telemetry_present) != 0u)
+    out->rejection_mask |= FITNESS_REJECT_INPUT;
   if ((uint32_t)(trial->after.sequence - trial->before.sequence) != 1u)
     out->rejection_mask |= FITNESS_REJECT_SEQUENCE;
   if (trial->oracle_pass != 1u || trial->oracle_cases == 0)
@@ -89,6 +93,12 @@ FITNESS_API int fitness_evaluate(const struct fitness_trial *trial,
     out->rejection_mask |= FITNESS_REJECT_DESCRIPTOR;
   if (out->watchdog_events != 0)
     out->rejection_mask |= FITNESS_REJECT_WATCHDOG;
+  if ((trial->telemetry_present & trial->telemetry_observed &
+       FITNESS_TELEMETRY_DESCRIPTOR_REJECTIONS) == 0u)
+    out->rejection_mask |= FITNESS_REJECT_DESCRIPTOR_UNAVAILABLE;
+  if ((trial->telemetry_present & trial->telemetry_observed &
+       FITNESS_TELEMETRY_WATCHDOG_EVENTS) == 0u)
+    out->rejection_mask |= FITNESS_REJECT_WATCHDOG_UNAVAILABLE;
   if (out->configuration_generations != 0)
     out->rejection_mask |= FITNESS_REJECT_GENERATION;
   if (out->cycles == 0 || out->memory_stalls > out->cycles)

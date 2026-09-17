@@ -53,6 +53,8 @@ static struct fitness_result shadow_run(
   trial.expected_work = 10;
   trial.oracle_pass = candidate->oracle_pass;
   trial.oracle_cases = 1;
+  trial.telemetry_present = FITNESS_TELEMETRY_SAFETY_EVENTS;
+  trial.telemetry_observed = FITNESS_TELEMETRY_SAFETY_EVENTS;
   trial.before = snapshot(fpga);
 
   fpga->counters.cycles += candidate->cycles;
