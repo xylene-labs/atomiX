@@ -9,7 +9,10 @@ experiment was attempting. All owners are unassigned.
 
 ASIC portability and implementation feasibility (RX-08/RX-09) are ordered on
 the [targets board](targets.md), with acceptance in the research checklist.
-Their first dependency audit needs no FPGA board or technology library.
+They need no physical FPGA board. The generic audit can begin before choosing a
+technology library, but the selected competition execution now starts from the
+official CMOS5L template so it can audit the actual wrapper, writable program
+store and after-fabrication loading path rather than an abstract core alone.
 
 | Card / question | Priority | State | Depends on | First reviewable slice / decision |
 |---|---|---|---|---|

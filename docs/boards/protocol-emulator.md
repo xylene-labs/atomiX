@@ -9,25 +9,79 @@ CMOS5L ASIC competition. It is this project's execution of
 the competition supplies the specific block, the accessible PDK and flow, a fixed
 area budget, and an external deadline those two cards were missing.
 
+The pull order follows the competition's own challenge statement: build an
+open-source, general-purpose protocol emulator that remains programmable after
+fabrication; start with UART, SPI and I2C; use the official CMOS5L template at
+6x4; and run synthesis and place-and-route early. Unique functionality and
+verification methodology strengthen a complete chip, but cannot substitute
+for those baseline capabilities. See the [official announcement](https://blog.janestreet.com/protocol-emulator-asic-competition/).
+
+## What winning means here
+
+Three tiers, in strict order. A card's tier says what it is *for*; a card that
+serves no tier does not belong on this board.
+
+| Tier | Meaning | Contents |
+|---|---|---|
+| **T1 — Valid entry** | Without every one of these we are not competing at all, however good the rest is | Official 6x4 template; programmable after fabrication; UART, SPI and I2C working; the design passes the CMOS5L flow |
+| **T2 — Competitive** | What distinguishes a complete chip from other complete chips | Measured time that firmware can actually *use*; the timing-determinism proof; generated-from-one-source artifacts and shared oracles |
+| **T3 — Stretch** | Taken only from genuine surplus schedule | Further protocols; the fixed-logic comparison; extra platform evidence |
+
+The ordering is not a preference. A T2 result cannot repair a missing T1
+capability, and no amount of verification methodology makes an ASIC that cannot
+be loaded after fabrication into an entry.
+
+### Submission definition of done
+
+One list, checkable by someone who did not build it:
+
+1. `make tt-export` produces the Tiny Tapeout repository from this tree.
+2. Two different protocol programs load into **one unchanged hardened design**
+   after reset, and both run. This is the programmability test; a preinitialised
+   memory image does not pass it.
+3. UART, SPI and I2C each pass an independent reference peer.
+4. A CMOS5L place-and-route report exists with actual area and timing, and every
+   violation is recorded rather than omitted.
+5. The write-up states what was *not* proved, and at which evidence level each
+   claim sits.
+
+### Descope order
+
+Decided now, while there is no schedule pressure, because the worst time to
+choose what to cut is the week it has to be cut. When a card slips, the next
+item on this list goes, in order, and the board records that it went:
+
+1. PE-13, the fixed-logic comparison
+2. PE-09, Tang Primer bring-up — FPGA evidence is valuable but the submission
+   is an ASIC entry and does not require it
+3. PE-08, the knob sweep beyond what the RTL already elaborates
+4. PE-11, gate-level replay, reduced to one protocol rather than three
+5. PE-06, the formal proof, reduced from all instructions to the timing core
+
+Nothing above the line is cuttable: T1 is the entry, and PE-15 below is what
+makes the T2 functionality claim true rather than half-true.
+
 The deadline is **2027-01-18** and is not ours to move. Cards are ordered by that
 date rather than by priority alone; a card that slips takes scope out of a later
 card instead of taking time from the submission. All owners are unassigned.
 
-| Card / outcome | Priority | State | Depends on / blocker | First reviewable slice |
-|---|---|---|---|---|
-| PE-01: competition entry and template baseline | P0 | Ready | Sign-up form and asic-competition@janestreet.com | Register, record the confirmed rules and any template updates, and pull the CMOS5L Verilog template into `asic/tt-axpe/` unmodified |
-| PE-02: area and memory feasibility gate | P0 | Active | PE-01 template for the macro trial | Macro footprints measured 2026-09-17; remaining slice is confirming the Tiny Tapeout 6×4 flow accepts an SRAM macro, and measuring real cells per tile |
-| PE-03: `axpe` ISA specification | P0 | Review | PE-02 budget | Done: `axpe-isa.json` is the single source, `axpe-isa.md` is generated from it, and `WAITE` returns its elapsed cycle count |
-| PE-04: golden model and assembler | P0 | Active | PE-03 timing decisions | Model, assembler, UART/autobaud and four-mode clocked shifts pass via `make pemu-model-check`; close only after effect/reset/fault conventions receive commit-pinned review |
-| PE-05: RTL and cycle-for-cycle cosimulation | P0 | Active | PE-04 | Scalar/control RTL matches the model across 64 deterministic randomized programs; remove the recorded one-cycle `WAITE`/shift handoff gap before promoting the gate to `make pemu-check` |
-| PE-06: timing-determinism proof | P0 | Next | PE-05 | Every instruction proved to retire in its declared cycle count, `WAITE` bounded by its timeout |
-| PE-07: UART, SPI and I2C firmware | P0 | Active | PE-05 for RTL | UART conforms to the platform oracle and SPI mode 0 runs full duplex against a modelled peer; I2C and independent reference cross-checks remain |
-| PE-08: profile knobs exercised | P1 | Next | PE-05 | `configs/sim-axpe-tiny.json` runs every declared knob at a non-default value with limits derived from the build's own defines |
-| PE-13: firmware-vs-fixed-logic experiment | P0 | Active | PE-05, PE-07 for full results | Plan and workload validate today; the comparison against `uart.mmio16550` under one oracle is what makes the premise measured rather than asserted |
-| PE-09: Tang Primer bring-up | P1 | Next | PE-05; Dock access; a `.cst` exposing a PMOD header; peer hardware arriving | UART against CP2102, SPI against a Pi Pico 2 target, I2C against an AT24C256. Add a capture-clock divider so the 24 MS/s analyzer can witness edge placement in `axpe` cycles |
-| PE-10: CMOS5L synthesis and place-and-route | P0 | Next | PE-07, PE-02 | Actual area and timing at the chosen clock, violations recorded as found |
-| PE-11: gate-level firmware simulation | P1 | Next | PE-10 | The same three firmware images pass post-P&R netlist simulation |
-| PE-12: submission package | P0 | Next | PE-06, PE-07, PE-10 | `make tt-export` produces the Tiny Tapeout repository from this tree, with the write-up and evidence index |
+| Card / outcome | Tier | Priority | State | Depends on / blocker | First reviewable slice |
+|---|---|---|---|---|---|
+| PE-01: competition entry and official template baseline | T1 | P0 | Ready | Sign-up form and asic-competition@janestreet.com | Register, record the confirmed rules and template revision, resolve the template's current tile-shape metadata against the required 6x4 allocation, and pull it into `asic/tt-axpe/` unmodified |
+| PE-14: post-fabrication programming and host contract | T1 | P0 | Next | PE-01 pin and wrapper contract | Freeze the host pins and framing for write-word, reset, run, stop/status and result readback; prove two different programs can be loaded and run against one unchanged simulated chip image |
+| PE-02: instruction-memory and early-flow feasibility gate | T1 | P0 | Next | PE-01; PE-14 write/read semantics for the integrated trial | Put the writable instruction-store candidate and loader shell through the official 6x4 flow, recording mapped area, routability, timing and macro failures rather than relying on LEF footprint alone |
+| PE-03: `axpe` ISA specification | T1 | P0 | Review | PE-02 budget | Done: `axpe-isa.json` is the single source, `axpe-isa.md` is generated from it, and `WAITE` returns its elapsed cycle count |
+| PE-04: golden model and assembler | T1 | P0 | Review | PE-03 timing decisions | Model, assembler, UART/autobaud and four-mode clocked shifts pass via `make pemu-model-check`; close only after effect/reset/fault conventions receive commit-pinned review |
+| PE-05: RTL and cycle-for-cycle cosimulation | T1 | P0 | Active | PE-04 | Scalar/control RTL matches the model across 64 deterministic randomized programs; remove the recorded one-cycle `WAITE`/shift handoff gap before promoting the gate to `make pemu-check` |
+| PE-07: mandatory UART, SPI and I2C firmware | T1 | P0 | Next | PE-05; PE-14 runtime loading | Load all three as runtime programs into the same chip image; UART, SPI and I2C each pass an independent reference peer, including I2C ACK/NACK, repeated-start, STOP and bus release |
+| PE-10: staged CMOS5L synthesis and place-and-route | T1 | P0 | Next | PE-01, PE-02 and PE-14 for the first integrated run; PE-07 for final closure | Harden the smallest programmable chip as soon as loader and memory compose, then repeat on the final mandatory-protocol architecture with actual area, timing and violations recorded |
+| PE-15: a measured period firmware can use | T2 | P0 | Next | PE-03, PE-05; `b` field free in shift ops, two opcodes reserved | A delay register plus a per-instruction select bit, so `SHOUT`/`SHIN`/`SHIO` can take their bit period from a register. `autobaud.s` must measure an unknown peer and then transmit at that rate, end to end |
+| PE-06: timing-determinism proof | T2 | P0 | Next | PE-05 | Every instruction proved to retire in its declared cycle count, `WAITE` bounded by its timeout |
+| PE-08: profile knobs exercised | T2 | P1 | Next | PE-05 | `configs/sim-axpe-tiny.json` runs every declared knob at a non-default value with limits derived from the build's own defines |
+| PE-09: Tang Primer bring-up | T3 | P1 | Next | PE-05, PE-14; Dock access; a `.cst` exposing a PMOD header; peer hardware arriving | Load firmware at runtime into one unchanged FPGA image, then run UART against CP2102, SPI against a Pi Pico 2 target, and I2C against an AT24C256. Add a capture-clock divider so the 24 MS/s analyzer can witness edge placement in `axpe` cycles |
+| PE-11: gate-level firmware simulation | T3 | P1 | Next | PE-10 | The same three firmware images pass post-P&R netlist simulation |
+| PE-13: firmware-vs-fixed-logic experiment | T3 | P2 | Next | PE-05, PE-07; only after baseline competition gates | Compare `axpe` with `uart.mmio16550` under one oracle if schedule remains; this is supporting co-design evidence, not a substitute for programmability, mandatory protocols or a hardened chip |
+| PE-12: submission package | T1 | P0 | Next | PE-01, PE-06, PE-07, PE-10; PE-14 demonstrated | `make tt-export` produces the Tiny Tapeout repository, evidence index and a reproducible demo that loads multiple protocol images into one unchanged hardened design |
 
 ## Schedule
 
@@ -84,35 +138,72 @@ P&R, FPGA or silicon claim is made.
 
 | Phase | Cards | By |
 |---|---|---|
-| 0 — feasibility gate | PE-01, PE-02 | 2026-10-01 |
-| 1 — spec and model first | PE-03, PE-04 | 2026-10-22 |
-| 2 — RTL and proof | PE-05, PE-06, PE-08 | 2026-11-12 |
-| 3 — protocol firmware | PE-07 | 2026-12-03 |
-| 4 — FPGA bring-up | PE-09 | 2026-12-17 |
-| 5 — ASIC flow | PE-10, PE-11 | 2027-01-07 |
+| 0 — official entry and template | PE-01 | 2026-09-22 |
+| 1 — runtime programmability and early 6x4 hardening | PE-14, PE-02; first PE-10 run | 2026-10-08 |
+| 2 — ISA, model and cycle-exact RTL | PE-03, PE-04, PE-05 | 2026-10-29 |
+| 3 — mandatory runtime-loaded protocols | PE-07 | 2026-11-19 |
+| 4 — usable measurement, proof, knob sweep, optional FPGA evidence | PE-15, PE-06, PE-08, PE-09 | 2026-12-10 |
+| 5 — final ASIC flow and gate-level replay | PE-10, PE-11 | 2027-01-07 |
 | 6 — submission | PE-12 | 2027-01-14 |
 
 Four days of buffer remain before the deadline. They are buffer, not a phase.
 
 ## What closes a card here
 
-The competition is judged on unique functionality **and** on novel design and
-verification methodology. The second axis is the one this project is unusually
-placed to win, so evidence discipline is part of the deliverable rather than
-overhead on it.
+Jane Street says it is particularly interested in unique functionality and in
+novel design and verification methodologies. That is a selection signal, not a
+published scoring rubric. Evidence discipline is part of the deliverable, but
+methodology cannot compensate for an ASIC that is not runtime-programmable or
+does not implement the three named starting protocols.
 
 Every card keeps simulation, synthesis/P&R, and physical evidence explicitly
 separate, exactly as the rest of the project does. A CMOS5L P&R result is not an
 FPGA result and neither is a silicon claim; nothing taped out exists until it
 comes back from the shuttle. Record failures, timing violations, and unresolved
-verification alongside passes — a submission that states its own gaps is worth
-more on the judged axis than one that hides them.
+verification alongside passes — a submission that states its own gaps is more
+credible than one that hides them.
 
-Firmware is never part of a bitstream's identity. On the Primer the emulator's
-program loads at runtime over the existing loader; adding or changing a protocol
-firmware must never re-open a board claim or trigger re-synthesis.
+Firmware is never part of the FPGA bitstream or ASIC GDS identity. The closure
+test for programmability is loading different firmware after reset into one
+unchanged hardened design. A preinitialized SRAM image may help first bring-up,
+but it does not satisfy the competition's after-fabrication requirement. On the
+Primer, adding or changing protocol firmware likewise must not re-open a board
+claim or trigger re-synthesis.
 
 ## Priority decisions
+
+- 2026-09-17: added a three-tier win condition, a submission definition of done
+  and a written descope order, so every card answers to an outcome rather than
+  to its own completion. The descope order is decided now on purpose: the worst
+  time to choose what to cut is the week it must be cut.
+- 2026-09-17: opened PE-15, because the measured-time feature is currently half
+  a feature. `WAITE` returns a period into a register and `D` is an immediate,
+  so `autobaud.s` measures an unknown peer and then cannot transmit at that
+  rate. It is cheap to close -- the `b` field is unused in `SHOUT`/`SHIN`/`SHIO`
+  and two opcodes are reserved -- and until it closes, the unique-functionality
+  claim has to be stated as measurement only. This is what the self-calibration
+  walk-back below implies; PE-15 is the work that makes the claim true instead.
+- 2026-09-17: reordered the board against the competition's exact wording.
+  PE-01 is the first pull, followed by a new PE-14 runtime-programming contract
+  and an integrated PE-02 early hardening run. A CPU with externally supplied
+  `imem_data` is not yet a reprogrammable ASIC: the fabricated chip needs a
+  host-visible write/load/run/status path and writable instruction storage.
+- 2026-09-17: staged P&R instead of leaving all physical design until January.
+  The first PE-10 run happens as soon as the loader, writable memory and minimal
+  core compose; final firmware and verification results trigger a later re-run.
+  This follows the announcement's instruction to synthesize and route early.
+- 2026-09-17: made UART, SPI and I2C an explicit P0 runtime-loaded gate and
+  demoted PE-13 to P2. The fixed-UART comparison can strengthen the write-up,
+  but it is internal platform evidence and cannot replace a mandatory protocol
+  or post-fabrication programmability.
+- 2026-09-17: the submission narrative now leads with the chip. atomiX's
+  generated artifacts, shared oracles and cross-target experiment machinery are
+  verification evidence supporting it; they are not a second deliverable that
+  can make an incomplete chip competitive. This supersedes the earlier
+  "chip and platform" ordering below while preserving its useful experiment.
+- 2026-09-17: do not claim firmware self-calibration until the architecture can
+  actually apply a measured period to later timing. The current ISA can measure
+  a peer but cannot rewrite an instruction delay or load a delay register.
 
 - 2026-09-17: open this board and give it the project's work-in-progress limit
   until 2027-01-18. M0 delivery work is paused rather than run alongside — the
@@ -179,7 +270,8 @@ firmware must never re-open a board claim or trigger re-synthesis.
   it: `autobaud.s` had a branch between its two `WAITE`s, spending a cycle the
   measurement could not see. Interval measurement now requires adjacent waits,
   and that is normative.
-- 2026-09-17: the submission is the chip *and* the platform. The competition's
+- Earlier 2026-09-17 decision, superseded by the chip-first ordering above: the
+  submission is the chip *and* the platform. The competition's
   premise -- protocols in firmware rather than fixed logic -- is a co-design
   tradeoff, which is the shape of question this project exists to answer, so
   PE-13 tests it against the fixed-function UART already in the tree instead of

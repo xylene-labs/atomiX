@@ -137,8 +137,16 @@ of cycles it actually waited (§4.1 of the ISA document). The counter already
 exists to enforce the timing discipline, and the `a` field was unused by `WAITE`,
 so the feature costs one 16-bit read path and nothing in the encoding. It
 converts the chip from one that emits known protocols into one that can measure
-an unknown peer: autobaud in eight instructions, pulse-width capture,
-self-calibration against hardware whose clock was never documented.
+an unknown peer: autobaud in eight instructions, and pulse-width capture.
+
+**Self-calibration does not yet follow from it, and the board says so.** `D` is
+an immediate in the instruction word, and there is no path from a register to
+the timing counter, so `autobaud.s` can measure a bit period and then cannot
+transmit at it. The feature is half of itself until PE-15 adds a delay register
+and a per-instruction select bit — cheap, because the `b` field is unused in
+the shift instructions and two opcodes are reserved. Until that lands, the
+measurement claim is "it can characterise an unknown peer", not "it can talk to
+one".
 
 This follows from the competition's own framing. The announcement names hardware
 debugging and reverse engineering as the purpose, and a reverse engineer is

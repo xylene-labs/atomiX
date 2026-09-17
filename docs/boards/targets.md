@@ -6,16 +6,19 @@
 This board owns the work that makes atomiX useful across software execution,
 architecture models, programmable hardware, and eventual silicon. All owners
 are unassigned. AX-10 is part of M0 and comes after delivery card AX-01; the
-ASIC dependency audit can start independently without a board or PDK.
+generic ASIC dependency audit can start without a physical board. Its selected
+competition execution now uses the official CMOS5L template because wrapper,
+pin, memory-write and full-flow assumptions are part of the question being
+audited.
 
 | Card / outcome | Priority | State | Depends on | First reviewable slice |
 |---|---|---|---|---|
 | [AX-10: native CPU and RTL execution adapters](../design-checklist.md#ax-10) | P0 | Done | AX-01 | Define the adapter contract and implement one native integer workload against the shared oracle, without invoking FPGA or RISC-V tools |
 | [AX-12: ISS and emulator adapters](../design-checklist.md#ax-12) | P1 | Done | AX-10 | Separate aXsim/QEMU adapters run one exact ELF fixture; QEMU-required conformance covers refusals, bounds, and failed replay |
 | [AX-11: compiler/runtime and hardware co-design experiments](../design-checklist.md#ax-11) | P1 | Done | AX-10, AX-02, AX-03 | GCC `-O0`/`-O2` and a complete SIMT-algorithm/lane-count control passed exact oracles with replayable identities |
-| [RX-08: ASIC portability dependency audit](../research-checklist.md#rx-08) | P1 | Active | Existing RTL and manifests | Executed by [PE-02](protocol-emulator.md) on `axpe`: measure CMOS5L cells per tile and storage density, and decide the instruction store before any encoding is fixed |
+| [RX-08: ASIC portability dependency audit](../research-checklist.md#rx-08) | P0 | Active | Existing RTL and manifests; official competition template | Executed by [PE-01, PE-14 and PE-02](protocol-emulator.md): pin the official wrapper, post-fabrication programming path, writable memory semantics and technology dependencies, then run the smallest integrated design through the 6x4 flow |
 | [AX-13: external accelerator backend](../design-checklist.md#ax-13) | P2 | Next | AX-10, AX-03; a supported device/runtime for execution | Inventory available compute devices and choose one workload/adapter only when an actual target is accessible |
-| [RX-09: technology-mapped implementation feasibility](../research-checklist.md#rx-09) | P0 | Next | RX-08; IHP-Open-PDK and the Tiny Tapeout CMOS5L flow | Executed by [PE-10](protocol-emulator.md): full CMOS5L synthesis and place-and-route of `axpe`, with actual area and timing at the chosen clock |
+| [RX-09: technology-mapped implementation feasibility](../research-checklist.md#rx-09) | P0 | Next | RX-08; IHP-Open-PDK and the Tiny Tapeout CMOS5L flow | Executed by staged [PE-10](protocol-emulator.md): early full-flow P&R when loader, writable memory and core first compose, then final P&R with actual area and timing after the mandatory protocols close |
 
 ## What keeps this work focused
 
@@ -47,6 +50,14 @@ add focused conformance checks and appropriate suite coverage before closure;
 the existing simulator or FPGA suite cannot certify an unimplemented backend.
 
 ## Priority decisions
+
+- 2026-09-17: promoted RX-08 to P0 for the competition lane and expanded its
+  dependency map to include the runtime loader and writable instruction store.
+  An instruction-memory footprint without an after-fabrication write path does
+  not answer the competition's portability question.
+- 2026-09-17: split RX-09 execution into an early integrated hardening run and
+  final closure rather than waiting for finished firmware to discover wrapper,
+  macro, clock-tree or routing failures.
 
 - 2026-09-10: broadened the product to hardware/software co-design. Added a
   native CPU adapter to the first milestone so FPGA independence is exercised.

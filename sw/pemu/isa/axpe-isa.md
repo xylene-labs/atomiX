@@ -221,8 +221,10 @@ that can **listen to one it has never seen**:
   both waits, as `autobaud.s` does.
 - **Autobaud.** The narrowest low pulse on an idle-high line is one bit period.
   Ten instructions, no host involvement. See `sw/pemu/firmware/autobaud.s`.
-- **Self-calibrate.** Firmware writes a measured period into its own `D` fields
-  and then transmits at a rate nobody configured.
+- **Self-calibrate — not yet.** `D` is an immediate in the instruction word and
+  nothing routes a register to the timing counter, so firmware can measure a
+  period and cannot then use it. PE-15 adds a delay register and a select bit
+  to close this; until then the returned count is readable but not applicable.
 - **Timestamp edges** for protocol identification, rather than only waiting on
   them.
 

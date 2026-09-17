@@ -7,7 +7,7 @@ AX-10 closed the same day. No row here is assigned to a person.
 
 | Board | Purpose | First pull |
 |---|---|---|
-| [Protocol emulator](protocol-emulator.md) | `axpe` for the CMOS5L ASIC competition; executes RX-08/RX-09 against a real PDK and deadline | PE-01: enter the competition and pull the CMOS5L template unmodified |
+| [Protocol emulator](protocol-emulator.md) | A post-fabrication-programmable `axpe` for the CMOS5L ASIC competition; executes RX-08/RX-09 against a real PDK and deadline | PE-01: enter the competition, confirm the 6x4 rules and pull the official CMOS5L template unmodified |
 | [Delivery](delivery.md) | Usable experiments, component SDK, reproducible release | AX-04: two independent reproductions of the experiment alpha |
 | [Execution targets](targets.md) | Native execution, compiler/runtime work, emulators, accelerators, and ASIC feasibility | RX-08: audit one small RTL block's FPGA dependencies before technology mapping |
 | [Research](research.md) | Test optimization and adaptation value; retire technical uncertainty | RX-04: distinguish unavailable telemetry from observed zero |
