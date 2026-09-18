@@ -206,6 +206,19 @@ claim or trigger re-synthesis.
 
 ## Priority decisions
 
+- 2026-09-18: the lane is single-agent from here. Codex is unavailable for an
+  extended period, so the coordination board is retired for this work and
+  `AGENTS.md` records the rule. The consequence is not cosmetic: PE-03, PE-04
+  and PE-05 sit in **Review** waiting on a commit-pinned review that named an
+  agent reviewer who is gone, so **the maintainer owes those three reviews**.
+  They stay in Review until then. A card does not become closed because the
+  only party who could have objected stopped being available — that is how a
+  submission ends up asserting what nobody checked, on the one axis the
+  competition says it is judging.
+- 2026-09-18: PE-05's retirement handoff closed, so the declared-cycle property
+  is now true of the RTL and not only of the ISA document. PE-06 is Ready: the
+  proof it has to carry is exactly the claim the cosimulation now demonstrates
+  on 112 programs, which is the difference between evidence and a proof.
 - 2026-09-17: added a three-tier win condition, a submission definition of done
   and a written descope order, so every card answers to an outcome rather than
   to its own completion. The descope order is decided now on purpose: the worst

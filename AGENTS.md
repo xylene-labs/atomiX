@@ -28,13 +28,21 @@ for the card queue; pull from that board unless asked otherwise.
 
 ### Team
 
-Three parties work this repository during the competition: the maintainer,
-Claude, and Codex. More than one agent is therefore active by default, so
-`gator-tools/skills/multi-agent-coordination/SKILL.md` applies to this work
-rather than being reserved for exceptional cases. Claim before you edit, and
-keep claims, reviews, and design questions in `.git/multi-agent-coordination/`.
-Two agents silently editing the same RTL or the same ISA table is the failure
-this lane can least afford.
+**As of 2026-09-18 this lane is single-agent: the maintainer and Claude.** Codex
+is unavailable for an extended period. `gator-tools/skills/multi-agent-coordination/SKILL.md`
+is therefore *not* used for this work — it goes back to being reserved for the
+exceptional case, and returns the moment a second agent rejoins. Do not claim,
+heartbeat, or record readiness while this holds; a coordination board that only
+one party reads is ceremony, and ceremony is what gets skipped under deadline.
+
+That has one consequence worth naming rather than discovering. Cards that say
+*close only after commit-pinned review* named an agent reviewer who is now gone,
+so **the maintainer is the reviewer**. A card may not quietly promote itself to
+closed because nobody is left to review it — it stays in Review, and the board
+says who owes the review. The rule the coordination skill existed to protect
+still applies without it: one change to the RTL or the ISA table at a time, and
+the ISA description stays the single source every derived artifact is generated
+from.
 
 ## Mission and constraints
 
