@@ -496,6 +496,10 @@
     ".:pemu-cosim-check": {
       "kind": "suite",
       "stage": "pemu-cosim"
+    },
+    ".:pemu-chip-check": {
+      "kind": "suite",
+      "stage": "pemu-chip"
     }
   }
 }

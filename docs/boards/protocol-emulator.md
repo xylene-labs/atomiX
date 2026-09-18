@@ -68,8 +68,8 @@ card instead of taking time from the submission. All owners are unassigned.
 | Card / outcome | Tier | Priority | State | Depends on / blocker | First reviewable slice |
 |---|---|---|---|---|---|
 | PE-01: competition entry and official template baseline | T1 | P0 | Ready | Sign-up form and asic-competition@janestreet.com | Register, record the confirmed rules and template revision, resolve the template's current tile-shape metadata against the required 6x4 allocation, and pull it into `asic/tt-axpe/` unmodified |
-| PE-14: post-fabrication programming and host contract | T1 | P0 | Next | PE-01 pin and wrapper contract | Freeze the host pins and framing for write-word, reset, run, stop/status and result readback; prove two different programs can be loaded and run against one unchanged simulated chip image |
-| PE-02: instruction-memory and early-flow feasibility gate | T1 | P0 | Next | PE-01; PE-14 write/read semantics for the integrated trial | Put the writable instruction-store candidate and loader shell through the official 6x4 flow, recording mapped area, routability, timing and macro failures rather than relying on LEF footprint alone |
+| PE-14: post-fabrication programming and host contract | T1 | P0 | Review | PE-01 for the template's wrapper module name and revision | Done: [`docs/pemu-host-protocol.md`](../pemu-host-protocol.md) freezes the pins and framing, and `make pemu-chip-check` loads two unrelated programs into one elaborated design and runs both cycle-exact. Remaining: the top is `axpe_chip`, not the `tt_um_*` name the official template requires, which PE-01 supplies |
+| PE-02: instruction-memory and early-flow feasibility gate | T1 | P0 | Ready | PE-01; PE-14 write/read semantics settled 2026-09-18 | Put the writable instruction-store candidate and loader shell through the official 6x4 flow, recording mapped area, routability, timing and macro failures rather than relying on LEF footprint alone |
 | PE-03: `axpe` ISA specification | T1 | P0 | Review | PE-02 budget | Done: `axpe-isa.json` is the single source, `axpe-isa.md` is generated from it, and `WAITE` returns its elapsed cycle count |
 | PE-04: golden model and assembler | T1 | P0 | Review | PE-03 timing decisions | Model, assembler, UART/autobaud and four-mode clocked shifts pass via `make pemu-model-check`; close only after effect/reset/fault conventions receive commit-pinned review |
 | PE-05: RTL and cycle-for-cycle cosimulation | T1 | P0 | Review | PE-04 | Done: `make pemu-cosim-check` compares every cycle with no tolerated deviation across 112 randomized programs and twelve directed cases, and the handoff gap is closed. Close only after commit-pinned review of the retirement and forwarding path |
@@ -139,6 +139,44 @@ P&R, FPGA or silicon claim is made.
 Superseded by the checkpoint below, which closes that gap. It stays here because
 what a defect looked like before it was understood is part of the record.
 
+### PE-14 checkpoint — 2026-09-18
+
+`axpe` is now a chip rather than a core with its instructions handed to it.
+`axpe_chip` composes the core with a writable single-port instruction store and
+a fixed-logic SPI host port, in the Tiny Tapeout pin shape. `make
+pemu-chip-check` elaborates it once, loads one program over four host pins, runs
+it, then loads an unrelated program into that same design and runs that —
+checking both against the golden model cycle for cycle, so the claim is not
+"it loaded" but "it executes what was loaded, exactly". It also reads a written
+word back, and proves that a write attempted while the core runs is refused,
+reported in status, and absent from the store afterwards.
+
+The bench does not assume how long after a RUN frame the core starts. It
+requires exactly one alignment of the model trace in the collected window, a
+quiet reset state before it and a frozen state after it, so the alignment is
+proved rather than calibrated. Inventing a debug pin for a testbench's benefit
+would have been the testbench designing the chip.
+
+Closing PE-14 exposed and closed a defect in PE-05's core. `imem_addr` was the
+registered program counter, so the store had to answer in the same cycle — an
+asynchronous read no block RAM or SRAM macro provides, while the file's own
+header claimed synchronous fetch. It is now the address of the *next* fetch,
+driven from the same expression that advances the program counter so the two
+cannot disagree. The differential harness models a true synchronous store, and
+all 112 randomized programs and twelve directed cases pass with unchanged cycle
+counts; restoring the old address fails the first case immediately.
+
+The host contract is frozen in
+[`docs/pemu-host-protocol.md`](../pemu-host-protocol.md) and every decision in
+it is recorded with its cost, including the two that were refused: arbitrating
+writes against fetches, which would work in simulation and fail on a single-port
+macro, and a register-file read port for result readback, which `POUT` and one
+status byte already do for less area. Evidence is host simulation only, in
+[`axpe-chip.json`](../../research/benchmarks/axpe-chip.json): no independent
+protocol peer, no synthesis, P&R, FPGA or silicon claim, and the store is still
+a behavioural model rather than the macro. PE-02 is Ready, and what it needs
+from PE-01 is the official wrapper name and template revision.
+
 ### PE-05 checkpoint — 2026-09-18
 
 The retirement handoff is closed and the gate no longer tolerates a deviation.
@@ -206,6 +244,13 @@ claim or trigger re-synthesis.
 
 ## Priority decisions
 
+- 2026-09-18: the loader is fixed logic and the store is single-port, decided
+  together. Firmware cannot load itself, so the host port cannot be firmware;
+  and the IHP macro PE-02 is aiming at has one address port, so there is no
+  cycle in which a fetch and a write can both happen. Rather than arbitrate,
+  the chip refuses writes while the core runs and says so in a status bit. An
+  arbiter would have passed this bench and failed in silicon, which is the
+  failure mode this project exists to avoid.
 - 2026-09-18: the lane is single-agent from here. Codex is unavailable for an
   extended period, so the coordination board is retired for this work and
   `AGENTS.md` records the rule. The consequence is not cosmetic: PE-03, PE-04

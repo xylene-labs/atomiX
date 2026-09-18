@@ -718,6 +718,19 @@
         "cc",
         "verilator"
       ]
+    },
+    "pemu-chip": {
+      "label": "axpe programmability: two programs loaded over the host port into one design",
+      "command": [
+        "make",
+        "pemu-chip-check"
+      ],
+      "timeout_seconds": 180,
+      "requires": [
+        "make",
+        "cc",
+        "verilator"
+      ]
     }
   },
   "suites": {
@@ -734,7 +747,8 @@
       "candidate-registry",
       "live-closed-loop",
       "pemu-model",
-      "pemu-cosim"
+      "pemu-cosim",
+      "pemu-chip"
     ],
     "ci-quick": [
       "requirements",
@@ -749,7 +763,8 @@
       "diagrams",
       "brand-assets",
       "pemu-model",
-      "pemu-cosim"
+      "pemu-cosim",
+      "pemu-chip"
     ],
     "analysis": [
       "static-analysis",
@@ -809,7 +824,8 @@
       "diagrams",
       "brand-assets",
       "pemu-model",
-      "pemu-cosim"
+      "pemu-cosim",
+      "pemu-chip"
     ],
     "randomized": [
       "randomized-fuzz",

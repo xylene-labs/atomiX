@@ -404,9 +404,14 @@ pemu-model-check:
 	$(PYTHON) sw/pemu/model/check_axpe_model.py
 
 pemu-cosim-check: pemu-model-check
-	$(MAKE) -C sim/pemu check
+	$(MAKE) -C sim/pemu core
 
-.PHONY: pemu-model-check pemu-cosim-check
+# Programmability: two different programs loaded over the host port into one
+# unchanged design. A preinitialised memory image does not pass this.
+pemu-chip-check:
+	$(MAKE) -C sim/pemu chip
+
+.PHONY: pemu-model-check pemu-cosim-check pemu-chip-check
 
 # `validate` checks the manifest; `self-test` checks the runner, by running a
 # suite built to go wrong: a stage whose tool is missing, one naming a

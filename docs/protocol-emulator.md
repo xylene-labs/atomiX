@@ -194,6 +194,20 @@ ceiling near 7,680 in §2; no synthesis has run, so that is a count and not a
 mapped area. It is what the declared-retirement claim means in hardware rather
 than on paper, and PE-06 can now start.
 
+PE-14's [chip gate](../research/benchmarks/axpe-chip.json) closes the other half
+of that, and it is the half the entry is invalid without. `axpe_chip` composes
+the core with a writable single-port store and a fixed-logic SPI host port; the
+bench elaborates it once, loads one program, runs it, then loads an unrelated
+program into that same design and runs that. Both are compared with the golden
+model cycle for cycle, so the claim is not "it loaded" but "it executes what was
+loaded, exactly". The contract those four pins answer to is frozen in
+[`docs/pemu-host-protocol.md`](pemu-host-protocol.md).
+
+The store is single port because the macro is, so the loader refuses writes
+while the core runs and reports the refusal rather than dropping it. That is the
+one place this design could have been made easier in simulation than in silicon,
+and it was not.
+
 The competition's second judging axis is methodology, and it is where this
 project has the most to offer. The headline claim is a property of the ISA
 itself:
@@ -213,6 +227,8 @@ Evidence layers, in the order they are built:
 
 0. The ISA description generating every derived artifact, with drift failing the build
 1. RTL against the golden model, cycle for cycle, on randomised programs
+1b. Two unrelated programs loaded over the host port into one unchanged design,
+    each cycle-exact — the capability the entry is invalid without
 2. Formal proof of the declared-versus-actual cycle counts
 3. Protocol conformance against *independent* reference implementations
 4. A non-default knob run, proving the profile parameters are real
@@ -227,6 +243,12 @@ on the judged axis than one that hides them.
 
 ```
 components/pemu/axpe/       RTL and manifest
+  axpe.sv                   the core: decode, timing, control
+  axpe_shift.sv             the shift engine
+  axpe_imem.sv              writable instruction store, single-port sync read
+  axpe_host.sv              SPI host port: the loader that is not firmware
+  axpe_chip.sv              the three composed, in Tiny Tapeout pin shape
+docs/pemu-host-protocol.md  the frozen host contract
 components/pemu/none/       opt-out arm
 configs/sim-axpe.json       Verilator profile
 configs/sim-axpe-tiny.json  every knob at a non-default value
@@ -321,7 +343,9 @@ competition itself was tested rather than assumed.
 ## 7. Open questions
 
 - PE-02: whether the Tiny Tapeout 6×4 flow accepts an IHP SRAM macro, and what
-  the real cells-per-tile figure is. Macro footprints are measured (§2.1); these
+  the real cells-per-tile figure is. `axpe_imem.sv` is now shaped for one — one
+  address port, synchronous read, no read-during-write — so the swap is a
+  substitution rather than a redesign, but the flow has still not seen it. Macro footprints are measured (§2.1); these
   two are not. The depth question is settled at 256 by the eight-bit branch
   target, so `RM_IHPSG13_1P_256x32_c2_bm_bist` at 6.9% is the candidate unless
   the ISA gains a wider target.

@@ -5,12 +5,20 @@
 // an encoding means. Build with +incdir+sw/pemu/isa.
 //
 // Program memory is read synchronously, because a fabric block RAM cannot do
-// an asynchronous read and an SRAM macro will not either. That looks fatal to
-// a rule where a D=0 instruction occupies exactly one cycle, and is not: the
-// address register updates on the *last* cycle of each instruction, so the
-// next word is ready at the first cycle of the next. A taken one-cycle branch
-// still works, since the condition reads registered flags and the target is an
-// immediate, both available combinationally.
+// an asynchronous read and an SRAM macro will not either. `imem_addr` is
+// therefore the address of the *next* fetch, presented for the memory to
+// register on this edge, and `imem_data` is what the memory registered on the
+// previous one. That looks fatal to a rule where a D=0 instruction occupies
+// exactly one cycle, and is not: the address advances on the edge an
+// instruction issues, so the next word is already there when the next
+// instruction issues. A taken one-cycle branch still works, since the
+// condition reads registered flags and the target is an immediate, both
+// available combinationally.
+//
+// `pc_we` drives both the program counter and that address, from one
+// expression. They are the same decision, and a fetch schedule that could
+// disagree with the program counter is the kind of defect that only shows up
+// as a wrong instruction after a branch.
 //
 // Every instruction advances the PC at issue, including the two that run for
 // many cycles, so WAITE and the shift instructions outlive their own word:
@@ -90,7 +98,11 @@ module axpe #(
     assign halted = stopped;
     assign fault  = faulted;
     assign uo_out = out_latch;
-    assign imem_addr = pc;
+    // Held in reset, the core asks for word zero, so the first instruction is
+    // already in `imem_data` on the first cycle it runs. A wrapper switches the
+    // store's address to the core one cycle before releasing reset, and this is
+    // what makes that cycle fetch the right word rather than a stale one.
+    assign imem_addr = (!rst_n) ? {AW{1'b0}} : (pc_we ? next_pc : pc);
 
     axpe_pads #(.UIO_PINS(UIO_PINS)) u_pads (
         .latch_value(pin_latch), .direction(pin_dir), .drain(pin_drain),
@@ -283,6 +295,12 @@ module axpe #(
                   && ({1'b0, imm8} >= IMEM_LIMIT);
     wire reject = encoding_bad || stack_bad || fetch_bad || (is_shift && shift_bad);
 
+    // Everything that advances the program counter, in one place: an
+    // instruction that issues, is not refused, and is not the HALT that stops
+    // fetching. HALT leaves the counter on itself, so the address the store
+    // holds while the core is halted is a word that exists.
+    wire pc_we = issue && !halt_pending && !reject && (op != AXPE_OP_HALT);
+
     // A shift's trailing clock edge and a pin instruction issuing on that same
     // retirement cycle both write the pad latch. The instruction is later in
     // program order and wins its own bits, but it must not discard the edge:
@@ -352,7 +370,6 @@ module axpe #(
                     hold_ra    <= ra;
                     hold_delay <= delay;
                     state      <= S_SHIFT;
-                    pc         <= next_pc;
                 end else if (op == AXPE_OP_WAITE) begin
                     hold_ra    <= ra;
                     hold_delay <= delay;
@@ -361,7 +378,6 @@ module axpe #(
                     wait_prev  <= wait_live;
                     wait_count <= {DELAY_BITS{1'b0}};
                     state      <= S_WAIT;
-                    pc         <= next_pc;
                     // A level already satisfied at entry ends on its own terms.
                     if (wait_edge == 2'd3 && wait_live) begin
                         regs[ra] <= {REG_W{1'b0}};
@@ -390,9 +406,10 @@ module axpe #(
                     AXPE_OP_HALT:   halt_pending <= 1'b1;
                     default: ;
                     endcase
-                    if (op != AXPE_OP_HALT) pc <= next_pc;
                 end
             end
+
+            if (pc_we) pc <= next_pc;
         end
     end
 endmodule

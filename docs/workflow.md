@@ -84,6 +84,7 @@ FPGA environment once per shell: `source "$HOME/opt/oss-cad-suite/environment"`.
 ```bash
 make pemu-model-check   # ISA drift, assembler, C model and firmware checks
 make pemu-cosim-check   # Verilated RTL against the C model, cycle for cycle
+make pemu-chip-check    # two programs loaded over the host port into one design
 ```
 
 The model command requires a host C compiler and Python. The cosimulation adds
@@ -95,7 +96,16 @@ tolerated deviation. A run that is exact except for one duplicated cycle is
 named as an undeclared retirement handoff rather than left to be diffed by
 hand, because that was this design's standing defect. I2C firmware and a
 platform oracle for SPI remain open, and none of this is FPGA or silicon
-evidence. See
+evidence.
+
+The chip gate is the programmability one, and it is separate on purpose. It
+elaborates `axpe_chip` once -- core, writable store and host port -- loads one
+program over the four host pins, runs it, then loads an unrelated program into
+that same design without rebuilding it, and checks both against the golden
+model cycle for cycle. It also checks that a write is refused while the core
+runs and says so in status, because the store is single-port. The host contract
+those pins answer to is [`docs/pemu-host-protocol.md`](pemu-host-protocol.md).
+See
 [model conventions](../sw/pemu/model/README.md) and the
 [PE-05 evidence](../research/benchmarks/axpe-cosim.json).
 

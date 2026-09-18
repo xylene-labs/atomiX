@@ -1,34 +1,11 @@
 #include "Vaxpe.h"
 #include "verilated.h"
 
-#include "../../sw/pemu/model/axpe_model.h"
+#include "axpe_trace.h"
 
 #include <cstdint>
 #include <cstdio>
 #include <vector>
-
-struct Sample {
-    uint8_t pins;
-    uint8_t enable;
-    uint8_t outputs;
-};
-
-static bool same_sample(const Sample &a, const Sample &b)
-{
-    return a.pins == b.pins && a.enable == b.enable && a.outputs == b.outputs;
-}
-
-static uint32_t encode(unsigned op, unsigned a, unsigned b, unsigned x,
-                       unsigned delay)
-{
-    return (op << AXPE_OP_LO) | (a << AXPE_A_LO) | (b << AXPE_B_LO)
-         | (x << AXPE_X_LO) | delay;
-}
-
-static uint32_t encode_imm(unsigned op, unsigned a, unsigned imm, unsigned delay)
-{
-    return encode(op, a, (imm >> 5) & 7u, imm & 31u, delay);
-}
 
 static uint32_t random_word(uint32_t &state)
 {
@@ -150,29 +127,11 @@ static uint16_t input_pulse(void *, uint64_t cycle)
     return (cycle >= 3 && cycle < 8) ? 1u : 0u;
 }
 
-static void observe(void *opaque, const axpe_model *model)
-{
-    auto *trace = static_cast<std::vector<Sample> *>(opaque);
-    trace->push_back({model->pins, axpe_output_enable(model), model->outputs});
-}
-
 static bool compare_case(const char *name, const std::vector<uint32_t> &program,
                          axpe_input input = input_at)
 {
-    uint32_t stack[4] = {};
-    axpe_model model;
-    std::vector<Sample> expected;
-    if (axpe_init(&model, program.data(), program.size(), stack, 4) != 0) {
-        std::fprintf(stderr, "%s: golden model initialization failed\n", name);
-        return false;
-    }
-    while (model.status == AXPE_OK && model.cycles < 10000)
-        axpe_step(&model, input, observe, &expected);
-    if (model.status != AXPE_HALTED) {
-        std::fprintf(stderr, "%s: golden model stopped with status %d\n",
-                     name, model.status);
-        return false;
-    }
+    const std::vector<Sample> expected = model_trace(name, program, input);
+    if (expected.empty()) return false;
 
     Vaxpe rtl;
     rtl.clk = 0;
@@ -190,15 +149,22 @@ static bool compare_case(const char *name, const std::vector<uint32_t> &program,
     rtl.rst_n = 1;
 
     std::vector<Sample> actual;
+    /* A synchronous-read memory: the core presents the next address, this
+     * captures it on the edge, and the word appears on the cycle after. A
+     * combinational array here would let the RTL pass with a fetch schedule no
+     * SRAM macro or block RAM can actually provide. */
+    uint32_t fetched = program[0];
     for (uint64_t cycle = 0; cycle <= expected.size() + 8 && !rtl.halted && !rtl.fault;
          ++cycle) {
         const uint16_t inputs = input(nullptr, cycle);
         rtl.uio_in = inputs & 0xffu;
         rtl.ui_in = inputs >> 8;
+        rtl.imem_data = fetched;
+        rtl.eval();
         const unsigned address = rtl.imem_addr;
-        rtl.imem_data = address < program.size() ? program[address] : program.back();
         rtl.clk = 1;
         rtl.eval();
+        fetched = address < program.size() ? program[address] : program.back();
         // The model's observations are occupied cycles, not the boundary
         // after an instruction retires. HALT rises on that boundary.
         if (!rtl.halted && !rtl.fault)

@@ -1,0 +1,75 @@
+{
+  "schema": 1,
+  "checkpoint": "PE-14 post-fabrication programmability, first proof",
+  "date": "2026-09-18",
+  "evidence_kind": "host-rtl-simulation",
+  "base_commit": "a66bb4bfc4c4101d5069c1a24b29f38bac74cebf",
+  "source_state": "uncommitted working tree; no commit-pinned approval claimed",
+  "claim": "two different programs load over the host port into one elaborated design, after reset, and each executes cycle-for-cycle as the golden model says it should",
+  "not_claimed": [
+    "no protocol conformance against an independent UART, SPI or I2C peer",
+    "no synthesis, place-and-route, FPGA or silicon result",
+    "PE-02 has not shown that the Tiny Tapeout 6x4 flow accepts the SRAM macro this store is shaped for",
+    "the store is a behavioural single-port model, not the macro itself",
+    "the host port has not been driven by anything but this bench"
+  ],
+  "tools": {
+    "verilator": "Verilator 5.050 2026-07-01 rev v5.050-60-g3d2421f3b",
+    "host_compiler": "g++ (Ubuntu 11.4.0-1ubuntu1~22.04.3) 11.4.0"
+  },
+  "inputs_sha256": {
+    "components/pemu/axpe/axpe.sv": "2e73612e1c1408a37c950e816733f1cf3ee72554eca2cdbb7b78a192462891b1",
+    "components/pemu/axpe/axpe_imem.sv": "39dab5c33aca0b7217c290d13e4f3100f00b97f00323386444d135a9dea65b5b",
+    "components/pemu/axpe/axpe_host.sv": "88de3babed72a3e198251ee01bc130bd5bd27b7d16b5b860d5f286fa23ebe7aa",
+    "components/pemu/axpe/axpe_chip.sv": "b544e9306a8b216ea5f6f3afb067f0efd90954e29d2cb6ae996672c4e7fa48a3",
+    "sim/pemu/axpe_chip_tb.cpp": "05ea8fe8ec8854aef74498b0a5795d441ad17a2056e5c88694c88662314c1879"
+  },
+  "command": "make pemu-chip-check",
+  "contract": "docs/pemu-host-protocol.md, frozen 2026-09-18",
+  "verification": [
+    {
+      "command": "make pemu-chip-check",
+      "result": "pass"
+    },
+    {
+      "command": "make pemu-cosim-check",
+      "result": "pass, unchanged cycle counts under a synchronous store"
+    },
+    {
+      "command": "make verification-check",
+      "result": "pass"
+    },
+    {
+      "command": "make verify-smoke",
+      "result": "pass",
+      "stages_passed": 14
+    }
+  ],
+  "checks": [
+    "a word written over the host port reads back through the host port",
+    "program one runs 5 cycles exactly, matching the golden model every cycle",
+    "status after it reports halted, no fault, and the byte the firmware published",
+    "a write attempted while the core runs is refused, sets the refused status bit, and does not reach the store",
+    "STOP clears the refusal",
+    "program two, unrelated to the first, runs 23 cycles exactly on the same elaborated design, matching the golden model every cycle",
+    "no pad moves before the core starts, and none moves after HALT"
+  ],
+  "method_note": "The bench does not assume how many cycles after a RUN frame the core starts. It requires exactly one alignment of the model trace within the collected window, a quiet reset state before it, and a frozen state after it, so the alignment is proved rather than calibrated. Both programs started 4 cycles after their RUN frame.",
+  "defect_closed": {
+    "was": "the core's imem_addr was the registered program counter, so the store had to answer in the same cycle: an asynchronous read that no block RAM or SRAM macro provides, while the file's own header claimed synchronous fetch",
+    "fix": "imem_addr is now the address of the next fetch, driven from the same pc_we expression that advances the program counter, so the two cannot disagree; the core requests word zero while held in reset",
+    "evidence": "the differential harness now models a true synchronous store and all 112 randomized programs and twelve directed cases pass with unchanged cycle counts; restoring the old address fails the first case immediately"
+  },
+  "design_decisions": [
+    "SPI target rather than UART: four pins and a shift register, and every host already has one -- the PC bridge, the Tang Primer for PE-09, or the Pi Pico 2 that is already a protocol peer",
+    "the loader takes three inputs and borrows one output, and leaves all eight bidirectional pins to firmware, because UART, SPI and I2C need the open-drain path and the loader does not",
+    "MISO reaches the pad only while CS is asserted, so firmware keeps all eight output bits between programs",
+    "control commands take effect when the frame ends, so an abandoned frame commits nothing and the core never starts while the host is driving MISO onto a pad running firmware owns",
+    "results come back through uo_out and POUT rather than a register-file read port, which would cost a mux on the datapath read path for what one instruction already does",
+    "STOP is the reset; a stopped core that kept its registers would need a second control path and buy nothing the host can observe"
+  ],
+  "counter_evidence": [
+    "removing the one-cycle delay between `running` and the core's reset release makes the first program fail with zero alignments: the store is still answering the loader's last address, so the core fetches whatever word was written last and halts immediately",
+    "restoring the core's old registered-program-counter fetch address fails the differential gate at its first shift case"
+  ]
+}

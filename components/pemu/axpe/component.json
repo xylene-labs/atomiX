@@ -8,14 +8,17 @@
     "components/pemu/axpe/axpe_decode.sv",
     "components/pemu/axpe/axpe_timing.sv",
     "components/pemu/axpe/axpe_shift.sv",
-    "components/pemu/axpe/axpe_pads.sv"
+    "components/pemu/axpe/axpe_pads.sv",
+    "components/pemu/axpe/axpe_imem.sv",
+    "components/pemu/axpe/axpe_host.sv",
+    "components/pemu/axpe/axpe_chip.sv"
   ],
   "stock_soc_module": "axpe",
   "parameters": {
     "imem_words": {
       "default": 256,
       "define": "AXPE_IMEM_WORDS",
-      "doc": "Program memory depth in 32-bit words. Capped in practice at 256 by the ISA: BR and CALL targets are eight bits, so a larger store holds words nothing can jump to. On CMOS5L this is an IHP SRAM macro, 256 words costing 6.9% of a 6x4 die, measured from the PDK LEF; in flip-flops the same depth would exceed the whole die, which is why the storage primitive rather than the depth was ever the constraint. The assembler refuses a program longer than this value."
+      "doc": "Program memory depth in 32-bit words. Capped in practice at 256 by the ISA: BR and CALL targets are eight bits, so a larger store holds words nothing can jump to. On CMOS5L this is an IHP SRAM macro, 256 words costing 6.9% of a 6x4 die, measured from the PDK LEF; in flip-flops the same depth would exceed the whole die, which is why the storage primitive rather than the depth was ever the constraint. The assembler refuses a program longer than this value. The store is a single-port synchronous-read block in axpe_imem.sv, shaped for that macro; the host can address the first 256 words, since the ISA's branch target cannot reach past them either."
     },
     "reg_count": {
       "default": 8,
@@ -47,6 +50,8 @@
     "timed-isa",
     "declared-retirement-cycles",
     "measured-wait",
+    "runtime-programmable",
+    "single-port-instruction-store",
     "open-drain-pins",
     "shift-engine",
     "bit-bang-uart",
