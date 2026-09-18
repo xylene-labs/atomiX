@@ -1,19 +1,20 @@
 {
   "schema": 1,
-  "checkpoint": "PE-05 first RTL differential slice",
-  "date": "2026-09-17",
+  "checkpoint": "PE-05 cycle-for-cycle RTL differential gate",
+  "date": "2026-09-18",
   "evidence_kind": "host-rtl-model-cosimulation",
-  "base_commit": "0e1a39562f77573ba7ef52f6d57034a9403a593a",
+  "base_commit": "95de7e6b11ccfa07d55cd991efb559e03a935292",
   "source_state": "uncommitted working tree; no commit-pinned approval claimed",
+  "supersedes": "PE-05 first RTL differential slice, 2026-09-17, which recorded five XFAIL boundaries",
   "tools": {
     "verilator": "Verilator 5.050 2026-07-01 rev v5.050-60-g3d2421f3b",
     "host_compiler": "g++ (Ubuntu 11.4.0-1ubuntu1~22.04.3) 11.4.0"
   },
   "inputs_sha256": {
-    "components/pemu/axpe/axpe.sv": "b634b186984b524385c0d3c6a934e1bd085ce6586525f6c0690fa28706b913f2",
+    "components/pemu/axpe/axpe.sv": "2e11e7cb74be0b23352a6a3d671225a83dfb0fae1abdaf0052351444a9895c5a",
+    "components/pemu/axpe/axpe_shift.sv": "3052a6d158bab0101eba22e20e31154874638c40dd24d6193dc709d6bb3b3cd6",
     "components/pemu/axpe/axpe_timing.sv": "f027badac4187026c884a000019660684fc40f3707ff9647b91494757faf189a",
-    "components/pemu/axpe/axpe_shift.sv": "e30806b80cfa6372a14cdff575f38f9d42ae3624bba4ec695eebeace77cc2a09",
-    "sim/pemu/axpe_cosim.cpp": "515b4a6474dc656897300a7c0287d443db329ea3e9aa522c231d61f3e3ac9736",
+    "sim/pemu/axpe_cosim.cpp": "be0cf6248d8bf3f2634666e8651bb8723a63eea7429e4964401dce63e56115b5",
     "sw/pemu/model/axpe_model.c": "9e2b882e9dd2af1a5f57d4ae00da2caf915c0c113e63602109ecda4a754e2f0e",
     "sw/pemu/isa/axpe-isa.json": "67ce6d7319e80e7914727ebfe80642564fb5e25eebde0f5baf88137049878096"
   },
@@ -21,7 +22,7 @@
   "verification": [
     {
       "command": "make pemu-cosim-check",
-      "result": "pass with five named XFAIL boundaries"
+      "result": "pass with no tolerated deviation; the XFAIL allowance is removed from the harness"
     },
     {
       "command": "make verification-check",
@@ -39,51 +40,58 @@
     }
   ],
   "passing_scope": {
+    "directed_cases": 12,
     "directed": [
       "scalar encoded delays and HALT duration",
-      "taken branch, CALL and RET"
+      "taken branch, CALL and RET",
+      "unclocked and clocked SHOUT retirement",
+      "unclocked SHIO and clocked CPHA=1 SHIO retirement",
+      "two transfers back to back, the second issuing on the first's retirement cycle",
+      "a clocked transfer's trailing clock edge and a pin instruction on the same edge",
+      "a received value read by the instruction that issues on the retirement edge",
+      "WAITE timeout, and T tested by the branch immediately after it",
+      "adjacent WAITEs measuring a known five-cycle pulse as exactly five"
     ],
-    "random_programs": 64,
+    "random_programs": 112,
     "randomized_features": [
       "delays 0 through 4",
       "ALU and immediate operations",
       "pin latch, direction and open-drain effects",
-      "input sampling with register values surfaced through POUT"
+      "input sampling with register values surfaced through POUT",
+      "legal SHCFG draws: clocked and unclocked, both bit orders, all four SPI modes",
+      "SHOUT, SHIN and SHIO of 1 to 8 bits in back-to-back pairs",
+      "WAITE on either pin group, all four edge selections, with and without timeout"
     ]
   },
-  "expected_failures": [
-    {
-      "boundary": "unclocked SHOUT retirement",
-      "observed": "one extra cycle before the next instruction"
-    },
-    {
-      "boundary": "clocked SHOUT retirement",
-      "observed": "one extra cycle before the next instruction"
-    },
-    {
-      "boundary": "unclocked SHIO retirement",
-      "observed": "data and receive value match after removing one extra handoff cycle"
-    },
-    {
-      "boundary": "clocked CPHA=1 SHIO retirement",
-      "observed": "data, clock and final receive bit match after removing one extra handoff cycle"
-    },
-    {
-      "boundary": "WAITE timeout retirement",
-      "observed": "returned count and T branch match after removing one extra handoff cycle"
-    }
-  ],
+  "expected_failures": [],
+  "defect_closed": {
+    "boundary": "retirement handoff, all five 2026-09-17 XFAIL cases",
+    "was": "returning from WAITE or a shift to the issue state cost one cycle the ISA does not declare, so a transfer occupied n*max(D,1) + 1",
+    "why_it_mattered": "the same 1 + D shape the ISA rejected in its retiming decision: one cycle past the bit period on every transfer, accumulating across a frame",
+    "cause": "a long instruction held its word in imem_data until it finished, so the next instruction could not be fetched in time to issue on the cycle it should",
+    "fix": [
+      "every instruction advances the PC at issue, including WAITE and the shift instructions",
+      "a running instruction reads latched operands: delay, Ra, wait pin and edge in the core; bit count, data, direction and take in the shift engine",
+      "a long instruction retires on its final cycle and the next instruction issues into that same edge",
+      "the retiring register result and T are forwarded to the instruction issuing on that edge",
+      "a starting transfer's pin writes merge with the retiring transfer's trailing clock edge instead of overwriting the pad latch",
+      "the shift engine accepts start while finishing, so a back-to-back transfer does not lose its issue pulse"
+    ],
+    "cost": "43 flip-flops at default parameters, counted from the declarations: 25 in the core and 18 in the shift engine, against the whole-chip ceiling near 7,680. Not a synthesis result.",
+    "counter_evidence": "the pre-fix RTL was rebuilt against this harness and fails at the first shift case, reporting 'cycle 18 is an undeclared retirement handoff'"
+  },
   "defects_fixed": [
     "timer reset to zero prevented instruction zero from ever issuing",
     "HALT asserted at issue instead of after its encoded occupancy",
     "first MSB-first shift bit used the previous transfer's latched bit count",
     "receive sampling was deferred one cycle and could lose the final CPHA=1 bit",
-    "WAITE timed out at D+1 and did not set T for an edge exactly at D"
+    "WAITE timed out at D+1 and did not set T for an edge exactly at D",
+    "a long instruction retired one undeclared cycle late"
   ],
   "limits": [
-    "PE-05 is not complete: every long-engine handoff still costs one undeclared cycle",
-    "randomization currently covers scalar/control instructions; shift and WAITE cases are directed",
+    "no protocol conformance claim: the oracle here is the host model, not an independent UART, SPI or I2C implementation",
     "the harness presents program words combinationally and does not yet validate the claimed synchronous SRAM fetch schedule",
+    "elaboration at non-default reg_width or delay_bits still raises pre-existing width warnings, because the decoder emits a fixed 16-bit delay field; the count is unchanged by this work and belongs to PE-08",
     "host cosimulation only: no formal proof, synthesis/P&R, FPGA or silicon evidence",
     "PE-02 SRAM integration gate remains open"
   ]

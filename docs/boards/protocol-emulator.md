@@ -72,11 +72,11 @@ card instead of taking time from the submission. All owners are unassigned.
 | PE-02: instruction-memory and early-flow feasibility gate | T1 | P0 | Next | PE-01; PE-14 write/read semantics for the integrated trial | Put the writable instruction-store candidate and loader shell through the official 6x4 flow, recording mapped area, routability, timing and macro failures rather than relying on LEF footprint alone |
 | PE-03: `axpe` ISA specification | T1 | P0 | Review | PE-02 budget | Done: `axpe-isa.json` is the single source, `axpe-isa.md` is generated from it, and `WAITE` returns its elapsed cycle count |
 | PE-04: golden model and assembler | T1 | P0 | Review | PE-03 timing decisions | Model, assembler, UART/autobaud and four-mode clocked shifts pass via `make pemu-model-check`; close only after effect/reset/fault conventions receive commit-pinned review |
-| PE-05: RTL and cycle-for-cycle cosimulation | T1 | P0 | Active | PE-04 | Scalar/control RTL matches the model across 64 deterministic randomized programs; remove the recorded one-cycle `WAITE`/shift handoff gap before promoting the gate to `make pemu-check` |
+| PE-05: RTL and cycle-for-cycle cosimulation | T1 | P0 | Review | PE-04 | Done: `make pemu-cosim-check` compares every cycle with no tolerated deviation across 112 randomized programs and twelve directed cases, and the handoff gap is closed. Close only after commit-pinned review of the retirement and forwarding path |
 | PE-07: mandatory UART, SPI and I2C firmware | T1 | P0 | Next | PE-05; PE-14 runtime loading | Load all three as runtime programs into the same chip image; UART, SPI and I2C each pass an independent reference peer, including I2C ACK/NACK, repeated-start, STOP and bus release |
 | PE-10: staged CMOS5L synthesis and place-and-route | T1 | P0 | Next | PE-01, PE-02 and PE-14 for the first integrated run; PE-07 for final closure | Harden the smallest programmable chip as soon as loader and memory compose, then repeat on the final mandatory-protocol architecture with actual area, timing and violations recorded |
 | PE-15: a measured period firmware can use | T2 | P0 | Next | PE-03, PE-05; `b` field free in shift ops, two opcodes reserved | A delay register plus a per-instruction select bit, so `SHOUT`/`SHIN`/`SHIO` can take their bit period from a register. `autobaud.s` must measure an unknown peer and then transmit at that rate, end to end |
-| PE-06: timing-determinism proof | T2 | P0 | Next | PE-05 | Every instruction proved to retire in its declared cycle count, `WAITE` bounded by its timeout |
+| PE-06: timing-determinism proof | T2 | P0 | Ready | PE-05 (unblocked 2026-09-18) | Every instruction proved to retire in its declared cycle count, `WAITE` bounded by its timeout |
 | PE-08: profile knobs exercised | T2 | P1 | Next | PE-05 | `configs/sim-axpe-tiny.json` runs every declared knob at a non-default value with limits derived from the build's own defines |
 | PE-09: Tang Primer bring-up | T3 | P1 | Next | PE-05, PE-14; Dock access; a `.cst` exposing a PMOD header; peer hardware arriving | Load firmware at runtime into one unchanged FPGA image, then run UART against CP2102, SPI against a Pi Pico 2 target, and I2C against an AT24C256. Add a capture-clock divider so the 24 MS/s analyzer can witness edge placement in `axpe` cycles |
 | PE-11: gate-level firmware simulation | T3 | P1 | Next | PE-10 | The same three firmware images pass post-P&R netlist simulation |
@@ -135,6 +135,40 @@ removable cycle and are reported as XFAIL, so this is not yet the PE-05 passing
 slice and PE-06 cannot start. Evidence is host RTL/model cosimulation only in
 [`axpe-cosim.json`](../../research/benchmarks/axpe-cosim.json); no synthesis,
 P&R, FPGA or silicon claim is made.
+
+Superseded by the checkpoint below, which closes that gap. It stays here because
+what a defect looked like before it was understood is part of the record.
+
+### PE-05 checkpoint — 2026-09-18
+
+The retirement handoff is closed and the gate no longer tolerates a deviation.
+`make pemu-cosim-check` now compares the RTL against the golden model cycle for
+cycle across 112 randomized programs and twelve directed cases, including two
+transfers back to back, a trailing clock edge sharing an edge with a pin
+instruction, a received value read by the instruction issuing on the retirement
+cycle, `T` tested by the branch immediately after its `WAITE`, and adjacent
+waits measuring a known five-cycle pulse as exactly five.
+
+The defect was one rule, not five cases. A long instruction kept its word in
+`imem_data` until it finished, so the next instruction could not be fetched in
+time to issue on the cycle it should, and every `WAITE` and shift cost one cycle
+the ISA does not declare. That is the `1 + D` shape this board already rejected
+once, one cycle past the bit period per transfer and accumulating across a
+frame. Every instruction now advances the PC at issue; a running instruction
+reads latched operands rather than the instruction word; it retires on its final
+cycle with the next instruction issuing into that same edge; and the retiring
+register result and `T` are forwarded to it. 43 flip-flops at default
+parameters, counted from the declarations, not synthesized.
+
+The pre-fix RTL was rebuilt against the new harness and fails at the first shift
+case, naming the extra cycle, so the gate is known to have teeth rather than
+assumed to. Validation: `make pemu-cosim-check`, `make verification-check`,
+`make registry-check` and all 13 smoke stages pass. Evidence is host
+RTL/model cosimulation only, in
+[`axpe-cosim.json`](../../research/benchmarks/axpe-cosim.json); no protocol
+conformance against an independent peer, and no synthesis, P&R, FPGA or silicon
+claim. PE-06 is unblocked. No commit-pinned approval or completed card is
+claimed.
 
 | Phase | Cards | By |
 |---|---|---|

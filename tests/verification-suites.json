@@ -706,7 +706,7 @@
       ]
     },
     "pemu-cosim": {
-      "label": "Draft axpe RTL differential check; scalar randomized pass and long-engine XFAILs",
+      "label": "axpe RTL differential check; cycle-for-cycle against the host model",
       "command": [
         "make",
         "pemu-cosim-check"

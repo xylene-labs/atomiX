@@ -173,13 +173,26 @@ autobaud measures known pulses exactly, and clocked shifts cover all four SPI
 modes; the development failures that led to those corrections remain in the
 [host evidence](../research/benchmarks/axpe-model.json).
 
-PE-05's first [RTL differential checkpoint](../research/benchmarks/axpe-cosim.json)
-compares Verilated pin/output traces and elapsed cycles with that model. The
-scalar/control path passes 64 deterministic randomized programs. Directed
-`WAITE` and shift cases retain one explicit XFAIL: the RTL inserts an undeclared
-cycle when handing control back to the issue state. Until that bubble is
-removed, this is defect evidence rather than a cycle-for-cycle conformance
-claim, and PE-06 remains blocked.
+PE-05's [RTL differential gate](../research/benchmarks/axpe-cosim.json) compares
+Verilated pin/output traces and elapsed cycles with that model, every cycle and
+with no tolerated deviation: the scalar and control path, the shift engine and
+`WAITE`, across 112 deterministic randomized programs and twelve directed cases.
+
+The XFAIL that checkpoint recorded is closed. Returning from `WAITE` or a shift
+to the issue state inserted a cycle the ISA does not declare, so a transfer cost
+`n*max(D,1) + 1` — the same `1 + D` shape §3 rejects, one cycle past the bit
+period on every transfer and accumulating across a frame. The cause was the
+handoff itself: a long instruction kept its word in `imem_data` until it
+finished, so the next instruction could not be fetched in time to issue on the
+cycle it should. Every instruction now advances the PC at issue, a running
+instruction reads latched operands instead of the instruction word, and it
+retires *on* its final cycle with the next instruction issuing into that same
+edge — which is why a retiring result is forwarded to the instruction that
+reads it. At default parameters that is 43 added flip-flops counted from the
+declarations — 25 in the core, 18 in the shift engine — against the whole-chip
+ceiling near 7,680 in §2; no synthesis has run, so that is a count and not a
+mapped area. It is what the declared-retirement claim means in hardware rather
+than on paper, and PE-06 can now start.
 
 The competition's second judging axis is methodology, and it is where this
 project has the most to offer. The headline claim is a property of the ISA

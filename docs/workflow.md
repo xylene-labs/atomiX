@@ -83,16 +83,19 @@ FPGA environment once per shell: `source "$HOME/opt/oss-cad-suite/environment"`.
 
 ```bash
 make pemu-model-check   # ISA drift, assembler, C model and firmware checks
-make pemu-cosim-check   # Verilated RTL against the C model, including known XFAILs
+make pemu-cosim-check   # Verilated RTL against the C model, cycle for cycle
 ```
 
 The model command requires a host C compiler and Python. The cosimulation adds
 Verilator and checks the RTL pin/output trace cycle by cycle against that model.
 Both run in smoke, quick CI and nightly verification. The differential stage
-passes scalar/control timing plus 64 deterministic randomized programs. It also
-pins one known extra handoff cycle after `WAITE` and the shift engine as XFAILs;
-those are recorded gaps, not conformance passes. I2C firmware and a platform
-oracle for SPI remain open, and none of these are FPGA or silicon evidence. See
+compares every cycle: scalar and control timing, the shift engine and `WAITE`,
+across 112 deterministic randomized programs and twelve directed cases, with no
+tolerated deviation. A run that is exact except for one duplicated cycle is
+named as an undeclared retirement handoff rather than left to be diffed by
+hand, because that was this design's standing defect. I2C firmware and a
+platform oracle for SPI remain open, and none of this is FPGA or silicon
+evidence. See
 [model conventions](../sw/pemu/model/README.md) and the
 [PE-05 evidence](../research/benchmarks/axpe-cosim.json).
 

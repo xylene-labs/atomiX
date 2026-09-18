@@ -11,6 +11,17 @@
 // next word is ready at the first cycle of the next. A taken one-cycle branch
 // still works, since the condition reads registered flags and the target is an
 // immediate, both available combinationally.
+//
+// Every instruction advances the PC at issue, including the two that run for
+// many cycles, so WAITE and the shift instructions outlive their own word:
+// what they still need is latched below, because they cannot read `imem_data`
+// again. Retirement is the same rule read backwards. A long instruction
+// retires *on* the cycle it finishes and the next instruction issues on that
+// same cycle; a handoff cycle of its own would make a shift cost
+// n*max(D,1) + 1, which is the `1 + D` rule the ISA rejected -- it puts every
+// protocol edge one cycle past its bit period, and the error accumulates.
+// Issuing into a retirement is why `retire_data` and `ft_live` exist: the
+// issuing instruction must read the result it is being handed on that edge.
 `default_nettype none
 
 module axpe #(
@@ -65,6 +76,14 @@ module axpe #(
     reg [1:0]          state;
     reg                stopped, faulted, halt_pending;
 
+    // Operands held for an instruction that is still running after its word
+    // has left `imem_data`. The shift engine latches its own bit count, data
+    // and direction; these are what the core and the wait still read.
+    reg [DELAY_BITS-1:0] hold_delay;
+    reg [2:0]            hold_ra;
+    reg [3:0]            hold_wpin;
+    reg [1:0]            hold_wedge;
+
     wire [7:0]  uio_padded = {{(8-UIO_PINS){1'b0}}, uio_in};
     wire [15:0] pad_in     = {ui_in, uio_padded};
 
@@ -86,21 +105,65 @@ module axpe #(
         .load(cell_load), .delay(delay), .last(cell_last)
     );
 
+    // ---- WAITE ------------------------------------------------------------
+    // A running wait reads its pin, edge and bound from the latched copies:
+    // `imem_data` now holds the instruction that will issue when this one
+    // retires. The live fields are what a WAITE issuing on *this* cycle uses
+    // to capture its own starting level, which is why both exist -- on a
+    // retirement cycle one wait is being tested while the next one starts.
+    wire [3:0] wait_pin  = imm8[3:0];
+    wire [1:0] wait_edge = imm8[5:4];
+    wire       wait_live = pad_in[wait_pin];
+    wire       wait_now  = pad_in[hold_wpin];
+    reg        wait_prev;
+    reg [DELAY_BITS-1:0] wait_count;
+    wire [DELAY_BITS-1:0] wait_elapsed =
+        wait_count + {{(DELAY_BITS-1){1'b0}}, 1'b1};
+    wire [DELAY_BITS-1:0] wait_bound =
+        (hold_delay == {DELAY_BITS{1'b0}}) ? {{(DELAY_BITS-1){1'b0}}, 1'b1}
+                                           : hold_delay;
+    wire wait_hit = (hold_wedge == 2'd0) ? (~wait_prev &  wait_now)
+                  : (hold_wedge == 2'd1) ? ( wait_prev & ~wait_now)
+                  : (hold_wedge == 2'd2) ? ( wait_prev ^  wait_now)
+                                         :  wait_now;
+    wire wait_timeout = (wait_elapsed >= wait_bound);
+
+    // ---- retirement and issue ---------------------------------------------
+    // One gate for every instruction, whatever engine it was running in.
+    wire wait_over  = (state == S_WAIT)  && (wait_hit || wait_timeout);
+    wire shift_over = (state == S_SHIFT) && sh_done;
+    wire issue      = (state == S_EXEC && cell_last) || wait_over || shift_over;
+
+    // The retiring engine's result is written on the same edge the issuing
+    // instruction takes effect, so that instruction has to read the value it
+    // is about to be given rather than the register's stale contents. T is the
+    // same hazard one bit wide: `WAITE` then `BR T` is the ordinary way to
+    // test a timeout, and it issues on exactly this cycle.
+    wire             retire_we   = (shift_over && sh_rx_we) || wait_over;
+    wire [REG_W-1:0] retire_data = wait_over
+        ? {{(REG_W-DELAY_BITS){1'b0}}, wait_elapsed} : sh_rx;
+    wire             ft_live     = wait_over ? wait_timeout : ft;
+    wire [REG_W-1:0] src_a = (retire_we && ra == hold_ra) ? retire_data : regs[ra];
+    wire [REG_W-1:0] src_b = (retire_we && rb == hold_ra) ? retire_data : regs[rb];
+
     // ---- shift engine -----------------------------------------------------
     wire [UIO_PINS-1:0] sh_set_mask, sh_set_value;
     wire [REG_W-1:0]    sh_rx;
-    wire                sh_busy, sh_done;
+    wire                sh_busy, sh_done, sh_rx_we;
     reg                 sh_start;
+    // A cell reloads the timer from the delay of the instruction that started
+    // it, which is only in `imem_data` on the issue cycle itself.
+    wire [DELAY_BITS-1:0] sh_delay = issue ? delay : hold_delay;
     wire                is_shift = (op == AXPE_OP_SHOUT) || (op == AXPE_OP_SHIN)
                                 || (op == AXPE_OP_SHIO);
 
     axpe_shift #(.REG_W(REG_W), .UIO_PINS(UIO_PINS), .DELAY_BITS(DELAY_BITS)) u_shift (
         .clk(clk), .rst_n(rst_n), .start(sh_start),
-        .nbits(xf), .delay(delay), .shcfg(shcfg), .tx_value(regs[ra]),
+        .nbits(xf), .delay(sh_delay), .shcfg(shcfg), .tx_value(src_a),
         .drive_data(op != AXPE_OP_SHIN), .take_data(op != AXPE_OP_SHOUT),
         .pad_in(pad_in),
         .set_mask(sh_set_mask), .set_value(sh_set_value), .rx_value(sh_rx),
-        .busy(sh_busy), .done(sh_done)
+        .busy(sh_busy), .done(sh_done), .rx_we(sh_rx_we)
     );
 
     // A clocked shift needs an even, non-zero cell and a clock that does not
@@ -120,25 +183,7 @@ module axpe #(
         || ((op == AXPE_OP_SHL || op == AXPE_OP_SHR) && xf > REG_W[4:0])
         || (op == AXPE_OP_WAITE && imm8 > 8'd63);
 
-    // ---- WAITE ------------------------------------------------------------
-    wire [3:0] wait_pin  = imm8[3:0];
-    wire [1:0] wait_edge = imm8[5:4];
-    wire       wait_now  = pad_in[wait_pin];
-    reg        wait_prev;
-    reg [DELAY_BITS-1:0] wait_count;
-    wire [DELAY_BITS-1:0] wait_elapsed =
-        wait_count + {{(DELAY_BITS-1){1'b0}}, 1'b1};
-    wire [DELAY_BITS-1:0] wait_bound =
-        (delay == {DELAY_BITS{1'b0}}) ? {{(DELAY_BITS-1){1'b0}}, 1'b1} : delay;
-    wire wait_hit = (wait_edge == 2'd0) ? (~wait_prev &  wait_now)
-                  : (wait_edge == 2'd1) ? ( wait_prev & ~wait_now)
-                  : (wait_edge == 2'd2) ? ( wait_prev ^  wait_now)
-                                        :  wait_now;
-    wire wait_timeout = (wait_elapsed >= wait_bound);
-
     // ---- ALU --------------------------------------------------------------
-    wire [REG_W-1:0] src_a = regs[ra];
-    wire [REG_W-1:0] src_b = regs[rb];
     wire [REG_W-1:0] imm_x = {{(REG_W-8){1'b0}}, imm8};
     wire [REG_W:0]   sum   = {1'b0, src_a} + {1'b0, (op == AXPE_OP_ADDI) ? imm_x : src_b};
     wire [REG_W-1:0] diff  = src_a - src_b;
@@ -201,8 +246,8 @@ module axpe #(
         3'd2: branch_taken = ~fz;
         3'd3: branch_taken = fc;
         3'd4: branch_taken = ~fc;
-        3'd5: branch_taken = ft;
-        default: branch_taken = ~ft;
+        3'd5: branch_taken = ft_live;
+        default: branch_taken = ~ft_live;
         endcase
     end
 
@@ -238,10 +283,18 @@ module axpe #(
                   && ({1'b0, imm8} >= IMEM_LIMIT);
     wire reject = encoding_bad || stack_bad || fetch_bad || (is_shift && shift_bad);
 
+    // A shift's trailing clock edge and a pin instruction issuing on that same
+    // retirement cycle both write the pad latch. The instruction is later in
+    // program order and wins its own bits, but it must not discard the edge:
+    // it builds on what the engine leaves rather than on the stale latch.
+    wire [UIO_PINS-1:0] pin_base = (sh_busy || sh_start)
+        ? ((pin_latch & ~sh_set_mask) | (sh_set_value & sh_set_mask))
+        : pin_latch;
+
     always @(*) begin
         cell_load = 1'b0;
         sh_start  = 1'b0;
-        if (state == S_EXEC && cell_last && !reject && !halt_pending) begin
+        if (issue && !reject && !halt_pending) begin
             if (is_shift) sh_start = 1'b1;
             else if (op != AXPE_OP_WAITE) cell_load = 1'b1;
         end
@@ -265,13 +318,29 @@ module axpe #(
             halt_pending <= 1'b0;
             wait_prev <= 1'b1;
             wait_count <= {DELAY_BITS{1'b0}};
+            hold_delay <= {DELAY_BITS{1'b0}};
+            hold_ra    <= 3'd0;
+            hold_wpin  <= 4'd0;
+            hold_wedge <= 2'd0;
         end else begin
             // The shift engine owns the pads while it runs.
-            if (sh_busy || sh_start)
-                pin_latch <= (pin_latch & ~sh_set_mask) | (sh_set_value & sh_set_mask);
+            if (sh_busy || sh_start) pin_latch <= pin_base;
 
-            case (state)
-            S_EXEC: if (cell_last) begin
+            // A wait runs until it is over; its counter is what it returns.
+            if (state == S_WAIT) begin
+                wait_prev  <= wait_now;
+                wait_count <= wait_count + {{(DELAY_BITS-1){1'b0}}, 1'b1};
+            end
+
+            // A retiring engine writes its result first, so an instruction
+            // issuing on this same edge overwrites it when they share Ra.
+            // That order is program order, and the reads above are forwarded.
+            if (retire_we) regs[hold_ra] <= retire_data;
+            // Reaching the bound is a timeout even if the selected edge is
+            // also present on that final permitted sample.
+            if (wait_over)  ft <= wait_timeout;
+
+            if (issue) begin
                 if (halt_pending) begin
                     halt_pending <= 1'b0;
                     stopped <= 1'b1;
@@ -280,26 +349,34 @@ module axpe #(
                     faulted <= 1'b1;
                     state   <= S_STOP;
                 end else if (is_shift) begin
-                    state <= S_SHIFT;
+                    hold_ra    <= ra;
+                    hold_delay <= delay;
+                    state      <= S_SHIFT;
+                    pc         <= next_pc;
                 end else if (op == AXPE_OP_WAITE) begin
-                    wait_prev  <= wait_now;
+                    hold_ra    <= ra;
+                    hold_delay <= delay;
+                    hold_wpin  <= wait_pin;
+                    hold_wedge <= wait_edge;
+                    wait_prev  <= wait_live;
                     wait_count <= {DELAY_BITS{1'b0}};
                     state      <= S_WAIT;
+                    pc         <= next_pc;
                     // A level already satisfied at entry ends on its own terms.
-                    if (wait_edge == 2'd3 && wait_now) begin
+                    if (wait_edge == 2'd3 && wait_live) begin
                         regs[ra] <= {REG_W{1'b0}};
                         ft       <= 1'b0;
                         state    <= S_EXEC;
-                        pc       <= next_pc;
                     end
                 end else begin
+                    state <= S_EXEC;
                     if (alu_we)    regs[ra] <= alu_out;
                     if (flag_z_we) fz <= alu_z;
                     if (flag_c_we) fc <= alu_c;
                     case (op)
-                    AXPE_OP_PINSET: pin_latch <= pin_latch |  imm8[UIO_PINS-1:0];
-                    AXPE_OP_PINCLR: pin_latch <= pin_latch & ~imm8[UIO_PINS-1:0];
-                    AXPE_OP_PINTOG: pin_latch <= pin_latch ^  imm8[UIO_PINS-1:0];
+                    AXPE_OP_PINSET: pin_latch <= pin_base |  imm8[UIO_PINS-1:0];
+                    AXPE_OP_PINCLR: pin_latch <= pin_base & ~imm8[UIO_PINS-1:0];
+                    AXPE_OP_PINTOG: pin_latch <= pin_base ^  imm8[UIO_PINS-1:0];
                     AXPE_OP_PINW:   pin_latch <= src_a[UIO_PINS-1:0];
                     AXPE_OP_POUT:   out_latch <= src_a[7:0];
                     AXPE_OP_PDIR:   pin_dir   <= imm8[UIO_PINS-1:0];
@@ -316,28 +393,6 @@ module axpe #(
                     if (op != AXPE_OP_HALT) pc <= next_pc;
                 end
             end
-
-            S_WAIT: begin
-                wait_prev  <= wait_now;
-                wait_count <= wait_count + {{(DELAY_BITS-1){1'b0}}, 1'b1};
-                if (wait_hit || wait_timeout) begin
-                    regs[ra] <= {{(REG_W-DELAY_BITS){1'b0}}, wait_elapsed};
-                    // Reaching the bound is a timeout even if the selected
-                    // edge is also present on that final permitted sample.
-                    ft       <= wait_timeout;
-                    pc       <= next_pc;
-                    state    <= S_EXEC;
-                end
-            end
-
-            S_SHIFT: if (sh_done) begin
-                if (op != AXPE_OP_SHOUT) regs[ra] <= sh_rx;
-                pc    <= next_pc;
-                state <= S_EXEC;
-            end
-
-            default: ;  // S_STOP is terminal until reset
-            endcase
         end
     end
 endmodule

@@ -11,6 +11,13 @@
 // The caller guarantees an even, non-zero D for a clocked shift, and that the
 // clock does not alias either data pin. Those are machine rejects in axpe.sv,
 // because SHCFG is loaded from a register and is invisible at assembly time.
+//
+// A transfer outlives the instruction word that started it. The core advances
+// the program counter at issue, so by the second cell `imem_data` already
+// holds the next instruction; what the remaining cells need is latched here at
+// `start`. The transfer also retires *on* its last cell's final cycle rather
+// than a cycle later, so the next instruction -- which may be another shift --
+// issues on that same cycle, and `start` is accepted while finishing.
 `default_nettype none
 
 module axpe_shift #(
@@ -32,7 +39,8 @@ module axpe_shift #(
     output reg  [UIO_PINS-1:0]    set_value,
     output reg  [REG_W-1:0]       rx_value,
     output wire                   busy,
-    output reg                    done
+    output wire                   done,
+    output wire                   rx_we         // `done` carries a value for Ra
 );
     localparam [1:0] S_IDLE  = 2'd0;
     localparam [1:0] S_UNCLK = 2'd1;
@@ -51,6 +59,8 @@ module axpe_shift #(
     reg  [4:0]  index;          // which bit of the transfer
     reg  [4:0]  total;
     reg  [REG_W-1:0] rx_latch;
+    reg  [REG_W-1:0] tx_latch;  // the operand, held for the whole transfer
+    reg              drive_q, take_q;
 
     wire timer_last;
     reg  timer_load;
@@ -86,10 +96,20 @@ module axpe_shift #(
     wire [3:0] pos_now  = position(index[3:0], total[3:0], cfg_ord);
     wire [3:0] pos_next = position(index[3:0] + 4'd1, total[3:0], cfg_ord);
     wire [3:0] pos_issue = position(4'd0, nbits[3:0], cfg_ord);
-    wire       bit_now  = tx_value[pos_now];
-    wire       bit_next = tx_value[pos_next];
+    wire       bit_now  = tx_latch[pos_now];
+    wire       bit_next = tx_latch[pos_next];
     wire       bit_issue = tx_value[pos_issue];
     wire       is_last  = (index + 5'd1 == total);
+
+    // The last cell's final cycle is this transfer's retirement and the next
+    // instruction's issue at once, so a back-to-back shift starts from here as
+    // well as from idle. Without that, every second shift would lose its issue
+    // pulse -- and an I2C byte followed by its ACK bit is exactly that shape.
+    wire finishing = (state == S_UNCLK || state == S_CLK_B)
+                   && timer_last && is_last;
+    wire begin_now = start && ((state == S_IDLE) || finishing);
+    assign done  = finishing;
+    assign rx_we = finishing && take_q;
 
     // One pin write per cycle for the data line, one for the clock. The mask
     // is UIO_PINS wide, not a hardcoded byte: a profile may carry fewer pins
@@ -110,35 +130,42 @@ module axpe_shift #(
             index      <= 5'd0;
             total      <= 5'd0;
             rx_latch   <= {REG_W{1'b0}};
+            tx_latch   <= {REG_W{1'b0}};
+            drive_q    <= 1'b0;
+            take_q     <= 1'b0;
+        end else if (begin_now) begin
+            // A transfer starting while another retires overwrites this state
+            // wholesale. The retiring one's result is safe: the core reads it
+            // combinationally through `rx_value` on this same cycle.
+            index    <= 5'd0;
+            total    <= nbits;
+            rx_latch <= {REG_W{1'b0}};
+            tx_latch <= tx_value;
+            drive_q  <= drive_data;
+            take_q   <= take_data;
+            state    <= clocked ? S_CLK_A : S_UNCLK;
+            if (!clocked && take_data)
+                rx_latch[pos_issue] <= pad_in[cfg_din];
         end else begin
             case (state)
-            S_IDLE: if (start) begin
-                index <= 5'd0;
-                total <= nbits;
-                rx_latch <= {REG_W{1'b0}};
-                state <= clocked ? S_CLK_A : S_UNCLK;
-                if (!clocked && take_data)
-                    rx_latch[pos_issue] <= pad_in[cfg_din];
-            end
-
             S_UNCLK: if (timer_last) begin
                 if (is_last) begin
                     state <= S_IDLE;
                 end else begin
                     index <= index + 5'd1;
-                    if (take_data) rx_latch[pos_next] <= pad_in[cfg_din];
+                    if (take_q) rx_latch[pos_next] <= pad_in[cfg_din];
                 end
             end
 
             S_CLK_A: if (timer_last) begin
                 state <= S_CLK_B;
                 // cpha=0 samples on the leading edge we are about to take.
-                if (!cfg_cpha && take_data) rx_latch[pos_now] <= pad_in[cfg_din];
+                if (!cfg_cpha && take_q) rx_latch[pos_now] <= pad_in[cfg_din];
             end
 
             S_CLK_B: if (timer_last) begin
                 // cpha=1 samples on the trailing edge.
-                if (cfg_cpha && take_data) rx_latch[pos_now] <= pad_in[cfg_din];
+                if (cfg_cpha && take_q) rx_latch[pos_now] <= pad_in[cfg_din];
                 if (is_last) begin
                     state <= S_IDLE;
                 end else begin
@@ -146,7 +173,7 @@ module axpe_shift #(
                     state <= S_CLK_A;
                 end
             end
-            default: state <= S_IDLE;
+            default: ;   // S_IDLE waits for `start`
             endcase
         end
     end
@@ -159,10 +186,36 @@ module axpe_shift #(
         set_value   = {UIO_PINS{1'b0}};
         timer_load  = 1'b0;
         timer_delay = whole;
-        done        = 1'b0;
 
         case (state)
-        S_IDLE: if (start) begin
+        S_UNCLK: if (timer_last && !is_last) begin
+            timer_load = 1'b1;
+            if (drive_q) write_pin(cfg_dout, bit_next);
+        end
+
+        S_CLK_A: if (timer_last) begin
+            timer_load  = 1'b1;
+            timer_delay = half;
+            write_pin(cfg_clk, ~cfg_cpol);              // leading edge
+            if (drive_q && cfg_cpha) write_pin(cfg_dout, bit_now);
+        end
+
+        S_CLK_B: if (timer_last) begin
+            write_pin(cfg_clk, cfg_cpol);               // trailing edge
+            if (!is_last) begin
+                timer_load  = 1'b1;
+                timer_delay = half;
+                if (drive_q && !cfg_cpha) write_pin(cfg_dout, bit_next);
+            end
+        end
+        default: ;
+        endcase
+
+        // A starting transfer owns the timer, and its pin writes merge with
+        // the retiring one's. They cannot disagree: both read the same SHCFG,
+        // so the trailing clock edge above and the idle level below are the
+        // same level on the same pin.
+        if (begin_now) begin
             timer_load  = 1'b1;
             timer_delay = clocked ? half : whole;
             if (clocked) write_pin(cfg_clk, cfg_cpol);
@@ -170,33 +223,6 @@ module axpe_shift #(
             // the incoming count rather than the previous transfer's total.
             if (drive_data && (!clocked || !cfg_cpha)) write_pin(cfg_dout, bit_issue);
         end
-
-        S_UNCLK: if (timer_last) begin
-            done = is_last;
-            if (!is_last) begin
-                timer_load = 1'b1;
-                if (drive_data) write_pin(cfg_dout, bit_next);
-            end
-        end
-
-        S_CLK_A: if (timer_last) begin
-            timer_load  = 1'b1;
-            timer_delay = half;
-            write_pin(cfg_clk, ~cfg_cpol);              // leading edge
-            if (drive_data && cfg_cpha) write_pin(cfg_dout, bit_now);
-        end
-
-        S_CLK_B: if (timer_last) begin
-            write_pin(cfg_clk, cfg_cpol);               // trailing edge
-            done = is_last;
-            if (!is_last) begin
-                timer_load  = 1'b1;
-                timer_delay = half;
-                if (drive_data && !cfg_cpha) write_pin(cfg_dout, bit_next);
-            end
-        end
-        default: ;
-        endcase
     end
 
     // Usually the sampled result is already registered before `done`. In
@@ -205,7 +231,7 @@ module axpe_shift #(
     // forwards a result at retirement.
     always @(*) begin
         rx_value = rx_latch;
-        if (state == S_CLK_B && timer_last && is_last && cfg_cpha && take_data)
+        if (state == S_CLK_B && timer_last && is_last && cfg_cpha && take_q)
             rx_value[pos_now] = pad_in[cfg_din];
     end
 endmodule
