@@ -62,7 +62,7 @@
     {"mnemonic": "PINW",   "opcode":  4, "shape": "reg",       "timing": "fixed",   "group": "pins",    "doc": "uio outputs take Ra[7:0]."},
     {"mnemonic": "POUT",   "opcode":  5, "shape": "reg",       "timing": "fixed",   "group": "pins",    "doc": "uo_out takes Ra[7:0]."},
     {"mnemonic": "PINR",   "opcode":  6, "shape": "reg",       "timing": "fixed",   "group": "pins",    "doc": "Ra takes {ui_in[7:0], uio_in[7:0]}, both groups sampled with no skew."},
-    {"mnemonic": "PDIR",   "opcode":  7, "shape": "imm8",      "timing": "fixed",   "group": "pins",    "doc": "uio direction mask, 1 = drive."},
+    {"mnemonic": "PDIR",   "opcode":  7, "shape": "imm8",      "timing": "fixed",   "group": "pins",    "doc": "uio direction mask, 1 = drive. Set the latch to the idle level before enabling a pin here: the latch resets to zero, so the other order drives the line low until something raises it, which a UART receiver may latch as a start bit and an SPI target as an asserted chip select."},
     {"mnemonic": "PDRN",   "opcode":  8, "shape": "imm8",      "timing": "fixed",   "group": "pins",    "doc": "uio open-drain mask. Required for I2C, which cannot be expressed without it."},
 
     {"mnemonic": "WAITE",  "opcode":  9, "shape": "reg_imm8",  "timing": "bounded", "group": "measure", "returns_time": true,

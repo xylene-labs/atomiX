@@ -84,7 +84,7 @@ FPGA environment once per shell: `source "$HOME/opt/oss-cad-suite/environment"`.
 ```bash
 make pemu-model-check   # ISA drift, assembler, C model and firmware checks
 make pemu-cosim-check   # Verilated RTL against the C model, cycle for cycle
-make pemu-chip-check    # two programs loaded over the host port into one design
+make pemu-chip-check    # programmability, and UART/SPI/I2C against peers
 ```
 
 The model command requires a host C compiler and Python. The cosimulation adds
@@ -105,7 +105,14 @@ that same design without rebuilding it, and checks both against the golden
 model cycle for cycle. It also checks that a write is refused while the core
 runs and says so in status, because the store is single-port. The host contract
 those pins answer to is [`docs/pemu-host-protocol.md`](pemu-host-protocol.md).
-See
+
+It then loads `uart-demo`, `spi-demo` and `i2c-demo` -- assembled from
+`sw/pemu/firmware`, not transcribed into the bench -- into that same design and
+runs each against a peer in `sim/pemu/axpe_peers.h` written from the protocol's
+own rules rather than from axpe's model. The peers resolve the bus the way a
+wire does, with pull-ups and pull-downs, so I2C's open-drain path is exercised
+rather than assumed. They are simulated peers: hardware peers are PE-09's job
+and this is not that evidence. See
 [model conventions](../sw/pemu/model/README.md) and the
 [PE-05 evidence](../research/benchmarks/axpe-cosim.json).
 

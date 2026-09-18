@@ -122,7 +122,7 @@ this instruction set is written down. Regenerate with
 | `04` | `PINW` | reg | `max(D,1)` | uio outputs take Ra[7:0]. |
 | `05` | `POUT` | reg | `max(D,1)` | uo_out takes Ra[7:0]. |
 | `06` | `PINR` | reg | `max(D,1)` | Ra takes {ui_in[7:0], uio_in[7:0]}, both groups sampled with no skew. |
-| `07` | `PDIR` | imm8 | `max(D,1)` | uio direction mask, 1 = drive. |
+| `07` | `PDIR` | imm8 | `max(D,1)` | uio direction mask, 1 = drive. Set the latch to the idle level before enabling a pin here: the latch resets to zero, so the other order drives the line low until something raises it, which a UART receiver may latch as a start bit and an SPI target as an asserted chip select. |
 | `08` | `PDRN` | imm8 | `max(D,1)` | uio open-drain mask. Required for I2C, which cannot be expressed without it. |
 
 ### Measurement

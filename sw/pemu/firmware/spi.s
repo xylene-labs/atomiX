@@ -31,9 +31,12 @@ spi_xfer:
     LDIH   R1, (SHCFG_W >> 8) & 0xFF, D=0
     SHCFG  R1,                        D=0
     PDRN   0x00,                      D=0            ; push-pull; SPI is not open-drain
+    ; Idle levels before the driver, because pin_latch resets to zero: enabling
+    ; the outputs first would assert CS and pulse SCK inside it, and a target
+    ; would clock in a bit that no master sent.
+    PINSET CS_MASK,                   D=0            ; CS idle is high
+    PINCLR (1 << SCK_PIN),            D=0            ; SCK idles at cpol=0
     PDIR   DRIVEN,                    D=0
-    PINSET (1 << SCK_PIN),            D=0            ; SCK idles at cpol=0..
-    PINCLR (1 << SCK_PIN),            D=0            ; ..set explicitly, not assumed
     PINCLR CS_MASK,                   D=SPI_PERIOD   ; assert CS, one bit time of setup
     SHIO   R0, 8,                     D=SPI_PERIOD   ; send and receive together
     PINSET CS_MASK,                   D=SPI_PERIOD   ; release CS

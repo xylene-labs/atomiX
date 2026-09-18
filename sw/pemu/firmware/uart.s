@@ -23,11 +23,20 @@
 .equ SHCFG_RX_LO, 15                   ; clk = none; dout unused on this path
 .equ SHCFG_RX_HI, 0x01                 ; din = uio[1], field [11:8] of SHCFG
 
-_start:
-    PDIR   TX_MASK,        D=0         ; uio[0] drives, uio[1] stays an input
+; --- bus setup -------------------------------------------------------------
+; A library, not a program: the entry point that loads into word 0 lives in
+; uart-demo.s and pulls this file in, so one copy of the routine serves the
+; model tests, the chip test and the submission demo.
+; The latch is set before the driver is enabled, and the order is not a style
+; choice. `pin_latch` resets to zero, so enabling the output first drives TX low
+; for as long as it takes to raise it -- a glitch a receiver is entitled to
+; latch as a start bit. An independent 8N1 receiver in sim/pemu found exactly
+; that; the rule is now in the PDIR description in the ISA.
+uart_init:
     PDRN   0x00,           D=0         ; push-pull; UART is not open-drain
-    PINSET TX_MASK,        D=0         ; idle line is high
-    HALT                   D=0
+    PINSET TX_MASK,        D=0         ; idle level first...
+    PDIR   TX_MASK,        D=BAUD      ; ...then drive it. uio[1] stays an input
+    RET                    D=0
 
 ; --- transmit ---------------------------------------------------------------
 ; R0 holds the byte.  Cost is exact: no WAITE on this path.

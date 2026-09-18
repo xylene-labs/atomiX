@@ -11,14 +11,17 @@ fails here instead of silently changing a protocol's bit period.
 from __future__ import annotations
 
 import sys
+import tempfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from axpe_as import (
+    B_SHIFT,
     DELAY_MAX,
     OPCODES,
     RETURNS_TIME,
+    X_SHIFT,
     AsmError,
     assemble,
 )
@@ -189,6 +192,126 @@ def check_uart_firmware() -> None:
     check(not any(i.bounded for i in tx), "the transmit path must be exact, with no WAITE")
 
 
+def check_pad_setup_order() -> None:
+    """A driver is enabled only after the latch already holds the idle level.
+
+    `pin_latch` resets to zero, so a PDIR that runs first drives the line low
+    until something raises it. An independent 8N1 receiver reads that as a
+    start bit and an SPI target as an asserted chip select with a clock pulse
+    inside it -- which is how both were found, in sim/pemu. The rule is in the
+    PDIR description in axpe-isa.json; this keeps the three shipped protocols
+    honest about it.
+    """
+    for name in ("uart.s", "spi.s", "i2c.s"):
+        program = asm((FIRMWARE / name).read_text(encoding="utf-8"))
+        first_dir = next((i for i, x in enumerate(program)
+                          if x.mnemonic == "PDIR"), None)
+        if first_dir is None:
+            FAILURES.append(f"{name}: expected a PDIR enabling its pads")
+            continue
+        latched = [x.mnemonic for x in program[:first_dir]
+                   if x.mnemonic in ("PINSET", "PINCLR", "PINW")]
+        check(bool(latched),
+              f"{name}: PDIR at word {first_dir} enables pads before any "
+              "instruction sets their idle level")
+
+
+def check_i2c_firmware() -> None:
+    """Every I2C cell is a legal clocked cell, and they all share one period.
+
+    A clocked cell splits at its half point, so an odd or zero period is a
+    machine reject rather than an assembler error -- SHCFG is loaded from a
+    register and the configuration is invisible here. The period is checked at
+    assembly time anyway, because a firmware that only fails at run time fails
+    on the bus.
+    """
+    program = asm((FIRMWARE / "i2c.s").read_text(encoding="utf-8"))
+    cells = [x for x in program if x.mnemonic in ("SHOUT", "SHIO")]
+    check(len(cells) >= 3,
+          f"i2c.s should carry a byte and its acknowledgement, found {len(cells)}")
+    periods = set()
+    for insn in cells:
+        nbits = (insn.word >> X_SHIFT) & 31
+        check(nbits in (1, 8), f"i2c.s shifts {nbits} bits; expected 8 or the ack bit")
+        if not nbits:
+            continue
+        period = insn.cycles // nbits
+        periods.add(period)
+        check(period >= 2 and period % 2 == 0,
+              f"i2c.s cell period {period} must be even and non-zero to be clocked")
+    check(len(periods) == 1,
+          f"i2c.s should clock every cell at one period, found {sorted(periods)}")
+
+
+def check_include() -> None:
+    """A routine is written once and run from several entry points.
+
+    The three mandatory protocols are libraries with their own callers, so
+    `.include` has to resolve relative to the file doing the including, keep a
+    diagnostic pointing at the file the author must open, and refuse a cycle
+    rather than hang.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        (root / "lib").mkdir()
+        (root / "lib" / "routine.s").write_text(
+            ".equ STEP, 3\nhold:\n    DELAY D=STEP\n    RET D=0\n")
+        (root / "main.s").write_text(
+            "_start:\n    CALL hold, D=0\n    HALT D=0\n"
+            '.include "lib/routine.s"\n')
+        program = assemble((root / "main.s").read_text(), root / "main.s")
+        check([i.mnemonic for i in program] == ["CALL", "HALT", "DELAY", "RET"],
+              f"include should splice the routine in, got {[i.mnemonic for i in program]}")
+        check(program[2].cycles == 3, "an included .equ should reach the caller")
+        target = (((program[0].word >> B_SHIFT) & 7) << 5) \
+               | ((program[0].word >> X_SHIFT) & 31)
+        check(target == 2,
+              f"a call into included code should resolve to word 2, got {target}")
+
+        # A routine that includes a sibling by relative path, from a
+        # subdirectory: the path is relative to the includer, not the caller.
+        (root / "lib" / "outer.s").write_text('.include "routine.s"\n')
+        (root / "nested.s").write_text(
+            "_start:\n    CALL hold, D=0\n    HALT D=0\n"
+            '.include "lib/outer.s"\n')
+        nested = assemble((root / "nested.s").read_text(), root / "nested.s")
+        check(len(nested) == 4, f"nested include should splice once, got {len(nested)}")
+
+        # A diagnostic must name the included file, not the program.
+        (root / "bad.s").write_text("    FROB R0, D=0\n")
+        (root / "caller.s").write_text('.include "bad.s"\n')
+        try:
+            assemble((root / "caller.s").read_text(), root / "caller.s")
+            FAILURES.append("include: a bad included line should raise")
+        except AsmError as exc:
+            check("bad.s:1" in str(exc),
+                  f"include: the diagnostic should name bad.s line 1, got {exc}")
+
+        # Two definitions of one name is a program calling the wrong routine.
+        (root / "clash.s").write_text(
+            "hold:\n    RET D=0\n" + '.include "lib/routine.s"\n')
+        try:
+            assemble((root / "clash.s").read_text(), root / "clash.s")
+            FAILURES.append("include: a duplicate label should raise")
+        except AsmError as exc:
+            check("duplicate symbol" in str(exc),
+                  f"include: expected a duplicate-symbol error, got {exc}")
+
+        (root / "loop.s").write_text('.include "loop.s"\n')
+        try:
+            assemble((root / "loop.s").read_text(), root / "loop.s")
+            FAILURES.append("include: a cycle should raise rather than hang")
+        except AsmError as exc:
+            check("cycle" in str(exc), f"include: expected a cycle error, got {exc}")
+
+        try:
+            assemble('.include "nope.s"\n', root / "missing.s")
+            FAILURES.append("include: a missing file should raise")
+        except AsmError as exc:
+            check("cannot find" in str(exc),
+                  f"include: expected a missing-file error, got {exc}")
+
+
 def check_diagnostics() -> None:
     """A bad program must fail loudly, not assemble into something plausible."""
     expect_error("MOV R8, R1, D=0", "register", "register out of range")
@@ -219,7 +342,8 @@ def main() -> int:
     for probe in (check_encoding, check_timing_rule, check_perbit_rule,
                   check_waite_is_bounded, check_waite_returns_time,
                   check_isa_is_the_single_source, check_uart_firmware,
-                  check_autobaud_firmware, check_diagnostics,
+                  check_autobaud_firmware, check_pad_setup_order,
+                  check_i2c_firmware, check_include, check_diagnostics,
                   check_imem_bound_is_a_knob):
         try:
             probe()

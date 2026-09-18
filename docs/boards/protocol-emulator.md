@@ -67,13 +67,13 @@ card instead of taking time from the submission. All owners are unassigned.
 
 | Card / outcome | Tier | Priority | State | Depends on / blocker | First reviewable slice |
 |---|---|---|---|---|---|
-| PE-01: competition entry and official template baseline | T1 | P0 | Ready | Sign-up form and asic-competition@janestreet.com | Register, record the confirmed rules and template revision, resolve the template's current tile-shape metadata against the required 6x4 allocation, and pull it into `asic/tt-axpe/` unmodified |
+| PE-01: competition entry and official template baseline | T1 | P0 | Active | Registered 2026-09-18; the template itself is still outstanding | Register, record the confirmed rules and template revision, resolve the template's current tile-shape metadata against the required 6x4 allocation, and pull it into `asic/tt-axpe/` unmodified |
 | PE-14: post-fabrication programming and host contract | T1 | P0 | Review | PE-01 for the template's wrapper module name and revision | Done: [`docs/pemu-host-protocol.md`](../pemu-host-protocol.md) freezes the pins and framing, and `make pemu-chip-check` loads two unrelated programs into one elaborated design and runs both cycle-exact. Remaining: the top is `axpe_chip`, not the `tt_um_*` name the official template requires, which PE-01 supplies |
 | PE-02: instruction-memory and early-flow feasibility gate | T1 | P0 | Ready | PE-01; PE-14 write/read semantics settled 2026-09-18 | Put the writable instruction-store candidate and loader shell through the official 6x4 flow, recording mapped area, routability, timing and macro failures rather than relying on LEF footprint alone |
 | PE-03: `axpe` ISA specification | T1 | P0 | Review | PE-02 budget | Done: `axpe-isa.json` is the single source, `axpe-isa.md` is generated from it, and `WAITE` returns its elapsed cycle count |
 | PE-04: golden model and assembler | T1 | P0 | Review | PE-03 timing decisions | Model, assembler, UART/autobaud and four-mode clocked shifts pass via `make pemu-model-check`; close only after effect/reset/fault conventions receive commit-pinned review |
 | PE-05: RTL and cycle-for-cycle cosimulation | T1 | P0 | Review | PE-04 | Done: `make pemu-cosim-check` compares every cycle with no tolerated deviation across 112 randomized programs and twelve directed cases, and the handoff gap is closed. Close only after commit-pinned review of the retirement and forwarding path |
-| PE-07: mandatory UART, SPI and I2C firmware | T1 | P0 | Next | PE-05; PE-14 runtime loading | Load all three as runtime programs into the same chip image; UART, SPI and I2C each pass an independent reference peer, including I2C ACK/NACK, repeated-start, STOP and bus release |
+| PE-07: mandatory UART, SPI and I2C firmware | T1 | P0 | Review | PE-05, PE-14 both done | Done in simulation: all three load into one unchanged chip image and pass peers written from each protocol, with I2C covering ACK/NACK, repeated start, STOP and bus release. Remaining for closure: hardware peers, which is PE-09 |
 | PE-10: staged CMOS5L synthesis and place-and-route | T1 | P0 | Next | PE-01, PE-02 and PE-14 for the first integrated run; PE-07 for final closure | Harden the smallest programmable chip as soon as loader and memory compose, then repeat on the final mandatory-protocol architecture with actual area, timing and violations recorded |
 | PE-15: a measured period firmware can use | T2 | P0 | Next | PE-03, PE-05; `b` field free in shift ops, two opcodes reserved | A delay register plus a per-instruction select bit, so `SHOUT`/`SHIN`/`SHIO` can take their bit period from a register. `autobaud.s` must measure an unknown peer and then transmit at that rate, end to end |
 | PE-06: timing-determinism proof | T2 | P0 | Ready | PE-05 (unblocked 2026-09-18) | Every instruction proved to retire in its declared cycle count, `WAITE` bounded by its timeout |
@@ -138,6 +138,41 @@ P&R, FPGA or silicon claim is made.
 
 Superseded by the checkpoint below, which closes that gap. It stays here because
 what a defect looked like before it was understood is part of the record.
+
+### PE-07 checkpoint — 2026-09-18
+
+All three mandatory protocols now load as runtime programs into one unchanged
+`axpe_chip` and pass a peer written from the protocol's own rules rather than
+from axpe's ISA, model or firmware. `i2c.s` is new and carries the whole
+transaction the board asks for: START, address + W, a data byte, repeated
+START, address + R, a byte read back, the master's NACK and STOP. The peers
+resolve the bus the way a wire does, with pull-ups and pull-downs, so the
+open-drain path I2C cannot be expressed without is exercised rather than
+assumed.
+
+The peers earned their keep immediately. Both `uart.s` and `spi.s` enabled
+their pad drivers while `pin_latch` still read zero, so the line was driven low
+until something raised it: the UART receiver reported a start bit that was not
+low at its centre, and the SPI target reported chip select rising after nine
+bits, having clocked in a bit no master sent. `i2c.s` had the same defect and
+this peer cannot see it, because SDA and SCL move together so no START or STOP
+is synthesised — so the rule is now stated in the `PDIR` description in
+`axpe-isa.json`, and a static check in `check_axpe_as.py` holds all three
+firmwares to it. Reverting any of the three fails something.
+
+The firmware the peers judge is assembled from `sw/pemu/firmware` by the build
+rather than transcribed into the testbench, and `.include` (new, with its own
+tests, including a duplicate-symbol error that did not exist before) lets one
+copy of each routine serve the model tests, the chip test and the submission
+demo.
+
+Evidence is host simulation, in
+[`axpe-protocols.json`](../../research/benchmarks/axpe-protocols.json). The
+peers are independent of the firmware and of the golden model, not of the
+author, and no hardware has seen any of it — rise times, pull-up values, clock
+tolerance and bus capacitance are what PE-09 exists to find, and the board keeps
+those at different evidence levels on purpose. I2C clock stretching is not
+supported and not claimed.
 
 ### PE-14 checkpoint — 2026-09-18
 
@@ -244,6 +279,17 @@ claim or trigger re-synthesis.
 
 ## Priority decisions
 
+- 2026-09-18: registration is done, and the mandatory-email step this board
+  listed as a PE-01 blocker was not a requirement. PE-01 stays open for what it
+  is actually for: the official template revision, its tile-shape metadata
+  against the 6x4 allocation, and the `tt_um_*` wrapper name the chip top does
+  not yet use.
+- 2026-09-18: a protocol's peer is written from the protocol, never from the
+  emulator. An oracle derived from the thing it checks agrees with it by
+  construction, and the first run of these three found two real firmware
+  defects that every model-level test had passed over. Where a peer structurally
+  cannot see a defect, the rule goes into the ISA description and a static check
+  instead of being left to a reviewer's memory.
 - 2026-09-18: the loader is fixed logic and the store is single-port, decided
   together. Firmware cannot load itself, so the host port cannot be firmware;
   and the IHP macro PE-02 is aiming at has one address port, so there is no

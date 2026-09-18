@@ -154,6 +154,35 @@ def evaluate(expr: str, symbols: dict[str, int], path: Path, lineno: int) -> int
 
 LABEL_RE = re.compile(r"^([A-Za-z_][A-Za-z0-9_]*):\s*(.*)$")
 EQU_RE = re.compile(r"^\.equ\s+([A-Za-z_][A-Za-z0-9_]*)\s*,?\s*(.+)$", re.IGNORECASE)
+INCLUDE_RE = re.compile(r'^\.include\s+"([^"]+)"$', re.IGNORECASE)
+
+
+def expand(path: Path, source: str | None = None,
+           seen: tuple[Path, ...] = ()) -> list[tuple[Path, int, str]]:
+    """Flatten `.include` into (file, line, text), keeping each line's origin.
+
+    A protocol routine is written once and run from several programs, so the
+    entry point that loads into word 0 lives in its own file and pulls the
+    routine in.  Every line keeps the file it came from, because a diagnostic
+    that names the wrong file is worse than one that names no file at all.
+    """
+    resolved = path.resolve()
+    if resolved in seen:
+        chain = " -> ".join(p.name for p in seen + (resolved,))
+        raise AsmError(path, 0, f"include cycle: {chain}")
+    text = path.read_text() if source is None else source
+    out: list[tuple[Path, int, str]] = []
+    for lineno, line in enumerate(text.splitlines(), start=1):
+        match = INCLUDE_RE.match(line.split(";", 1)[0].strip())
+        if not match:
+            out.append((path, lineno, line))
+            continue
+        target = path.parent / match.group(1)
+        if not target.is_file():
+            raise AsmError(path, lineno,
+                           f"cannot find included file {match.group(1)!r}")
+        out.extend(expand(target, None, seen + (resolved,)))
+    return out
 
 
 def split_operands(rest: str) -> tuple[list[str], str | None]:
@@ -227,16 +256,22 @@ def assemble(source: str, path: Path, imem_words: int = 256) -> list[Insn]:
     that only shows up as a protocol glitch on real pins.
     """
     symbols: dict[str, int] = {}
-    raw: list[tuple[int, str, str, list[str], str | None]] = []
+    raw: list[tuple[Path, int, str, str, list[str], str | None]] = []
     addr = 0
 
-    for lineno, line in enumerate(source.splitlines(), start=1):
+    for src, lineno, line in expand(path, source):
         line = line.split(";", 1)[0].rstrip()
         if not line.strip():
             continue
 
         match = LABEL_RE.match(line.strip())
         while match:
+            # Two definitions of one name used to mean the last one won. With
+            # `.include` that is a program silently calling the wrong routine,
+            # so it is an error at the point of collision instead.
+            if match.group(1) in symbols:
+                raise AsmError(src, lineno,
+                               f"duplicate symbol {match.group(1)!r}")
             symbols[match.group(1)] = addr
             line = match.group(2)
             if not line.strip():
@@ -247,7 +282,9 @@ def assemble(source: str, path: Path, imem_words: int = 256) -> list[Insn]:
 
         equ = EQU_RE.match(line.strip())
         if equ:
-            symbols[equ.group(1)] = evaluate(equ.group(2), symbols, path, lineno)
+            if equ.group(1) in symbols:
+                raise AsmError(src, lineno, f"duplicate symbol {equ.group(1)!r}")
+            symbols[equ.group(1)] = evaluate(equ.group(2), symbols, src, lineno)
             continue
 
         tokens = line.strip().split(None, 1)
@@ -258,17 +295,17 @@ def assemble(source: str, path: Path, imem_words: int = 256) -> list[Insn]:
             mnemonic, extra = ALIASES[mnemonic]
             rest = ", ".join(extra + ([rest] if rest.strip() else []))
         if mnemonic not in OPCODES:
-            raise AsmError(path, lineno, f"unknown instruction {mnemonic!r}")
+            raise AsmError(src, lineno, f"unknown instruction {mnemonic!r}")
 
         operands, delay = split_operands(rest)
-        raw.append((lineno, line.strip(), mnemonic, operands, delay))
+        raw.append((src, lineno, line.strip(), mnemonic, operands, delay))
         addr += 1
 
     if addr > imem_words:
         raise AsmError(path, 0, f"program is {addr} words, imem_words is {imem_words}")
 
     out: list[Insn] = []
-    for index, (lineno, text, mnemonic, operands, delay_expr) in enumerate(raw):
+    for index, (path, lineno, text, mnemonic, operands, delay_expr) in enumerate(raw):
         opcode, shape, timing = OPCODES[mnemonic]
         delay = evaluate(delay_expr, symbols, path, lineno) if delay_expr else 0
         check_range(delay, DELAY_MAX, "delay", path, lineno)

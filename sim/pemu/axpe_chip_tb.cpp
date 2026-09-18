@@ -15,9 +15,13 @@
 #include "verilated.h"
 
 #include "axpe_trace.h"
+#include "axpe_peers.h"
 
 #include <cstdint>
 #include <cstdio>
+#include <cstdlib>
+#include <fstream>
+#include <string>
 #include <vector>
 
 /* The pads the host does not own, held still: CS high, and no protocol peer
@@ -34,6 +38,9 @@ struct Chip {
     std::vector<Sample> trace;
     bool collect = false;
     bool sclk = false, mosi = false, cs_n = true;
+    /* When a peer is attached it owns the bidirectional bus, resolving what
+     * the chip drives against its own pull-downs and the pull-ups. */
+    Peer *peer = nullptr;
 
     Chip()
     {
@@ -55,6 +62,9 @@ struct Chip {
     void tick()
     {
         drive();
+        rtl.uio_in = peer ? peer->step(static_cast<uint8_t>(rtl.uio_out),
+                                       static_cast<uint8_t>(rtl.uio_oe))
+                          : 0u;
         rtl.clk = 1;
         rtl.eval();
         if (collect)
@@ -130,6 +140,23 @@ struct Chip {
     }
 };
 
+/* The assembler writes one 32-bit word per line, so the program the chip runs
+ * is the program in sw/pemu/firmware -- not a second copy transcribed here. */
+static std::vector<uint32_t> load_hex(const std::string &path)
+{
+    std::vector<uint32_t> program;
+    std::ifstream in(path);
+    if (!in) {
+        std::fprintf(stderr, "cannot open %s\n", path.c_str());
+        return program;
+    }
+    std::string line;
+    while (std::getline(in, line))
+        if (!line.empty())
+            program.push_back(static_cast<uint32_t>(std::stoul(line, nullptr, 16)));
+    return program;
+}
+
 static const uint16_t ST_RUNNING = 0x0100;
 static const uint16_t ST_HALTED  = 0x0200;
 static const uint16_t ST_FAULT   = 0x0400;
@@ -204,9 +231,54 @@ static bool run_program(Chip &chip, const char *name,
     return compare_run(name, chip.trace, expected);
 }
 
+/* Load a firmware image over the host port, run it against its peer, and
+ * return the status word once it halts. The core keeps running while the host
+ * polls: the loader owns three inputs and the protocols own the bidirectional
+ * pins, so the two never contend. */
+static bool run_firmware(Chip &chip, const char *name, const std::string &hex,
+                         Peer &peer, unsigned max_cycles, uint16_t *status_out)
+{
+    const std::vector<uint32_t> program = load_hex(hex);
+    if (program.empty()) {
+        std::fprintf(stderr, "%s: no program at %s\n", name, hex.c_str());
+        return false;
+    }
+    chip.stop();
+    chip.load(program);
+    chip.peer = &peer;
+    chip.select();
+    chip.xfer(0x03, 8);
+    chip.end_frame();
+
+    uint16_t status = 0;
+    unsigned spent = 0;
+    while (spent < max_cycles) {
+        chip.ticks(1024);
+        spent += 1024;
+        status = chip.status();
+        if (status & (ST_HALTED | ST_FAULT)) break;
+    }
+    chip.peer = nullptr;
+    if (!(status & ST_HALTED) || (status & ST_FAULT)) {
+        std::fprintf(stderr, "%s: status %04x after %u cycles, expected a clean "
+                             "halt\n", name, status, spent);
+        return false;
+    }
+    *status_out = status;
+    return true;
+}
+
+static bool complain(const char *name, const std::string &error)
+{
+    if (error.empty()) return true;
+    std::fprintf(stderr, "%s: peer reported %s\n", name, error.c_str());
+    return false;
+}
+
 int main(int argc, char **argv)
 {
     Verilated::commandArgs(argc, argv);
+    const std::string fw = argc > 1 ? argv[1] : "build/fw";
 
     /* Two programs with nothing in common but the machine they run on: one
      * publishes a byte, the other bit-bangs one out of a pin. */
@@ -271,7 +343,90 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    std::puts("axpe chip: two different programs loaded over the host port into "
-              "one unchanged design, each cycle-exact against the golden model");
+    std::printf("axpe chip: two different programs loaded over the host port "
+                "into one unchanged design, each cycle-exact against the golden "
+                "model\n");
+
+    /* The three mandatory protocols, as runtime-loaded programs into that same
+     * design, each judged by an implementation of its own specification. */
+    uint16_t status = 0;
+
+    UartReceiver uart(0, 50000000u / 115200u);
+    if (!run_firmware(chip, "uart", fw + "/uart-demo.hex", uart, 60000, &status))
+        return 1;
+    if (!complain("uart", uart.error)) return 1;
+    if (uart.bytes.size() != 1 || uart.bytes[0] != 0x41u) {
+        std::fprintf(stderr, "uart: peer decoded %zu bytes, first %02x, "
+                             "expected one byte 41\n",
+                     uart.bytes.size(), uart.bytes.empty() ? 0 : uart.bytes[0]);
+        return 1;
+    }
+    if ((status & 0xffu) != 0x41u) {
+        std::fprintf(stderr, "uart: uo_out %02x, expected the byte it sent\n",
+                     status & 0xffu);
+        return 1;
+    }
+    std::puts("axpe chip: uart-demo transmitted 0x41, decoded by an independent "
+              "8N1 receiver at 115200");
+
+    SpiTarget spi(4, 5, 6, 7, 0x3c);
+    if (!run_firmware(chip, "spi", fw + "/spi-demo.hex", spi, 20000, &status))
+        return 1;
+    if (!complain("spi", spi.error)) return 1;
+    if (spi.frames != 1 || spi.received != 0xa5u) {
+        std::fprintf(stderr, "spi: target saw %u frames, byte %02x, expected "
+                             "one frame of a5\n", spi.frames, spi.received);
+        return 1;
+    }
+    if ((status & 0xffu) != 0x3cu) {
+        std::fprintf(stderr, "spi: uo_out %02x, expected the peer's 3c\n",
+                     status & 0xffu);
+        return 1;
+    }
+    std::puts("axpe chip: spi-demo exchanged a5 for 3c in mode 0, full duplex, "
+              "against an independent target");
+
+    I2cTarget i2c(2, 3, 0x50, 0x39);
+    if (!run_firmware(chip, "i2c", fw + "/i2c-demo.hex", i2c, 40000, &status))
+        return 1;
+    if (!complain("i2c", i2c.error)) return 1;
+    if (!i2c.saw_start || !i2c.saw_repeated_start || !i2c.saw_stop) {
+        std::fprintf(stderr, "i2c: start=%d repeated-start=%d stop=%d, "
+                             "expected all three\n",
+                     i2c.saw_start, i2c.saw_repeated_start, i2c.saw_stop);
+        std::fprintf(stderr, "  addressed=%u read=%d writes=%zu first=%02x "
+                             "master-nack=%d uo_out=%02x (ee means the firmware "
+                             "saw a NACK)\n",
+                     i2c.address_bytes, i2c.read_requested, i2c.writes.size(),
+                     i2c.writes.empty() ? 0 : i2c.writes[0], i2c.saw_master_nack,
+                     status & 0xffu);
+        return 1;
+    }
+    if (i2c.address_bytes != 2 || !i2c.read_requested) {
+        std::fprintf(stderr, "i2c: %u addressed phases, read_requested=%d, "
+                             "expected 2 and a read\n",
+                     i2c.address_bytes, i2c.read_requested);
+        return 1;
+    }
+    if (i2c.writes.size() != 1 || i2c.writes[0] != 0x5au) {
+        std::fprintf(stderr, "i2c: target received %zu data bytes, first %02x, "
+                             "expected one byte 5a\n",
+                     i2c.writes.size(), i2c.writes.empty() ? 0 : i2c.writes[0]);
+        return 1;
+    }
+    if (!i2c.saw_master_nack) {
+        std::fprintf(stderr, "i2c: the master never refused the last byte\n");
+        return 1;
+    }
+    if ((status & 0xffu) != 0x39u) {
+        std::fprintf(stderr, "i2c: uo_out %02x, expected the peer's 39 "
+                             "(ee means firmware saw a NACK)\n", status & 0xffu);
+        return 1;
+    }
+    std::puts("axpe chip: i2c-demo ran START, address+W, data, repeated START, "
+              "address+R, read and NACK, STOP against an independent target");
+
+    std::puts("axpe chip: UART, SPI and I2C each load into the same unchanged "
+              "design and pass a peer written from the protocol, not the firmware");
     return 0;
 }

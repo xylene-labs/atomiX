@@ -230,7 +230,8 @@ Evidence layers, in the order they are built:
 1b. Two unrelated programs loaded over the host port into one unchanged design,
     each cycle-exact — the capability the entry is invalid without
 2. Formal proof of the declared-versus-actual cycle counts
-3. Protocol conformance against *independent* reference implementations
+3. Protocol conformance against *independent* reference implementations --
+   in simulation now, against hardware in PE-09
 4. A non-default knob run, proving the profile parameters are real
 5. FPGA-in-the-loop on the Tang Primer against physical devices
 6. Gate-level simulation of the same firmware after place-and-route
@@ -257,7 +258,8 @@ configs/tt-axpe-6x4.json    ASIC area and timing budget
 sw/pemu/isa/axpe-isa.md     normative specification
 sw/pemu/as/axpe_as.py       assembler
 sw/pemu/model/axpe_model.c  golden model
-sw/pemu/firmware/           uart.s, spi.s, i2c.s
+sw/pemu/firmware/           uart.s, spi.s, i2c.s and their loadable demos
+sim/pemu/axpe_peers.h       independent UART, SPI and I2C peers
 sim/pemu/                   cosimulation and conformance benches
 formal/pemu/                timing-determinism proof
 tools/axpe_area.py          cell-budget tracker

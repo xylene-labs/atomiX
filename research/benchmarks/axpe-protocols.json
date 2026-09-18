@@ -1,0 +1,81 @@
+{
+  "schema": 1,
+  "checkpoint": "PE-07 mandatory protocols as runtime-loaded programs, first slice",
+  "date": "2026-09-18",
+  "evidence_kind": "host-rtl-simulation",
+  "base_commit": "1992896398f63d1dba5cff7ea447f064677a8f60",
+  "source_state": "uncommitted working tree; no commit-pinned approval claimed",
+  "claim": "UART, SPI and I2C each load as a runtime program into one elaborated axpe_chip and pass a peer implemented from the protocol's own rules rather than from axpe's ISA, model or firmware",
+  "not_claimed": [
+    "the peers are simulated and written in this repository: they are independent of the firmware and of the golden model, not of the author, and not a third-party implementation",
+    "no hardware peer has seen any of this; rise times, pull-up values, clock tolerance and bus capacitance are what PE-09 exists to find",
+    "no synthesis, place-and-route, FPGA or silicon result",
+    "I2C clock stretching is not supported and not claimed: the shift engine drives SCL from its own timer and no peer here holds it low",
+    "UART receive, and the SPI and I2C paths beyond the demonstrated transactions, are exercised only at model level"
+  ],
+  "tools": {
+    "verilator": "Verilator 5.050 2026-07-01 rev v5.050-60-g3d2421f3b",
+    "host_compiler": "g++ (Ubuntu 11.4.0-1ubuntu1~22.04.3) 11.4.0"
+  },
+  "inputs_sha256": {
+    "sw/pemu/firmware/uart.s": "577a1a18f241caae4990d18f06ccf4c6fc3e30073698b32d930c4c8d365cd55d",
+    "sw/pemu/firmware/spi.s": "7922bcbee6c73e64df56d9d08d8ce9957abf82c24f3c92d4ee4fe0df7ca872d4",
+    "sw/pemu/firmware/i2c.s": "4b2f04f3d42b65582322f1608efad8886b9dfde3431020c008f241031affa3d2",
+    "sim/pemu/axpe_peers.h": "eb0efdb9b99739f9d11613a89489f8ad2675a71a80b2a3a3187c01fa8f135bbc",
+    "sim/pemu/axpe_chip_tb.cpp": "0e143d313ccc7eabbcdfe3e9ddd151d509ed5b02f3280c295cacb1f5478f2e9a"
+  },
+  "command": "make pemu-chip-check",
+  "verification": [
+    { "command": "make pemu-chip-check", "result": "pass" },
+    { "command": "make pemu-model-check", "result": "pass, including new firmware contract checks" },
+    { "command": "make pemu-cosim-check", "result": "pass" },
+    { "command": "make verify-smoke", "result": "pass", "stages_passed": 14 }
+  ],
+  "results": [
+    {
+      "protocol": "UART 8N1, 115200 at 50 MHz",
+      "peer": "an oversampling receiver that waits for a start edge and samples at each bit centre",
+      "checked": "one byte 0x41 decoded with a low start bit and a high stop bit at their centres, and the same byte read back through the host port's status word"
+    },
+    {
+      "protocol": "SPI mode 0, MSB first, 1 MHz",
+      "peer": "a target that samples MOSI on the rising edge and moves MISO on the falling one",
+      "checked": "one 8-bit frame inside a single chip-select assertion, 0xA5 out and 0x3C back, with the received byte read through the host port"
+    },
+    {
+      "protocol": "I2C standard mode, 100 kHz",
+      "peer": "a 7-bit addressed device that acknowledges by pulling SDA down and releases it afterwards",
+      "checked": "START, address 0x50 + W acknowledged, data byte 0x5A received, repeated START, address + R acknowledged, one byte driven back, the master's NACK, and STOP with the bus released"
+    }
+  ],
+  "defects_found": [
+    {
+      "where": "sw/pemu/firmware/uart.s",
+      "found_by": "the independent UART receiver",
+      "was": "uart_init enabled the pad driver while pin_latch still read zero, so TX was driven low for two cycles before idling high",
+      "why_it_matters": "a receiver is entitled to latch that glitch as a start bit; the peer reported the start bit was not low at its centre",
+      "fix": "set the idle level, then enable the driver"
+    },
+    {
+      "where": "sw/pemu/firmware/spi.s",
+      "found_by": "the independent SPI target",
+      "was": "the same ordering, which asserted chip select early and pulsed SCK inside that assertion",
+      "why_it_matters": "the target clocked in a ninth bit that no master sent; it reported CS rising after 9 bits",
+      "fix": "set CS high and SCK to cpol before enabling the drivers"
+    },
+    {
+      "where": "sw/pemu/firmware/i2c.s",
+      "found_by": "inspection, not by the peer",
+      "was": "the same ordering, pulling both bus lines low for a cycle at startup",
+      "why_it_matters": "on a shared bus that is this master claiming a bus it has not started; it is invisible to this peer because SDA and SCL move together, so no START or STOP is synthesised",
+      "fix": "release the bus, then enable the drivers",
+      "honest_note": "reverting this fix does not fail any test here, which is why the rule is now a static check in check_axpe_as.py and is stated in the PDIR description in axpe-isa.json"
+    }
+  ],
+  "counter_evidence": [
+    "reverting the uart.s ordering fails the UART peer with 'start bit was not low at its centre'",
+    "reverting the spi.s ordering fails the SPI peer with 'CS rose after 9 bits'",
+    "reverting the i2c.s ordering fails the static pad-setup-order check in check_axpe_as.py, which is the layer that covers what the peer cannot see"
+  ],
+  "method_note": "The firmware the peers judge is assembled from sw/pemu/firmware by the build, not transcribed into the testbench, and the protocol routines are included rather than copied, so one copy of each protocol serves the model tests, the chip test and the submission demo."
+}
