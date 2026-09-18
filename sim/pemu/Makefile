@@ -40,7 +40,8 @@ $(BUILD)/fw/%.hex: $(FIRMWARE)/%.s $(wildcard $(FIRMWARE)/*.s) \
 	@mkdir -p $(BUILD)/fw
 	$(PYTHON) $(ROOT)/sw/pemu/as/axpe_as.py --hex $@ $<
 
-$(BUILD)/chip/Vaxpe_chip: axpe_chip_tb.cpp axpe_peers.h $(CHIP_RTL) $(DEPS)
+$(BUILD)/chip/Vaxpe_chip: axpe_chip_tb.cpp axpe_cases.h axpe_device.h axpe_peers.h \
+		$(CHIP_RTL) $(DEPS)
 	@mkdir -p $(BUILD)/chip
 	$(VERILATOR) $(VFLAGS) --top-module axpe_chip --Mdir $(BUILD)/chip \
 		$(CHIP_RTL) axpe_chip_tb.cpp $(MODEL)

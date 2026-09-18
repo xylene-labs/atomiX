@@ -79,7 +79,7 @@ card instead of taking time from the submission. All owners are unassigned.
 | PE-06: timing-determinism proof | T2 | P0 | Ready | PE-05 (unblocked 2026-09-18) | Every instruction proved to retire in its declared cycle count, `WAITE` bounded by its timeout |
 | PE-08: profile knobs exercised | T2 | P1 | Next | PE-05 | `configs/sim-axpe-tiny.json` runs every declared knob at a non-default value with limits derived from the build's own defines. **Known broken before the card is pulled**: `reg_width` and `delay_bits` do not elaborate away from 16 -- see the 2026-09-18 decision below, which has the diagnostics |
 | PE-09: Tang Primer bring-up | T3 | P1 | Next | PE-05, PE-14; Dock access; a `.cst` exposing a PMOD header; peer hardware arriving | Load firmware at runtime into one unchanged FPGA image, then run UART against CP2102, SPI against a Pi Pico 2 target, and I2C against an AT24C256. Add a capture-clock divider so the 24 MS/s analyzer can witness edge placement in `axpe` cycles |
-| PE-11: gate-level firmware simulation | T3 | P1 | Next | PE-10 | The same three firmware images pass post-P&R netlist simulation |
+| PE-11: gate-level firmware simulation | T3 | P1 | Next | PE-10 | The same three firmware images pass post-P&R netlist simulation. Prepared 2026-09-18: the bench is split so the oracle, the cases and the peers know nothing about what simulates the part, leaving a `Device` binding of six methods. A Verilator run over a synthesised netlist reuses them directly; an event-driven run carrying SDF needs its own driver, and the cases still port |
 | PE-13: firmware-vs-fixed-logic experiment | T3 | P2 | Next | PE-05, PE-07; only after baseline competition gates | Compare `axpe` with `uart.mmio16550` under one oracle if schedule remains; this is supporting co-design evidence, not a substitute for programmability, mandatory protocols or a hardened chip |
 | PE-12: submission package | T1 | P0 | Next | PE-01, PE-06, PE-07, PE-10; PE-14 demonstrated | `make tt-export` produces the Tiny Tapeout repository, evidence index and a reproducible demo that loads multiple protocol images into one unchanged hardened design |
 
@@ -266,6 +266,41 @@ can read the period register. A `DELAY` that could would let firmware hold a
 line for a measured interval, which clock stretching and inter-frame gaps would
 both use. It is listed in the ISA's open questions instead, because the
 mandatory protocols do not need it and the card's claim is narrower without it.
+
+### Preparing the ASIC rows — 2026-09-18
+
+Three small pieces of groundwork, done now because each is cheap before the
+flow exists and awkward after it.
+
+**The verification ladder now has the rows an ASIC entry needs**, in
+[`docs/verification.md`](../verification.md): ASIC synthesis, place-and-route
+with STA, gate-level, and physical silicon — all empty, listed rather than
+omitted, because an absent row is the easiest kind of claim to make by
+accident. Every axpe result to date is RTL equivalence and RTL integration. The
+note under the table now also says what was previously only implied: Verilator
+is two-state, so no run of it can see a flop that comes up unknown or a path
+that misses timing.
+
+**The chip bench is split so PE-11 is a binding rather than a bench.**
+`sim/pemu/axpe_device.h` holds a `Device` interface and the host-port driver;
+`axpe_cases.h` holds every check that decides pass or fail; `axpe_chip_tb.cpp`
+is now six methods and a `main`. The peers never knew what simulated the part.
+A netlist judged by a different list of cases than the RTL was would not be
+evidence about the same chip, and this is what stops that happening by
+convenience in December. Behaviour is unchanged: the same cycle counts, the
+same alignments, the same peers.
+
+**A part is now required to be silent before anyone talks to it.** With nothing
+loaded and nothing running, no protocol pin may be driven, `uo_out` must be
+zero, the status word must read `0000`, and a host frame must not disturb any
+of it. Nothing pinned this before — the reset state was only ever observed as
+the quiet prefix `compare_run` demanded of a run that then went on to do
+something else, which is true but incidental, and says nothing about what
+happens mid-frame. It is the first thing observable about a returned die and
+the first thing a bring-up engineer needs. The host's CS synchronisers already
+reset to deselected, deliberately, so this locks in a property the design
+already had rather than reporting a defect; making the core come up with
+`pin_dir` all ones fails it at cycle 0, naming the pins.
 
 ### PE-08 finding — 2026-09-18, ahead of the card
 

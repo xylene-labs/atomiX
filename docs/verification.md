@@ -13,16 +13,44 @@ identities, timeouts, requirements, ordering, and suite membership.
 | Contracts | profile resolution, research contracts | incompatible or stale composition data |
 | Behaviour | Live FPGA native loop | policy, fitness, oracle, authority, and rollback errors |
 | Target software | aXsim and RV32 Live FPGA loop | compiler, ABI, trap, arithmetic, and kernel-component errors |
-| RTL equivalence | directed and official-ISA cosim | CPU/ISS divergence per retired instruction |
+| RTL equivalence | directed and official-ISA cosim; `pemu-model`, `pemu-cosim` | CPU/ISS divergence per retired instruction; axpe RTL/model divergence per cycle |
 | RTL integration | unit, SoC, role, accelerator, and aXos stages | timing-independent hardware composition and protocol errors |
 | Platform agreement | ISS, QEMU, and Verilator | platform assumptions leaking into software |
 | Search | deterministic fuzz and paging campaigns | long-tail instruction and VM interactions |
 | Formal | separate weekly workflow | bounded architectural counterexamples |
-| Physical | explicit Primer procedure only | tool, timing, configuration, clock, power, and electrical failures |
+| ASIC synthesis | none yet -- PE-10 | mapped cell area, constructs that do not synthesise, state the RTL implies but nobody counted |
+| ASIC place-and-route and STA | none yet -- PE-10 | routability against a fixed tile, real area, setup and hold closure, and the clock period a cycle count is denominated in |
+| Gate-level | none yet -- PE-11 | uninitialised state, X propagation, and delay-dependent failures that no two-state simulation can express |
+| Physical, FPGA | explicit Primer procedure only | tool, timing, configuration, clock, power, and electrical failures |
+| Physical, silicon | does not exist | everything a shuttle return finds, none of which any row above predicts |
 
 No layer is allowed to claim the guarantees of the layer below it. In
-particular, a green nightly run is not FPGA bitstream or physical-board
-evidence.
+particular: a green nightly run is not FPGA bitstream or physical-board
+evidence; a Verilator run is not a gate-level result, because Verilator is
+two-state and cannot see a flop that comes up unknown or a path that does not
+meet timing; a gate-level result is not a place-and-route signoff; and nothing
+simulated at any level is a silicon result, because nothing taped out exists
+until it comes back measured.
+
+### The three ASIC rows are empty on purpose
+
+They are listed rather than omitted because an absent row is the easiest kind
+of claim to make by accident. `axpe` is an ASIC entry whose evidence today is
+entirely RTL equivalence and RTL integration, months ahead of schedule on those
+two and unstarted on these three, and the ordering of that table is the honest
+shape of the project rather than a plan.
+
+What fills them is PE-10 for the first two and PE-11 for the third, and they
+have a dependency worth naming: all three sit behind the official template in
+PE-01, so PE-01 is the unlock for the ASIC verification story and not only for
+the entry's validity.
+
+The gate-level row earns its place separately from the other two. The oracle
+and the peers in `sim/pemu/` are already independent of what simulates the
+part -- `axpe_cases.h` decides pass or fail and `axpe_chip_tb.cpp` is only a
+Verilator binding -- so running the same firmware against a netlist is a new
+binding rather than a new bench. A netlist judged by a different list of cases
+than the RTL was would not be evidence about the same chip.
 
 ## Commands
 
