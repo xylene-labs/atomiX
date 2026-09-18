@@ -1,0 +1,19 @@
+{
+  "schema": 1,
+  "name": "sdk-finisher-unsupported-board",
+  "components": {
+    "core": "core.finisher-smoke",
+    "soc": "soc.reference",
+    "memory": "memory.bram",
+    "uart": "uart.mmio16550",
+    "clint": "clint.qemu-virt",
+    "spi": "spi.polling-mode0",
+    "board": "board.tangprimer25k",
+    "interconnect": "interconnect.axbus-reference",
+    "cache": "cache.direct-mapped",
+    "rom": "rom.axrom",
+    "finisher": {"manifest": "../component.json"},
+    "harness": "harness.verilator-soc"
+  },
+  "settings": {"ram_bytes": 32768, "caches": false, "reset_pc": "0x80000000"}
+}

@@ -44,6 +44,13 @@ __pycache__/
 # with "no JSON contract documents found" while the files sat on the author's
 # disk. Cover the whole tree so a new research subdirectory cannot repeat it.
 !research/**/*.json
+# The out-of-tree SDK example is a source package: its component manifest and
+# its supplied profiles are exactly what `make external-component-check` copies
+# outside the tree and resolves, and nothing generates them. Ignoring them made
+# the check pass on the author's disk and fail on every fresh checkout with
+# "No such file or directory: .../finisher-delayed/component.json" -- the third
+# time this rule has hidden a source input, after research/ and tests/ below.
+!sdk/examples/**/*.json
 # Verification manifests are source inputs, not generated tool output. Cover
 # the whole directory rather than naming files: tests/coverage-map.json and
 # tests/examples.json were each read unconditionally by a checked-in tool while

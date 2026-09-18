@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "id": "example.finisher-delayed",
+  "kind": "finisher",
+  "title": "Delayed SiFive-test simulation finisher SDK example",
+  "sources": ["test_finisher.sv"],
+  "stock_soc_module": "test_finisher",
+  "license": "MIT",
+  "attribution": "Copyright (c) 2026 atomiX contributors",
+  "compatibility": {
+    "contract": "soc.reference test_finisher port boundary",
+    "requires": {
+      "soc": ["soc.reference"],
+      "board": ["board.sim"],
+      "harness": ["harness.verilator-soc"],
+      "core": ["core.finisher-smoke"]
+    }
+  },
+  "parameters": {
+    "ack_delay_cycles": {
+      "default": 1,
+      "define": "AX_SDK_FINISHER_ACK_DELAY",
+      "doc": "Whole cycles between the first asserted aXbus request and ready. Zero is combinational; 1..16 exercise a stalled request.",
+      "range": {
+        "minimum": 0,
+        "maximum": 16
+      }
+    }
+  },
+  "capabilities": ["pass-fail", "simulation", "delayed-ack", "sdk-example"]
+}
