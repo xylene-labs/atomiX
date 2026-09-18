@@ -79,6 +79,14 @@ module axpe #(
     reg [UIO_PINS-1:0] pin_latch, pin_dir, pin_drain;
     reg [7:0]          out_latch;
     reg [14:0]         shcfg;
+    // The shift engine's cell duration when an instruction asks for it instead
+    // of the D in its own word. SHPER writes it; nothing else does, and a
+    // transfer already running is unaffected, because the engine reads its
+    // cell from `hold_delay` once it has started. It is DELAY_BITS wide and
+    // not a literal 16: it holds the same kind of value the cell timer counts,
+    // so a profile that narrows one must narrow the other or the register
+    // could hold a period the timer cannot reach.
+    reg [DELAY_BITS-1:0] period;
     reg [AW-1:0]       call_stack [0:CALL_DEPTH-1];
     reg [SW-1:0]       sp;
     reg [1:0]          state;
@@ -158,6 +166,25 @@ module axpe #(
     wire [REG_W-1:0] src_a = (retire_we && ra == hold_ra) ? retire_data : regs[ra];
     wire [REG_W-1:0] src_b = (retire_we && rb == hold_ra) ? retire_data : regs[rb];
 
+    // ---- the cell a shift will actually use --------------------------------
+    // One bit of the otherwise unused `b` field picks between the encoded D
+    // and the period register, so the choice is per instruction rather than a
+    // mode the machine is left in. Everything downstream -- the timer, the
+    // clocked-cell legality rules, and what gets latched for the rest of the
+    // transfer -- reads this and not `delay`, because a rule applied to the
+    // wrong one of the two would only show up as a wrong bit period.
+    // REG_W and DELAY_BITS are independent knobs, and neither is necessarily
+    // the 16 bits the encoded delay field carries. Widen first and then take
+    // the bits wanted, the same way `imm8_wide` handles a branch target
+    // against AW below; slicing directly reads past the end of a narrowed
+    // register at some profiles and truncates silently at others.
+    /* verilator lint_off UNUSEDSIGNAL */
+    wire [31:0] src_a_wide  = {{(32-REG_W){1'b0}}, src_a};
+    wire [31:0] period_wide = {{(32-DELAY_BITS){1'b0}}, period};
+    /* verilator lint_on UNUSEDSIGNAL */
+    wire        period_sel  = rb[AXPE_SHIFT_B_P_LO];
+    wire [15:0] cell_delay  = period_sel ? period_wide[15:0] : delay;
+
     // ---- shift engine -----------------------------------------------------
     wire [UIO_PINS-1:0] sh_set_mask, sh_set_value;
     wire [REG_W-1:0]    sh_rx;
@@ -165,7 +192,7 @@ module axpe #(
     reg                 sh_start;
     // A cell reloads the timer from the delay of the instruction that started
     // it, which is only in `imem_data` on the issue cycle itself.
-    wire [DELAY_BITS-1:0] sh_delay = issue ? delay : hold_delay;
+    wire [DELAY_BITS-1:0] sh_delay = issue ? cell_delay : hold_delay;
     wire                is_shift = (op == AXPE_OP_SHOUT) || (op == AXPE_OP_SHIN)
                                 || (op == AXPE_OP_SHIO);
 
@@ -187,10 +214,14 @@ module axpe #(
     wire       clocked  = (cfg_clk != 4'hF);
     wire       shift_bad =
            (op != AXPE_OP_SHIN && cfg_dout >= 4'd8)
-        || (clocked && (cfg_clk >= 4'd8 || delay[0] || delay < 16'd2
+        || (clocked && (cfg_clk >= 4'd8 || cell_delay[0] || cell_delay < 16'd2
                         || cfg_clk == cfg_dout || cfg_clk == cfg_din));
+    // The rest of `b` is reserved. Refusing it is what keeps it reserved:
+    // firmware that set those bits and worked would make any later use of
+    // them a compatibility break rather than an addition.
     wire       encoding_bad =
            (is_shift && (xf == 5'd0 || xf > REG_W[4:0]))
+        || (is_shift && |rb[AXPE_SHIFT_B_RSV_HI:AXPE_SHIFT_B_RSV_LO])
         || (op == AXPE_OP_BR && ra == 3'd7)
         || ((op == AXPE_OP_SHL || op == AXPE_OP_SHR) && xf > REG_W[4:0])
         || (op == AXPE_OP_WAITE && imm8 > 8'd63);
@@ -329,6 +360,7 @@ module axpe #(
             pin_drain <= {UIO_PINS{1'b0}};
             out_latch <= 8'd0;
             shcfg     <= 15'd0;
+            period    <= {DELAY_BITS{1'b0}};
             sp        <= {SW{1'b0}};
             state     <= S_EXEC;
             stopped   <= 1'b0;
@@ -368,7 +400,7 @@ module axpe #(
                     state   <= S_STOP;
                 end else if (is_shift) begin
                     hold_ra    <= ra;
-                    hold_delay <= delay;
+                    hold_delay <= cell_delay;
                     state      <= S_SHIFT;
                 end else if (op == AXPE_OP_WAITE) begin
                     hold_ra    <= ra;
@@ -398,6 +430,7 @@ module axpe #(
                     AXPE_OP_PDIR:   pin_dir   <= imm8[UIO_PINS-1:0];
                     AXPE_OP_PDRN:   pin_drain <= imm8[UIO_PINS-1:0];
                     AXPE_OP_SHCFG:  shcfg     <= src_a[14:0];
+                    AXPE_OP_SHPER:  period    <= src_a_wide[DELAY_BITS-1:0];
                     AXPE_OP_CALL:   begin call_stack[sp[DW-1:0]] <= pc + {{(AW-1){1'b0}}, 1'b1};
                                            sp <= sp + {{(SW-1){1'b0}}, 1'b1}; end
                     AXPE_OP_RET:    sp <= sp - {{(SW-1){1'b0}}, 1'b1};

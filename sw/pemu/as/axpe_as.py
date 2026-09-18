@@ -56,15 +56,27 @@ MAX_SHIFT_BITS = ISA["registers"]["width"]
 
 # Operand shape names, mirrored from the description so the dispatch below can
 # compare against constants rather than bare strings.
-NONE, IMM8, REG, REG_N, REG_REG, REG_IMM8, REG_SHIFT, BRANCH, TARGET = (
-    "none", "imm8", "reg", "reg_n", "reg_reg", "reg_imm8", "reg_shift", "branch", "target",
+NONE, IMM8, REG, REG_N_P, REG_REG, REG_IMM8, REG_SHIFT, BRANCH, TARGET = (
+    "none", "imm8", "reg", "reg_n_p", "reg_reg", "reg_imm8", "reg_shift", "branch", "target",
 )
+
+# The period-select bit, read out of the ISA rather than written here. It sits
+# in the `b` field, which the shift shape does not otherwise use.
+_SHIFT_B = {entry["name"]: entry for entry in ISA["shift_b_layout"]}
+PERIOD_BIT = 1 << _SHIFT_B["p"]["lo"]
+PERIOD_TOKEN = "P"
 
 # mnemonic -> (opcode, shape, timing).  `timing` selects the retirement rule:
 # "fixed" is 1 + D, "perbit" is 1 + n*D, "bounded" is 1 + w for w <= D.
 OPCODES: dict[str, tuple[int, str, str]] = {
     insn["mnemonic"]: (insn["opcode"], insn["shape"], insn["timing"])
     for insn in ISA["instructions"]
+}
+
+# The timing an instruction takes instead when its period-select bit is set.
+TIMING_P: dict[str, str] = {
+    insn["mnemonic"]: insn["timing_p"]
+    for insn in ISA["instructions"] if "timing_p" in insn
 }
 
 CONDITIONS: dict[str, int] = dict(ISA["conditions"])
@@ -92,8 +104,9 @@ class Insn(NamedTuple):
     mnemonic: str
     addr: int
     cost: str          # human-readable retirement cost
-    cycles: int        # exact cycles, or the upper bound for WAITE
+    cycles: int        # exact cycles, the upper bound for WAITE, or 0 if dynamic
     bounded: bool      # True when `cycles` is a bound rather than a value
+    dynamic: bool      # True when the cost is a register's value, so unknown here
     lineno: int
     text: str
 
@@ -312,6 +325,26 @@ def assemble(source: str, path: Path, imem_words: int = 256) -> list[Insn]:
 
         a = b = x = 0
         nbits = 1
+        period = False
+
+        # `P` is a bare keyword operand, not an expression. Strip it before the
+        # shape dispatch so a shape that cannot take it says so by name rather
+        # than reporting an undefined symbol called P.
+        if any(o.strip().upper() == PERIOD_TOKEN for o in operands):
+            if shape != REG_N_P:
+                raise AsmError(path, lineno,
+                               f"{mnemonic} has no period-select bit; only "
+                               f"{', '.join(sorted(TIMING_P))} take P")
+            if delay_expr is not None:
+                # One of the two would be dead, and which one is not something
+                # a reader should have to know the encoding to work out.
+                raise AsmError(path, lineno,
+                               f"{mnemonic} names both D and P; P takes the cell "
+                               "duration from the period register, so the D here "
+                               "would never be used")
+            operands = [o for o in operands if o.strip().upper() != PERIOD_TOKEN]
+            period = True
+            b |= PERIOD_BIT
 
         if shape == NONE:
             expect_operands(mnemonic, operands, 0, path, lineno)
@@ -322,7 +355,7 @@ def assemble(source: str, path: Path, imem_words: int = 256) -> list[Insn]:
         elif shape == REG:
             expect_operands(mnemonic, operands, 1, path, lineno)
             a = parse_register(operands[0], path, lineno)
-        elif shape == REG_N:
+        elif shape == REG_N_P:
             expect_operands(mnemonic, operands, 2, path, lineno)
             a = parse_register(operands[0], path, lineno)
             nbits = evaluate(operands[1], symbols, path, lineno)
@@ -365,14 +398,22 @@ def assemble(source: str, path: Path, imem_words: int = 256) -> list[Insn]:
         # cycle. A trailing fetch cycle here would put every waveform edge one
         # cycle past its bit period, which no firmware could correct.
         cell = max(delay, 1)
-        if timing == "perbit":
-            cycles, cost, bounded = nbits * cell, f"{nbits}x{cell}", False
-        elif timing == "bounded":
-            cycles, cost, bounded = cell, f"w<={cell}", True
+        rule = TIMING_P[mnemonic] if period else timing
+        if rule == "perbit_reg":
+            # Still exact -- the transfer retires in n*max(P,1) cycles -- but P
+            # is a register, so this file cannot print the number. Saying
+            # `{nbits}xP` rather than guessing one is the whole point: the
+            # listing's promise is that what it prints is true.
+            cycles, cost, bounded, dynamic = 0, f"{nbits}xP", False, True
+        elif rule == "perbit":
+            cycles, cost, bounded, dynamic = nbits * cell, f"{nbits}x{cell}", False, False
+        elif rule == "bounded":
+            cycles, cost, bounded, dynamic = cell, f"w<={cell}", True, False
         else:
-            cycles, cost, bounded = cell, f"{cell}", False
+            cycles, cost, bounded, dynamic = cell, f"{cell}", False, False
 
-        out.append(Insn(word, mnemonic, index, cost, cycles, bounded, lineno, text))
+        out.append(Insn(word, mnemonic, index, cost, cycles, bounded, dynamic,
+                        lineno, text))
 
     return out
 
@@ -386,14 +427,33 @@ def format_listing(program: list[Insn]) -> str:
     lines = [header, "-" * len(header)]
     running = 0
     bounded_seen = False
+    dynamic_seen = 0
     for insn in program:
         running += insn.cycles
         bounded_seen |= insn.bounded
-        marker = "<=" if insn.bounded else "  "
+        dynamic_seen += insn.dynamic
+        # A running total that silently skipped a transfer would read as the
+        # program's duration while being short by however many cycles the
+        # period register holds, so a dynamic instruction marks the total from
+        # there on as incomplete rather than adding zero to it quietly.
+        marker = "<=" if insn.bounded else ("+P" if dynamic_seen else "  ")
         lines.append(f"{insn.addr:04d}  {insn.word:08x}  {insn.cost:>14}  "
                      f"{marker}{running:6d}  {insn.text}")
     lines.append("")
-    if bounded_seen:
+    if dynamic_seen:
+        # Neither "exactly" nor "worst case" is true of a program whose cells
+        # are a register's value, so say what is: the part this file can add
+        # up, and the part only the machine knows.
+        cells = sum(int(i.cost.split("x")[0]) for i in program if i.dynamic)
+        qualifier = ", worst case" if bounded_seen else ""
+        lines.append(f"{running} cycles of statically known cost{qualifier}, plus {cells} "
+                     f"cell(s) across")
+        lines.append(f"{dynamic_seen} transfer(s) taking their period from the period "
+                     "register. Those are exact")
+        lines.append("when the machine runs and unknown here, so no number above is this "
+                     "program's")
+        lines.append("duration.")
+    elif bounded_seen:
         lines.append(f"Worst case {running} cycles. The program contains a WAITE, so this "
                      "is an upper")
         lines.append("bound rather than an exact duration; every other instruction is exact.")

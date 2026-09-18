@@ -139,14 +139,25 @@ so the feature costs one 16-bit read path and nothing in the encoding. It
 converts the chip from one that emits known protocols into one that can measure
 an unknown peer: autobaud in eight instructions, and pulse-width capture.
 
-**Self-calibration does not yet follow from it, and the board says so.** `D` is
-an immediate in the instruction word, and there is no path from a register to
-the timing counter, so `autobaud.s` can measure a bit period and then cannot
-transmit at it. The feature is half of itself until PE-15 adds a delay register
-and a per-instruction select bit — cheap, because the `b` field is unused in
-the shift instructions and two opcodes are reserved. Until that lands, the
-measurement claim is "it can characterise an unknown peer", not "it can talk to
-one".
+**Self-calibration now follows from it, and PE-15 is what closed the gap.**
+`D` is an immediate in the instruction word, so for a while `autobaud.s` could
+measure a bit period and then not transmit at it — the feature was half of
+itself, and the board said so rather than rounding the claim up. `SHPER` writes
+a 16-bit period register and one bit of the otherwise unused `b` field lets
+`SHOUT`/`SHIN`/`SHIO` take their cell duration from it, which cost one of the
+two reserved opcodes and no encoding space at all.
+[`sw/pemu/firmware/autobaud-demo.s`](../sw/pemu/firmware/autobaud-demo.s) is
+the whole loop: it measures an unconfigured peer and answers at that peer's
+rate, with no host involved and no rate written anywhere in the program. The
+chip bench runs it at two different peer rates through one unchanged elaborated
+design, because one rate could be a constant that happened to be right.
+
+The honest cost is in the listing, not the hardware. A selected shift is still
+exact — it retires in `n*max(P,1)`, a function of machine state and of nothing
+external — but it is no longer *static*, so `axpe_as.py` prints the formula
+where it would print a number. Those are two different claims and this design
+now needs both words. Evidence is in
+[`axpe-period.json`](../research/benchmarks/axpe-period.json).
 
 This follows from the competition's own framing. The announcement names hardware
 debugging and reverse engineering as the purpose, and a reverse engineer is

@@ -14,20 +14,25 @@
 ; Pins:  uio[1] = RX (sampled)
 ; Result: R2 = measured cycles per bit, or 0 if the line never spoke.
 
-.equ RX_PIN,     1
-.equ EDGE_RISE,  0
-.equ EDGE_FALL,  1
-.equ MAXWAIT,    50000              ; give up after this many idle cycles
-.equ SAMPLES,    8                  ; low pulses to consider
+; The names are prefixed because this routine and uart.s are included into one
+; program by autobaud-demo.s, and two definitions of one name is an error here
+; rather than a program quietly calling the wrong routine. They describe the
+; same pin, and `check_axpe_as.py` compares the pin each file's WAITE actually
+; encodes -- so the agreement is checked rather than remembered.
+.equ AB_RX_PIN,     1
+.equ AB_EDGE_RISE,  0
+.equ AB_EDGE_FALL,  1
+.equ AB_MAXWAIT,    50000           ; give up after this many idle cycles
+.equ AB_SAMPLES,    8               ; low pulses to consider
 
-.equ FALL_RX,    (EDGE_FALL << 4) | RX_PIN
-.equ RISE_RX,    (EDGE_RISE << 4) | RX_PIN
+.equ AB_FALL_RX,    (AB_EDGE_FALL << 4) | AB_RX_PIN
+.equ AB_RISE_RX,    (AB_EDGE_RISE << 4) | AB_RX_PIN
 
 autobaud:
     PDIR   0x00,            D=0     ; every uio pin an input; we only listen
     LDIL   R2, 0xFF,        D=0
     LDIH   R2, 0xFF,        D=0     ; R2 = narrowest pulse seen, start at max
-    LDIL   R3, SAMPLES,     D=0     ; R3 = pulses left to sample
+    LDIL   R3, AB_SAMPLES,  D=0     ; R3 = pulses left to sample
     LDIL   R4, 1,           D=0     ; R4 = the loop decrement
 
 ab_loop:
@@ -36,8 +41,8 @@ ab_loop:
     ; between them -- an instruction in the gap spends cycles the measurement
     ; cannot see, and the pulse reads that much narrow. The timeout check
     ; therefore comes after both; a silent line times out on both waits.
-    WAITE  R0, FALL_RX,     D=MAXWAIT   ; R0 = idle time before the pulse
-    WAITE  R1, RISE_RX,     D=MAXWAIT   ; R1 = width of the low pulse, in cycles
+    WAITE  R0, AB_FALL_RX,  D=AB_MAXWAIT ; R0 = idle time before the pulse
+    WAITE  R1, AB_RISE_RX,  D=AB_MAXWAIT ; R1 = width of the low pulse, in cycles
     BR     T, ab_silent,    D=0
 
     CMP    R1, R2,          D=0         ; C is set on borrow, so C means R1 < R2

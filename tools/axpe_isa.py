@@ -61,6 +61,24 @@ def load(path: Path = ISA_JSON) -> dict[str, Any]:
     if missing:
         raise IsaError(f"bits {missing} belong to no field; the encoding has holes")
 
+    # Bit layouts inside a field: `shcfg_layout` and `shift_b_layout` at the
+    # top level, and an instruction's own `imm8_layout`. Overlapping sub-fields
+    # are the kind of encoding bug that decodes correctly in the one case
+    # anybody tried, so they are refused here rather than left to a reviewer.
+    def check_layout(where: str, entries: list[dict[str, Any]], width: int) -> None:
+        taken: dict[int, str] = {}
+        for entry in entries:
+            if not 0 <= entry["lo"] <= entry["hi"] < width:
+                raise IsaError(f"{where}.{entry['name']} is outside its {width}-bit field")
+            for bit in range(entry["lo"], entry["hi"] + 1):
+                if bit in taken:
+                    raise IsaError(f"{where}: {taken[bit]} and {entry['name']} "
+                                   f"both claim bit {bit}")
+                taken[bit] = entry["name"]
+
+    for name, entries in layouts(isa).items():
+        check_layout(name, entries, field_width(isa, layout_field(name)))
+
     op_bits = fields["op"]["hi"] - fields["op"]["lo"] + 1
     seen: dict[int, str] = {}
     for insn in isa["instructions"]:
@@ -75,6 +93,19 @@ def load(path: Path = ISA_JSON) -> dict[str, Any]:
             raise IsaError(f"{mnemonic} has unknown timing {insn['timing']!r}")
         if insn["group"] not in isa["groups"]:
             raise IsaError(f"{mnemonic} has unknown group {insn['group']!r}")
+        if "imm8_layout" in insn:
+            check_layout(f"{mnemonic}.imm8_layout", insn["imm8_layout"],
+                         field_width(isa, "b") + field_width(isa, "x"))
+        if "b_layout" in insn and insn["b_layout"] not in layouts(isa):
+            raise IsaError(f"{mnemonic} names layout {insn['b_layout']!r}, "
+                           "which is not described")
+        alternate = insn.get("timing_p")
+        if alternate is not None:
+            if alternate not in isa["timing"]:
+                raise IsaError(f"{mnemonic} has unknown timing_p {alternate!r}")
+            if "b_layout" not in insn:
+                raise IsaError(f"{mnemonic} selects a second timing but describes "
+                               "no field to select it with")
         seen[opcode] = mnemonic
 
     for opcode in isa["reserved_opcodes"]:
@@ -88,11 +119,28 @@ def load(path: Path = ISA_JSON) -> dict[str, Any]:
 
     # Exactly one instruction may have a cost that is a bound rather than a
     # value.  This is the central property, checked here so that adding a
-    # second data-dependent instruction cannot pass unnoticed.
+    # second data-dependent instruction cannot pass unnoticed.  An instruction
+    # with an alternate timing is checked in both of them: a select bit that
+    # smuggled in a data-dependent cost would defeat the whole proof.
+    def costs(insn: dict[str, Any]) -> list[dict[str, Any]]:
+        names = [insn["timing"]] + ([insn["timing_p"]] if "timing_p" in insn else [])
+        return [isa["timing"][name] for name in names]
+
     inexact = [i["mnemonic"] for i in isa["instructions"]
-               if not isa["timing"][i["timing"]]["exact"]]
+               if not all(c["exact"] for c in costs(i))]
     if inexact != ["WAITE"]:
         raise IsaError(f"only WAITE may have an inexact cost, but {inexact} do")
+
+    # Exact and statically known are different claims, and conflating them is
+    # how "the listing prints the cycle count" would quietly become false.  A
+    # cost that is not exact cannot be static; a cost that is exact may still
+    # be unknown until the machine runs, which is what the period register
+    # makes true of a shift.
+    for name, rule in isa["timing"].items():
+        if "static" not in rule:
+            raise IsaError(f"timing {name} does not say whether it is static")
+        if rule["static"] and not rule["exact"]:
+            raise IsaError(f"timing {name} claims to be static without being exact")
 
     for alias, spec in isa.get("aliases", {}).items():
         if alias in seen.values():
@@ -146,6 +194,37 @@ def field_mask(spec: dict[str, int]) -> int:
     return ((1 << (spec["hi"] - spec["lo"] + 1)) - 1) << spec["lo"]
 
 
+def field_width(isa: dict[str, Any], name: str) -> int:
+    spec = isa["encoding"]["fields"][name]
+    return spec["hi"] - spec["lo"] + 1
+
+
+def layout_field(name: str) -> str:
+    """Which encoding field a `<what>_<field>_layout` key lays out.
+
+    The convention is the last underscore-separated word before `_layout`, so
+    `shift_b_layout` describes bits inside the `b` field.
+    """
+    return name[: -len("_layout")].rsplit("_", 1)[-1]
+
+
+def layouts(isa: dict[str, Any]) -> dict[str, list[dict[str, Any]]]:
+    """Top-level layouts of bits inside an *encoding field*.
+
+    `shcfg_layout` is deliberately not one of these. It describes a register
+    the machine holds, not a slice of the instruction word, so there is no
+    field width to check it against and no decoder constant to generate from
+    it; it stays a documented layout that the RTL and the model read by hand.
+    """
+    fields = isa["encoding"]["fields"]
+    return {key: value for key, value in isa.items()
+            if key.endswith("_layout") and layout_field(key) in fields}
+
+
+def layout_prefix(name: str) -> str:
+    return name[: -len("_layout")].upper()
+
+
 def render_sv(isa: dict[str, Any]) -> str:
     """SystemVerilog localparams for the decoder."""
     lines = [
@@ -174,6 +253,12 @@ def render_sv(isa: dict[str, Any]) -> str:
     for insn in isa["instructions"]:
         lines.append(f"localparam logic [{op_bits - 1}:0] AXPE_OP_{insn['mnemonic']} = "
                      f"{op_bits}'d{insn['opcode']};")
+    for name, entries in layouts(isa).items():
+        lines += ["", f"// Bits inside the {layout_field(name)} field: {name}"]
+        for entry in entries:
+            upper = f"{layout_prefix(name)}_{entry['name'].upper()}"
+            lines.append(f"localparam int AXPE_{upper}_HI = {entry['hi']};")
+            lines.append(f"localparam int AXPE_{upper}_LO = {entry['lo']};")
     lines += ["", "// Branch conditions"]
     for name, value in isa["conditions"].items():
         lines.append(f"localparam logic [2:0] AXPE_COND_{name} = 3'd{value};")
@@ -200,7 +285,15 @@ def render_c(isa: dict[str, Any]) -> str:
         upper = name.upper()
         lines.append(f"#define AXPE_{upper}_LO   {spec['lo']}")
         lines.append(f"#define AXPE_{upper}_MASK 0x{field_mask(spec):08x}u")
-    lines += ["", "typedef enum {"]
+    for name, entries in layouts(isa).items():
+        lines.append(f"/* Bits inside the {layout_field(name)} field: {name} */")
+        for entry in entries:
+            upper = f"{layout_prefix(name)}_{entry['name'].upper()}"
+            mask = ((1 << (entry["hi"] - entry["lo"] + 1)) - 1) << entry["lo"]
+            lines.append(f"#define AXPE_{upper}_LO   {entry['lo']}")
+            lines.append(f"#define AXPE_{upper}_MASK 0x{mask:02x}u")
+        lines.append("")
+    lines += ["typedef enum {"]
     for insn in isa["instructions"]:
         lines.append(f"    AXPE_OP_{insn['mnemonic']} = {insn['opcode']},")
     lines += ["} axpe_opcode_t;", ""]
@@ -246,9 +339,14 @@ def render_doc_tables(isa: dict[str, Any]) -> str:
         for insn in by_group[group]:
             shape = isa["shapes"][insn["shape"]]
             operands = ", ".join(shape["operands"]) or "--"
-            formula = isa["timing"][insn["timing"]]["formula"]
+            # An instruction with a select bit costs one of two things, and
+            # printing only the first would be the table telling half the
+            # truth about the one property this ISA exists for.
+            formula = " or ".join(f"`{isa['timing'][name]['formula']}`"
+                                  for name in [insn["timing"]]
+                                  + ([insn["timing_p"]] if "timing_p" in insn else []))
             lines.append(f"| `{insn['opcode']:02X}` | `{insn['mnemonic']}` | {operands} "
-                         f"| `{formula}` | {insn['doc']} |")
+                         f"| {formula} | {insn['doc']} |")
         lines.append("")
 
     reserved = ", ".join(f"`{o:02X}`" for o in isa["reserved_opcodes"])

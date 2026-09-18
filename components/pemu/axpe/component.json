@@ -33,7 +33,7 @@
     "delay_bits": {
       "default": 16,
       "define": "AXPE_DELAY_BITS",
-      "doc": "Width of the delay field every instruction carries, and therefore the longest single hold or WAITE timeout in cycles. At 50 MHz, 16 bits reaches 1.31 ms, which covers one bit time down to about 763 baud."
+      "doc": "Width of the delay field every instruction carries, and therefore the longest single hold or WAITE timeout in cycles. Also the width of the period register SHPER writes, since that holds the same kind of value the cell timer counts: narrowing one without the other would let the register hold a period the timer cannot reach. At 50 MHz, 16 bits reaches 1.31 ms, which covers one bit time down to about 763 baud."
     },
     "uio_pins": {
       "default": 8,
@@ -58,6 +58,8 @@
     "bit-bang-spi",
     "bit-bang-i2c",
     "autobaud",
-    "pulse-width-capture"
+    "pulse-width-capture",
+    "register-timed-shift",
+    "measured-rate-transmit"
   ]
 }

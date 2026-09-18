@@ -19,16 +19,17 @@
   },
 
   "timing": {
-    "fixed":   {"formula": "max(D,1)",         "exact": true,  "doc": "Occupies exactly D cycles, and at least one. D is the cell duration, not an addition to a fetch cycle, so a pin driven with D=434 is held for exactly 434 cycles and a waveform lands on exact multiples of its bit period."},
-    "perbit":  {"formula": "n*max(D,1)",       "exact": true,  "doc": "n bits, each occupying exactly D cycles, with no setup cycle. Both n and D are encoded, so the cost is static."},
-    "bounded": {"formula": "w, 1<=w<=max(D,1)", "exact": false, "doc": "Waits for an external event, so the cost is data-dependent. The instruction occupies exactly the cycles it waited, which is also the value it returns, so two consecutive waits measure an interval without bias. D is a hard timeout and the proof uses that worst case."}
+    "fixed":      {"formula": "max(D,1)",         "exact": true,  "static": true,  "doc": "Occupies exactly D cycles, and at least one. D is the cell duration, not an addition to a fetch cycle, so a pin driven with D=434 is held for exactly 434 cycles and a waveform lands on exact multiples of its bit period."},
+    "perbit":     {"formula": "n*max(D,1)",       "exact": true,  "static": true,  "doc": "n bits, each occupying exactly D cycles, with no setup cycle. Both n and D are encoded, so the cost is static."},
+    "perbit_reg": {"formula": "n*max(P,1)",       "exact": true,  "static": false, "doc": "n bits, each occupying exactly the cycles held in the period register P, and at least one. Still exact: the count is a function of architectural state at issue, not of anything external, so the instruction still retires on the cycle it declares and PE-06 carries P as a symbol rather than a bound. It is not static, because P is a register -- so a listing prints the formula where it would otherwise print a number, and a program containing one has no duration readable from its text."},
+    "bounded":    {"formula": "w, 1<=w<=max(D,1)", "exact": false, "static": false, "doc": "Waits for an external event, so the cost is data-dependent. The instruction occupies exactly the cycles it waited, which is also the value it returns, so two consecutive waits measure an interval without bias. D is a hard timeout and the proof uses that worst case."}
   },
 
   "shapes": {
     "none":      {"operands": [],                  "doc": "no operands"},
     "imm8":      {"operands": ["imm8"],            "doc": "8-bit immediate"},
     "reg":       {"operands": ["reg"],             "doc": "one register"},
-    "reg_n":     {"operands": ["reg", "nbits"],    "doc": "register and a bit count of 1..16"},
+    "reg_n_p":   {"operands": ["reg", "nbits", "[P]"], "doc": "register, a bit count of 1..16, and an optional P taking the cell duration from the period register instead of D. Naming both D and P is refused rather than resolved: one of them would be silently dead."},
     "reg_reg":   {"operands": ["reg", "reg"],      "doc": "destination and source register"},
     "reg_imm8":  {"operands": ["reg", "imm8"],     "doc": "register and an 8-bit immediate"},
     "reg_shift": {"operands": ["reg", "shift"],    "doc": "register and a shift amount of 0..16"},
@@ -73,9 +74,10 @@
      ]},
 
     {"mnemonic": "SHCFG",  "opcode": 10, "shape": "reg",       "timing": "fixed",   "group": "shift",   "doc": "Shift engine wiring takes Ra."},
-    {"mnemonic": "SHOUT",  "opcode": 11, "shape": "reg_n",     "timing": "perbit",  "group": "shift",   "doc": "Clock n bits out of Ra, each bit occupying D cycles."},
-    {"mnemonic": "SHIN",   "opcode": 12, "shape": "reg_n",     "timing": "perbit",  "group": "shift",   "doc": "Clock n bits into Ra."},
-    {"mnemonic": "SHIO",   "opcode": 13, "shape": "reg_n",     "timing": "perbit",  "group": "shift",   "doc": "Full duplex: out and in together, which is what SPI wants."},
+    {"mnemonic": "SHOUT",  "opcode": 11, "shape": "reg_n_p",   "timing": "perbit",  "timing_p": "perbit_reg", "group": "shift", "b_layout": "shift_b_layout", "doc": "Clock n bits out of Ra, each bit occupying D cycles, or the period register's cycles when P is set."},
+    {"mnemonic": "SHIN",   "opcode": 12, "shape": "reg_n_p",   "timing": "perbit",  "timing_p": "perbit_reg", "group": "shift", "b_layout": "shift_b_layout", "doc": "Clock n bits into Ra."},
+    {"mnemonic": "SHIO",   "opcode": 13, "shape": "reg_n_p",   "timing": "perbit",  "timing_p": "perbit_reg", "group": "shift", "b_layout": "shift_b_layout", "doc": "Full duplex: out and in together, which is what SPI wants."},
+    {"mnemonic": "SHPER",  "opcode": 14, "shape": "reg",       "timing": "fixed",   "group": "shift",   "doc": "The shift period register takes Ra. It is what a measured interval is loaded into, so that a shift with P set transmits at a rate this chip discovered rather than one it was told. Loading it does not retime a transfer already running."},
 
     {"mnemonic": "MOV",    "opcode": 16, "shape": "reg_reg",   "timing": "fixed",   "group": "alu",     "doc": "Ra takes Rb."},
     {"mnemonic": "ADD",    "opcode": 17, "shape": "reg_reg",   "timing": "fixed",   "group": "alu",     "flags": "ZC", "doc": "Ra += Rb."},
@@ -96,13 +98,18 @@
     {"mnemonic": "HALT",   "opcode": 31, "shape": "none",      "timing": "fixed",   "group": "control", "doc": "Stop fetching."}
   ],
 
-  "reserved_opcodes": [14, 15],
+  "reserved_opcodes": [15],
 
   "registers": {
     "count": 8,
     "width": 16,
     "doc": "R0-R7. Kept narrow and few because the measured flip-flop ceiling for a 6x4 die is around 7,680 total."
   },
+
+  "shift_b_layout": [
+    {"name": "p",   "hi": 0, "lo": 0, "doc": "0 takes the cell duration from the encoded D, 1 from the period register SHPER loads. One bit, in a field the shift shape does not otherwise use, which is why the whole feature costs no encoding space."},
+    {"name": "rsv", "hi": 2, "lo": 1, "doc": "reserved; the machine rejects a shift that sets either, so a future use of these bits cannot be pre-empted by firmware that set them meaninglessly"}
+  ],
 
   "shcfg_layout": [
     {"name": "clk",  "hi":  3, "lo":  0, "doc": "clock pin index; 15 means no clock pin, which is how UART borrows the shift engine"},

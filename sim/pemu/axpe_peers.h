@@ -97,6 +97,60 @@ struct UartReceiver : Peer {
     uint8_t value = 0;
 };
 
+/* --- UART peer that never says what rate it is using ----------------------
+ *
+ * Transmits a fixed pattern at its own bit period and decodes whatever comes
+ * back at that same period. The chip is told neither number. That is the whole
+ * test for PE-15: a receiver here that decodes a clean frame is one whose bit
+ * centres line up with edges the chip placed from a period it measured off
+ * this peer's own transmission, so getting the rate wrong by even a cycle per
+ * bit accumulates into a framing or data error over ten cells.
+ *
+ * 0x55 is sent because it alternates: every low run in the frame is exactly one
+ * bit long, so a receiver-side minimum is the bit period rather than some
+ * multiple of it. Several frames go out because the chip starts whenever its
+ * RUN frame lets it and may miss the first edges; it takes a minimum over
+ * complete low runs, so a late start costs samples, never accuracy. */
+struct UartAutobaudPeer : Peer {
+    UartReceiver rx;
+    unsigned tx_pin, baud_cycles, quiet, frames;
+    uint8_t pattern;
+
+    UartAutobaudPeer(unsigned chip_tx, unsigned peer_tx, unsigned baud,
+                     unsigned lead_in, unsigned count, uint8_t sent)
+        : rx(chip_tx, baud), tx_pin(peer_tx), baud_cycles(baud), quiet(lead_in),
+          frames(count), pattern(sent) {}
+
+    uint8_t step(uint8_t chip_out, uint8_t chip_oe) override
+    {
+        const uint8_t level = rx.step(chip_out, chip_oe);
+        /* Resolved through the wire rather than forced, so a firmware that
+         * drove this line instead of listening on it would show up as
+         * contention here rather than being hidden by the peer. */
+        const bool line = wire(chip_out, chip_oe, tx_pin, !sending());
+        ++cycle;
+        return with_line(level, tx_pin, line);
+    }
+
+    const std::string &error() const { return rx.error; }
+    const std::vector<uint8_t> &decoded() const { return rx.bytes; }
+
+  private:
+    unsigned cycle = 0;
+
+    /* The level this peer holds on its own transmit line, idle-high 8N1. */
+    bool sending() const
+    {
+        if (cycle < quiet) return true;
+        const unsigned t = cycle - quiet;
+        if (t >= frames * 10u * baud_cycles) return true;
+        const unsigned bit = (t / baud_cycles) % 10u;
+        if (bit == 0) return false;                       // start
+        if (bit <= 8) return ((pattern >> (bit - 1)) & 1u) != 0;
+        return true;                                      // stop
+    }
+};
+
 /* --- SPI mode 0 target ---------------------------------------------------
  *
  * Samples MOSI on the rising edge and moves MISO on the falling one, which is

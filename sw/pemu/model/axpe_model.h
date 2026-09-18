@@ -14,6 +14,11 @@ typedef struct {
     uint16_t r[AXPE_REGS];
     uint32_t pc;
     uint16_t shcfg;
+    /* The shift engine's cell duration when an instruction selects it instead
+     * of the D in its own word. This is the only path from a measured value
+     * to the timing counter, which is what makes a rate the chip discovered
+     * usable rather than merely readable. */
+    uint16_t period;
     uint8_t pins, outputs, direction, drain, z, c, t;
     uint64_t cycles, retired;
     const uint32_t *program;

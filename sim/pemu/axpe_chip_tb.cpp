@@ -426,6 +426,43 @@ int main(int argc, char **argv)
     std::puts("axpe chip: i2c-demo ran START, address+W, data, repeated START, "
               "address+R, read and NACK, STOP against an independent target");
 
+    /* The measurement claim, end to end and in one unchanged design: a peer
+     * transmits at a rate no part of the firmware names, the chip counts it off
+     * the wire, and answers at it. The peer's own receiver is the oracle, so a
+     * period wrong by one cycle per bit walks the sampling point off the data
+     * over ten cells and fails here rather than being reported as approximate.
+     *
+     * 37 cycles per bit is deliberately not a round number and deliberately
+     * odd: an odd cell is legal unclocked and would be a machine reject under a
+     * clock, so this also fixes which of the two rules a UART frame lives
+     * under. */
+    for (unsigned peer_baud : {37u, 53u}) {
+        UartAutobaudPeer autobaud(0, 1, peer_baud, 64, 4, 0x55);
+        if (!run_firmware(chip, "autobaud", fw + "/autobaud-demo.hex", autobaud,
+                          30000, &status))
+            return 1;
+        if (!complain("autobaud", autobaud.error())) return 1;
+        if ((status & 0xffu) != peer_baud) {
+            std::fprintf(stderr, "autobaud: uo_out %02x, expected the peer's "
+                                 "%u-cycle bit period measured off the wire\n",
+                         status & 0xffu, peer_baud);
+            return 1;
+        }
+        if (autobaud.decoded().size() != 1 || autobaud.decoded()[0] != 0x37u) {
+            std::fprintf(stderr, "autobaud: peer decoded %zu bytes, first %02x, "
+                                 "expected one byte 37 at its own %u-cycle rate\n",
+                         autobaud.decoded().size(),
+                         autobaud.decoded().empty() ? 0 : autobaud.decoded()[0],
+                         peer_baud);
+            return 1;
+        }
+        std::printf("axpe chip: autobaud-demo measured an unconfigured peer at %u "
+                    "cycles per bit and transmitted 0x37 back at that rate, "
+                    "decoded by the peer's own receiver\n", peer_baud);
+    }
+    /* Two rates, one image, nothing reloaded or reconfigured between them. One
+     * rate could be a constant that happened to be right; two cannot. */
+
     std::puts("axpe chip: UART, SPI and I2C each load into the same unchanged "
               "design and pass a peer written from the protocol, not the firmware");
     return 0;

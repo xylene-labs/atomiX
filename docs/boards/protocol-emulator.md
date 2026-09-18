@@ -75,9 +75,9 @@ card instead of taking time from the submission. All owners are unassigned.
 | PE-05: RTL and cycle-for-cycle cosimulation | T1 | P0 | Review | PE-04 | Done: `make pemu-cosim-check` compares every cycle with no tolerated deviation across 112 randomized programs and twelve directed cases, and the handoff gap is closed. Close only after commit-pinned review of the retirement and forwarding path |
 | PE-07: mandatory UART, SPI and I2C firmware | T1 | P0 | Review | PE-05, PE-14 both done | Done in simulation: all three load into one unchanged chip image and pass peers written from each protocol, with I2C covering ACK/NACK, repeated start, STOP and bus release. Remaining for closure: hardware peers, which is PE-09 |
 | PE-10: staged CMOS5L synthesis and place-and-route | T1 | P0 | Next | PE-01, PE-02 and PE-14 for the first integrated run; PE-07 for final closure | Harden the smallest programmable chip as soon as loader and memory compose, then repeat on the final mandatory-protocol architecture with actual area, timing and violations recorded |
-| PE-15: a measured period firmware can use | T2 | P0 | Next | PE-03, PE-05; `b` field free in shift ops, two opcodes reserved | A delay register plus a per-instruction select bit, so `SHOUT`/`SHIN`/`SHIO` can take their bit period from a register. `autobaud.s` must measure an unknown peer and then transmit at that rate, end to end |
+| PE-15: a measured period firmware can use | T2 | P0 | Review | PE-03, PE-05 both satisfied | Done in simulation: `SHPER` (opcode `0E`) writes a period register and one bit of the shift shape's unused `b` field selects it, so `SHOUT`/`SHIN`/`SHIO` take their bit period from architectural state. `autobaud-demo.s` measures an unconfigured peer and answers at its rate, checked at two different rates through one unchanged chip image. Close only after commit-pinned review of the exact-but-not-static timing split and the reserved-bit rule |
 | PE-06: timing-determinism proof | T2 | P0 | Ready | PE-05 (unblocked 2026-09-18) | Every instruction proved to retire in its declared cycle count, `WAITE` bounded by its timeout |
-| PE-08: profile knobs exercised | T2 | P1 | Next | PE-05 | `configs/sim-axpe-tiny.json` runs every declared knob at a non-default value with limits derived from the build's own defines |
+| PE-08: profile knobs exercised | T2 | P1 | Next | PE-05 | `configs/sim-axpe-tiny.json` runs every declared knob at a non-default value with limits derived from the build's own defines. **Known broken before the card is pulled**: `reg_width` and `delay_bits` do not elaborate away from 16 -- see the 2026-09-18 decision below, which has the diagnostics |
 | PE-09: Tang Primer bring-up | T3 | P1 | Next | PE-05, PE-14; Dock access; a `.cst` exposing a PMOD header; peer hardware arriving | Load firmware at runtime into one unchanged FPGA image, then run UART against CP2102, SPI against a Pi Pico 2 target, and I2C against an AT24C256. Add a capture-clock divider so the 24 MS/s analyzer can witness edge placement in `axpe` cycles |
 | PE-11: gate-level firmware simulation | T3 | P1 | Next | PE-10 | The same three firmware images pass post-P&R netlist simulation |
 | PE-13: firmware-vs-fixed-logic experiment | T3 | P2 | Next | PE-05, PE-07; only after baseline competition gates | Compare `axpe` with `uart.mmio16550` under one oracle if schedule remains; this is supporting co-design evidence, not a substitute for programmability, mandatory protocols or a hardened chip |
@@ -212,6 +212,92 @@ protocol peer, no synthesis, P&R, FPGA or silicon claim, and the store is still
 a behavioural model rather than the macro. PE-02 is Ready, and what it needs
 from PE-01 is the official wrapper name and template revision.
 
+### PE-15 checkpoint — 2026-09-18
+
+The measured-time feature is a whole feature. `SHPER` takes one of the two
+reserved opcodes and writes a 16-bit period register; one bit of the `b` field,
+which the shift shape never used, lets `SHOUT`, `SHIN` and `SHIO` take their
+cell duration from it. The select is per instruction rather than a mode, so two
+transfers with nothing between them can run at different rates — a fixed
+protocol and a measured peer in the same routine.
+
+`autobaud-demo.s` is the claim end to end: it measures a peer, loads what it
+counted, and answers at that rate, with no host involved and no rate written
+anywhere in the program. The chip bench runs it against peers at **37 and 53**
+cycles per bit through one unchanged elaborated design, and the peer's own
+receiver decodes the reply. Two rates rather than one on purpose — a single
+rate could be a constant that happened to be right, and replacing the firmware's
+`SHOUT R0, 10, P` with a hardcoded `D=37` does pass the first peer and fail the
+second, decoding `0xEF`.
+
+**The honest cost is a distinction the ISA now has to carry.** A selected shift
+is still *exact* — it retires in `n*max(P,1)`, a function of machine state at
+issue and of nothing external, so PE-06 carries `P` as a symbol and not as a
+bound. It is no longer *static*, so `axpe_as.py --listing` prints `10xP` where
+it prints `4340` for the fixed-rate routine, and a program containing one has no
+duration readable from its text. Conflating those two words is how "the listing
+prints the cycle count" would have quietly become false; the generator now
+refuses a timing class that claims to be static without being exact.
+
+Two consequences fell out rather than being designed. Only the shift engine
+reads the period register, so the measured-rate UART frame goes out as one
+ten-cell `SHOUT` — start bit included — because a start bit built from `PINCLR`
+would still be held for an immediate `D`, and that is the cell a receiver uses
+to find every other one. And including `autobaud.s` and `uart.s` into one
+program for the first time hit the assembler's duplicate-symbol rule: both
+independently defined `RX_PIN` for the same wire. They agreed, but nothing made
+them agree, so autobaud's constants are prefixed and `check_axpe_as.py` now
+compares the pin each file's `WAITE` actually encodes.
+
+Validation: `make pemu-model-check` (19 model groups and the assembler
+self-check), `make pemu-cosim-check` (112 randomized programs and seventeen
+directed cases, cycle for cycle with no tolerated deviation, half the engine
+programs now drawing their period from the register), `make pemu-chip-check`,
+`make verification-check` and `make registry-check` all pass. An RTL that
+ignores the select bit fails the first directed case, so the gate is known to
+have teeth rather than assumed to. Evidence is host RTL/model simulation only,
+in [`axpe-period.json`](../../research/benchmarks/axpe-period.json): no hardware
+peer, and no synthesis, P&R, FPGA or silicon claim. The added state is one
+16-bit register counted from its declaration, not a mapped area. No
+commit-pinned approval or completed card is claimed.
+
+Not taken, and named rather than left implicit: nothing outside the shift engine
+can read the period register. A `DELAY` that could would let firmware hold a
+line for a measured interval, which clock stretching and inter-frame gaps would
+both use. It is listed in the ISA's open questions instead, because the
+mandatory protocols do not need it and the card's claim is narrower without it.
+
+### PE-08 finding — 2026-09-18, ahead of the card
+
+Found while checking that PE-15's period register follows `delay_bits` rather
+than a literal 16. It does. What does not is the rest of the core: `axpe` only
+elaborates at `reg_width = delay_bits = 16`, and the manifest declares both as
+knobs with no such limit. This is exactly the failure `AGENTS.md` names — a
+knob that is declared but never exercised reads as configurable and is not,
+which is worse than an honest constant.
+
+Verified pre-existing, not introduced by PE-15: linting `components/pemu/axpe/`
+at HEAD and with this change gives identical diagnostic counts at every setting
+tried.
+
+| Setting | Result |
+|---|---|
+| `DELAY_BITS=12`, `REG_W=16` | 5 width warnings, no clean elaboration. `axpe_timing`'s `delay` port takes the decoder's fixed 16-bit field |
+| `DELAY_BITS=16`, `REG_W=12` | **hard error**: `{{(REG_W-DELAY_BITS){1'b0}}, wait_elapsed}` on `axpe.sv:164` replicates a negative count. Plus `shcfg <= src_a[14:0]` selecting 15 bits out of 12 |
+| `DELAY_BITS=8`, `REG_W=8` | 24 warnings, most of them `axpe_shift`'s bit-position arithmetic assuming a 4-bit index |
+
+Three things this decides for PE-08, before it is pulled:
+
+- The card is larger than "run the knobs at a non-default value". It is "make
+  two of them work", and the estimate should say so.
+- `reg_width < delay_bits` is arguably not a configuration worth supporting at
+  all — `WAITE` returns a `delay_bits` count into a `reg_width` register, so
+  the combination is incoherent rather than merely unimplemented. If that is
+  the answer, the constraint belongs in the manifest and in `axpe_isa.py`'s
+  manifest check, not in a replication that happens to fail.
+- Nothing here changes any current claim. Every result on this board is at the
+  default, and the defaults are what the submission hardens.
+
 ### PE-05 checkpoint — 2026-09-18
 
 The retirement handoff is closed and the gate no longer tolerates a deviation.
@@ -314,6 +400,21 @@ claim or trigger re-synthesis.
   and a written descope order, so every card answers to an outcome rather than
   to its own completion. The descope order is decided now on purpose: the worst
   time to choose what to cut is the week it must be cut.
+- 2026-09-18: `reg_width` and `delay_bits` are knobs in name only — the core
+  does not elaborate away from 16, and at `reg_width < delay_bits` it fails
+  with a hard error rather than a warning. Recorded under PE-08 above with the
+  diagnostics rather than fixed here, because it is a second RTL change and
+  this lane takes one at a time. It is pre-existing and does not touch any
+  claim on this board, all of which are at the defaults. Naming it now is the
+  point: the alternative is PE-08 discovering in December that its first
+  reviewable slice is a rewrite.
+- 2026-09-18: PE-15 landed, so the unique-functionality claim is "it can
+  measure an unknown peer and then talk to it" rather than measurement only.
+  The walk-back below is superseded by the work it asked for, and the two
+  reserved opcodes are now one. What the card also forced is a vocabulary: this
+  ISA now distinguishes an *exact* cost from a *statically known* one, because
+  a register-period shift is the first instruction that is the former and not
+  the latter. That distinction belongs to PE-06 as much as to the listing.
 - 2026-09-17: opened PE-15, because the measured-time feature is currently half
   a feature. `WAITE` returns a period into a register and `D` is an immediate,
   so `autobaud.s` measures an unknown peer and then cannot transmit at that
@@ -342,6 +443,9 @@ claim or trigger re-synthesis.
 - 2026-09-17: do not claim firmware self-calibration until the architecture can
   actually apply a measured period to later timing. The current ISA can measure
   a peer but cannot rewrite an instruction delay or load a delay register.
+  **Superseded 2026-09-18 by PE-15**, which added the delay register this
+  entry said was missing. The entry stays because a claim that was walked back
+  and then earned is worth more than one that was always asserted.
 
 - 2026-09-17: open this board and give it the project's work-in-progress limit
   until 2027-01-18. M0 delivery work is paused rather than run alongside — the

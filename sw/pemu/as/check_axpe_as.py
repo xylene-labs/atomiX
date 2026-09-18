@@ -20,10 +20,13 @@ from axpe_as import (
     B_SHIFT,
     DELAY_MAX,
     OPCODES,
+    PERIOD_BIT,
     RETURNS_TIME,
+    TIMING_P,
     X_SHIFT,
     AsmError,
     assemble,
+    format_listing,
 )
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "tools"))
@@ -57,6 +60,8 @@ def check_encoding() -> None:
     cases = [
         ("PDIR 0x01, D=0",      0x38010000, "PDIR imm8 lands in the x field"),
         ("SHOUT R0, 8, D=434",  0x580801B2, "SHOUT packs bit count and delay"),
+        ("SHOUT R0, 8, P",      0x58280000, "P sets one bit of the otherwise unused b"),
+        ("SHPER R2",            0x72000000, "SHPER names the register the period comes from"),
         ("WAITE R0, 0x11, D=6944", 0x48111B20, "WAITE uses delay as its timeout"),
         ("WAITE R3, 0x11, D=0",    0x4B110000, "WAITE names a destination register"),
         ("BR T, 19, D=0",       0xE5130000, "BR puts the condition in a"),
@@ -96,6 +101,45 @@ def check_perbit_rule() -> None:
                 check(insn.cycles == expected,
                       f"{mnemonic} R0,{nbits} at D={delay} costs {insn.cycles}, "
                       f"ISA says {expected}")
+
+
+def check_period_select() -> None:
+    """A shift may take its cell duration from the period register.
+
+    The feature costs no encoding space -- one bit of `b`, which the shift
+    shape does not otherwise use -- and no exactness: the transfer still
+    retires in n*max(P,1). What it does cost is *static* knowledge, and the
+    assembler has to give that up honestly rather than print a number it can
+    no longer stand behind.
+    """
+    check(set(TIMING_P) == {"SHOUT", "SHIN", "SHIO"},
+          f"only the shift instructions should take P, got {sorted(TIMING_P)}")
+
+    for mnemonic in sorted(TIMING_P):
+        plain = asm(f"{mnemonic} R3, 8, D=434")[0]
+        selected = asm(f"{mnemonic} R3, 8, P")[0]
+        # P must move exactly one bit, and it must be the one the ISA names.
+        check(selected.word ^ (plain.word & ~0xFFFF) == PERIOD_BIT << B_SHIFT,
+              f"{mnemonic} P should set only the period bit; "
+              f"{selected.word:#010x} against {plain.word:#010x}")
+        check(selected.dynamic and not selected.bounded,
+              f"{mnemonic} P must report a dynamic cost, not a bound")
+        check(selected.cycles == 0 and selected.cost == "8xP",
+              f"{mnemonic} P costs {selected.cost!r}/{selected.cycles}, "
+              "expected the formula and no number")
+        check(not plain.dynamic and plain.cycles == 8 * 434,
+              f"{mnemonic} without P must still be static")
+
+    # Naming both would leave one of them silently dead, and which one is not
+    # something a reader should have to know the encoding to work out.
+    expect_error("SHOUT R0, 8, P, D=3", "both D and P", "D and P together")
+    expect_error("DELAY P", "no period-select bit", "P on an instruction without one")
+    expect_error("SHCFG R0, P", "no period-select bit", "P on SHCFG")
+
+    # A listing containing one must not claim to be the program's duration.
+    listing = format_listing(asm("SHPER R2\nSHOUT R0, 10, P\nHALT"))
+    check("Exactly" not in listing and "no number above is this program's" in listing,
+          f"a listing with a register-period transfer still claims a duration:\n{listing}")
 
 
 def check_waite_is_bounded() -> None:
@@ -153,6 +197,70 @@ def check_isa_is_the_single_source() -> None:
           "the assembler's opcode table should come entirely from the ISA file")
     described = len(isa["instructions"]) + len(isa["reserved_opcodes"])
     check(described == 32, f"{described} encodings described, the op field holds 32")
+
+
+def check_rx_pin_is_one_pin() -> None:
+    """autobaud.s and uart.s must be listening to the same wire.
+
+    They are separate libraries with separate symbol namespaces -- they have to
+    be, since autobaud-demo.s includes both and a duplicate symbol is an error.
+    That makes the shared pin map a thing written twice, so it is checked from
+    what each file's WAITE actually encodes rather than from a comment claiming
+    they agree.
+    """
+    pins = {}
+    for name in ("autobaud.s", "uart.s"):
+        program = asm((FIRMWARE / name).read_text(encoding="utf-8"))
+        waits = [i for i in program if i.mnemonic == "WAITE"]
+        if not waits:
+            FAILURES.append(f"{name}: expected a WAITE naming the receive pin")
+            continue
+        pins[name] = {(((i.word >> B_SHIFT) & 7) << 5 | ((i.word >> X_SHIFT) & 31)) & 15
+                      for i in waits}
+    check(len(pins) == 2 and len(set().union(*pins.values())) == 1,
+          f"autobaud.s and uart.s wait on different pins: {pins}")
+
+
+def check_autobaud_demo_firmware() -> None:
+    """The demo must measure a rate and then transmit at that rate.
+
+    This is PE-15's whole claim, and the failure it guards against is subtle:
+    a demo that measured a peer and then transmitted at an immediate would look
+    correct in a listing and pass a peer that happened to run at that
+    immediate. So the check is structural -- the period reaching the shift
+    engine has to be the register autobaud wrote, and the transmitting shift
+    has to be the one selecting it.
+    """
+    # Assembled from its real path, because it pulls both libraries in with
+    # `.include` and those resolve relative to the file doing the including.
+    demo = FIRMWARE / "autobaud-demo.s"
+    program = assemble(demo.read_text(encoding="utf-8"), demo)
+    mnemonics = [i.mnemonic for i in program]
+    check("WAITE" in mnemonics, "the demo should measure, via autobaud's waits")
+    loads = [i for i in program if i.mnemonic == "SHPER"]
+    check(len(loads) == 1, f"expected one SHPER, found {len(loads)}")
+
+    selected = [i for i in program if i.dynamic]
+    check(len(selected) == 1,
+          f"expected exactly one transfer at the measured period, found "
+          f"{[i.text for i in selected]}")
+    if not (loads and selected):
+        return
+    # The register SHPER reads must be the one autobaud leaves its answer in,
+    # and the frame must be the whole 8N1 cell count rather than eight data
+    # bits with an immediate start bit beside them.
+    source_reg = (loads[0].word >> 24) & 7
+    autobaud_result = 2          # autobaud.s documents R2 as its answer
+    check(source_reg == autobaud_result,
+          f"SHPER reads R{source_reg}; autobaud leaves its measurement in "
+          f"R{autobaud_result}")
+    nbits = (selected[0].word >> X_SHIFT) & 31
+    check(nbits == 10,
+          f"the measured-rate transfer moves {nbits} bits; an 8N1 frame is 10 "
+          "cells, and a start or stop bit held for an immediate D would not be "
+          "at the measured rate")
+    check(loads[0].addr < selected[0].addr,
+          "SHPER must run before the transfer that selects it")
 
 
 def check_autobaud_firmware() -> None:
@@ -340,9 +448,11 @@ def check_imem_bound_is_a_knob() -> None:
 
 def main() -> int:
     for probe in (check_encoding, check_timing_rule, check_perbit_rule,
-                  check_waite_is_bounded, check_waite_returns_time,
+                  check_period_select, check_waite_is_bounded,
+                  check_waite_returns_time,
                   check_isa_is_the_single_source, check_uart_firmware,
-                  check_autobaud_firmware, check_pad_setup_order,
+                  check_autobaud_firmware, check_rx_pin_is_one_pin,
+                  check_autobaud_demo_firmware, check_pad_setup_order,
                   check_i2c_firmware, check_include, check_diagnostics,
                   check_imem_bound_is_a_knob):
         try:

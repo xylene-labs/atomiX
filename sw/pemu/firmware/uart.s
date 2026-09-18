@@ -64,3 +64,33 @@ uart_rx:
 rx_timeout:
     LDIL   R0, 0x00,        D=0
     RET                     D=0
+
+; --- transmit at a rate nobody configured -----------------------------------
+; R0 holds the byte, R2 the bit period in cycles -- in practice whatever
+; autobaud measured from a peer this chip was never told about.
+;
+; The whole 8N1 frame leaves as one 10-bit unclocked shift rather than as
+; PINCLR/SHOUT/PINSET, and that is forced rather than stylistic: only the shift
+; engine can take its cell duration from a register, so a start bit built from
+; PINCLR would still be held for an immediate D. One cell of a frame at the
+; wrong period is a framing error at the far end, and it would be the cell the
+; receiver uses to find every other one.
+;
+; Frame, LSB-first: bit 0 is the start bit, bits 1..8 the byte, bit 9 the stop
+; bit. The engine holds the last bit it drove, so the line idles high afterwards
+; with no instruction needed to raise it.
+;
+; Cost is 10*max(P,1) and is *not* static -- `axpe_as.py --listing` prints the
+; formula here where it prints a number for uart_tx. That is the honest
+; difference between transmitting at a rate you were given and one you found.
+uart_tx_measured:
+    LDIL   R1, SHCFG_TX_LO, D=0
+    LDIH   R1, 0x00,        D=0
+    SHCFG  R1,              D=0
+    SHL    R0, 1,           D=0         ; make room for the start bit at bit 0
+    LDIL   R1, 0x00,        D=0
+    LDIH   R1, 0x02,        D=0         ; R1 = 0x0200, the stop bit at bit 9
+    OR     R0, R1,          D=0
+    SHPER  R2,              D=0         ; every cell below now takes R2 cycles
+    SHOUT  R0, 10, P                    ; start, 8 data bits, stop
+    RET                     D=0

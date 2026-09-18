@@ -39,6 +39,7 @@ localparam logic [4:0] AXPE_OP_SHCFG = 5'd10;
 localparam logic [4:0] AXPE_OP_SHOUT = 5'd11;
 localparam logic [4:0] AXPE_OP_SHIN = 5'd12;
 localparam logic [4:0] AXPE_OP_SHIO = 5'd13;
+localparam logic [4:0] AXPE_OP_SHPER = 5'd14;
 localparam logic [4:0] AXPE_OP_MOV = 5'd16;
 localparam logic [4:0] AXPE_OP_ADD = 5'd17;
 localparam logic [4:0] AXPE_OP_SUB = 5'd18;
@@ -55,6 +56,12 @@ localparam logic [4:0] AXPE_OP_BR = 5'd28;
 localparam logic [4:0] AXPE_OP_CALL = 5'd29;
 localparam logic [4:0] AXPE_OP_RET = 5'd30;
 localparam logic [4:0] AXPE_OP_HALT = 5'd31;
+
+// Bits inside the b field: shift_b_layout
+localparam int AXPE_SHIFT_B_P_HI = 0;
+localparam int AXPE_SHIFT_B_P_LO = 0;
+localparam int AXPE_SHIFT_B_RSV_HI = 2;
+localparam int AXPE_SHIFT_B_RSV_LO = 1;
 
 // Branch conditions
 localparam logic [2:0] AXPE_COND_ALWAYS = 3'd0;

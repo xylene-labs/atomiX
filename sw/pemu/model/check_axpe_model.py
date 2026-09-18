@@ -20,7 +20,8 @@ from axpe_as import assemble, ISA  # noqa: E402
 
 class Model(C.Structure):
     _fields_ = [("r", C.c_uint16 * ISA["registers"]["count"]),
-                ("pc", C.c_uint32), ("shcfg", C.c_uint16)] + [
+                ("pc", C.c_uint32), ("shcfg", C.c_uint16),
+                ("period", C.c_uint16)] + [
         (n, C.c_uint8) for n in ("pins", "outputs", "direction", "drain", "z", "c", "t")
     ] + [("cycles", C.c_uint64), ("retired", C.c_uint64),
          ("program", C.POINTER(C.c_uint32)), ("words", C.c_size_t),
@@ -35,8 +36,11 @@ LIB = None
 
 
 class Machine:
-    def __init__(self, source, *, depth=4, inputs=lambda cycle: 0, words=None):
-        self.insns = assemble(source, Path("<model-test>"))
+    def __init__(self, source, *, depth=4, inputs=lambda cycle: 0, words=None,
+                 path=Path("<model-test>")):
+        # `path` is what `.include` resolves against, so a program that pulls
+        # in a library has to be assembled from where it actually lives.
+        self.insns = assemble(source, path)
         encoded = [i.word for i in self.insns] if words is None else words
         self.program = (C.c_uint32 * len(encoded))(*encoded)
         self.stack = (C.c_uint32 * depth)()
@@ -160,9 +164,12 @@ class ModelTests(unittest.TestCase):
             self.assertEqual(m.m.cycles, 0)
 
     def test_reject_invalid_and_unsupported(self):
-        for w in (14 << 27, 15 << 27, (28 << 27) | (7 << 24),
+        for w in (15 << 27, (28 << 27) | (7 << 24),
                   (9 << 27) | (64 << 16), (22 << 27) | (17 << 16),
-                  11 << 27, (11 << 27) | (17 << 16)):
+                  11 << 27, (11 << 27) | (17 << 16),
+                  # b beyond the period-select bit is reserved on a shift.
+                  (11 << 27) | (2 << 21) | (8 << 16),
+                  (13 << 27) | (4 << 21) | (8 << 16)):
             m = Machine("", words=[w])
             self.assertEqual(m.step(), ENCODING)
             self.assertEqual((m.m.cycles, m.m.retired, m.m.pc), (0, 0, 0))
@@ -193,6 +200,119 @@ class ModelTests(unittest.TestCase):
         m = Machine("SHIO R0, 8, D=4")
         m.m.shcfg = 4 | (5 << 4) | (5 << 8)
         self.assertEqual(m.step(), OK)
+
+    def test_period_register_times_the_shift(self):
+        """A shift with P set costs n*max(P,1) and looks identical on the pins.
+
+        Where the number came from must change nothing: the same cell duration
+        reached through the register has to produce the same waveform and the
+        same cycle count as the same duration written into D. If it did not,
+        firmware could not substitute one for the other, which is the only
+        reason the feature is worth its bit.
+        """
+        for op in ("SHOUT", "SHIN", "SHIO"):
+            for period in (1, 2, 3, 7, 434):
+                for count in (1, 8, 16):
+                    reference = Machine(f"{op} R0, {count}, D={period}",
+                                        inputs=lambda cycle: 0x8000)
+                    reference.m.shcfg = 15 | (15 << 8)
+                    reference.m.r[0] = 0xa531
+                    self.assertEqual(reference.step(), OK)
+
+                    m = Machine(f"SHPER R2\n{op} R0, {count}, P",
+                                inputs=lambda cycle: 0x8000)
+                    m.m.shcfg = 15 | (15 << 8)
+                    m.m.r[0], m.m.r[2] = 0xa531, period
+                    self.assertEqual(m.step(), OK)      # SHPER
+                    self.assertEqual(m.m.period, period)
+                    self.assertEqual(m.step(), OK)      # the transfer
+                    self.assertEqual(m.m.cycles - 1, reference.m.cycles,
+                                     f"{op} n={count} P={period} cycle count")
+                    self.assertEqual(m.m.r[0], reference.m.r[0])
+                    self.assertEqual([row[1] for row in m.trace[1:]],
+                                     [row[1] for row in reference.trace],
+                                     f"{op} n={count} P={period} pin trace")
+
+        # Zero is max(P,1), the same one-cycle cell an unclocked D=0 gives, so
+        # a period register nobody loaded shifts at full rate rather than
+        # stalling the engine forever.
+        m = Machine("SHOUT R0, 8, P")
+        m.m.shcfg = 15
+        self.assertEqual(m.step(), OK)
+        self.assertEqual((m.m.period, m.m.cycles), (0, 8))
+
+        # Reloading retimes the next transfer, not one that already ran.
+        m = Machine("SHPER R2\nSHOUT R0, 8, P\nSHPER R3\nSHOUT R0, 8, P")
+        m.m.shcfg, m.m.r[2], m.m.r[3] = 15, 3, 9
+        for _ in range(4):
+            self.assertEqual(m.step(), OK)
+        self.assertEqual(m.m.cycles, 1 + 8 * 3 + 1 + 8 * 9)
+
+    def test_period_register_obeys_the_clocked_cell_rules(self):
+        """An odd or too-short period is refused however it reached the engine.
+
+        A clocked cell splits at its half point, and a measured value is the
+        most likely source of one that cannot. Refusing only the immediate
+        would leave the reachable case -- the one a peer's timing produced --
+        as the one that silently ran with an asymmetric duty cycle.
+        """
+        clocked = 4 | (5 << 4) | (6 << 8)
+        for period, status in ((0, UNSUPPORTED), (1, UNSUPPORTED),
+                               (3, UNSUPPORTED), (2, OK), (6, OK)):
+            m = Machine("SHPER R2\nSHIO R0, 8, P")
+            m.m.shcfg, m.m.r[2] = clocked, period
+            self.assertEqual(m.step(), OK)
+            self.assertEqual(m.step(), status, f"clocked period {period}")
+
+    def test_autobaud_demo_transmits_at_the_measured_rate(self):
+        """The whole feature, against a peer whose rate is nowhere in the text.
+
+        The oracle is the transmitted waveform itself: every edge the chip
+        places must land on a multiple of the period it measured, and the frame
+        must be ten cells of it -- start bit included, which is why the routine
+        sends the frame as one shift rather than a PINCLR and eight bits.
+        """
+        demo = ROOT / "sw/pemu/firmware/autobaud-demo.s"
+        for width in (37, 53):
+            def peer(cycle, width=width):
+                # 0x55 at `width` cycles per bit: every low run is one bit.
+                if cycle < 40:
+                    return 2
+                frame = (cycle - 40) // (10 * width)
+                if frame >= 6:
+                    return 2
+                bit = ((cycle - 40) // width) % 10
+                level = 0 if bit == 0 else (1 if bit > 8 else (0x55 >> (bit - 1)) & 1)
+                return level << 1
+
+            m = Machine(demo.read_text(), inputs=peer, path=demo)
+            self.assertEqual(m.run(limit=4000), HALTED)
+            self.assertEqual(m.m.r[2], width, "measured bit period")
+            self.assertEqual(m.m.outputs, width & 0xff, "published measurement")
+
+            # TX is uio[0]. Transitions after the routine starts driving it must
+            # be exactly the 8N1 frame for 0x37 at `width` cycles a bit.
+            edges = []
+            last = None
+            for cycle, pins, enable in m.trace:
+                if not (enable & 1):
+                    continue
+                level = pins & 1
+                if last is None:
+                    last = level
+                    start = cycle
+                elif level != last:
+                    edges.append(cycle - start)
+                    last = level
+            frame = [0] + [(0x37 >> n) & 1 for n in range(8)] + [1]
+            expected = [i * width for i in range(1, 10) if frame[i] != frame[i - 1]]
+            # TX idles high while the driver is enabled, so the first edge is
+            # the start bit falling: frame time zero. Every later edge must
+            # land on an exact multiple of the measured period from it, with no
+            # constant offset and nothing accumulated across the ten cells.
+            self.assertTrue(edges, "the demo never moved TX")
+            self.assertEqual([e - edges[0] for e in edges[1:]], expected,
+                             f"edge placement at {width} cycles per bit")
 
     def test_spi_firmware_full_duplex(self):
         """spi.s moves a byte both ways in one SHIO, in SPI mode 0.

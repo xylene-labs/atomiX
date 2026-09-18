@@ -38,6 +38,14 @@ These conventions make the missing specification observable and reviewable:
   an input-only pin, or an input-only data-out pin. `din == dout` is allowed,
   because I2C needs it. Unclocked shifts accept any `D`, `0` meaning one cycle
   per bit.
+- `SHPER` writes the 16-bit period register, and a shift whose `P` bit is set
+  takes its cell from there rather than from its own `D`. Everything above
+  applies to the cell actually used, including `max(.,1)` and the clocked-cell
+  legality rules -- so an odd or zero period reaching the engine through the
+  register is `AXPE_UNSUPPORTED` exactly as an odd `D` is, which is the case a
+  measurement is most likely to produce. The rest of the `b` field is reserved
+  and a shift that sets it is `AXPE_ENCODING`. The register is read at issue,
+  so writing it does not retime a transfer already running.
 
 Open-drain output enable is `direction & ~(drain & output_latch)`. The input
 callback supplies resolved pad levels, including pull-ups or external drivers;
@@ -58,6 +66,6 @@ real firmware bug -- a branch sitting between the two waits, spending a cycle
 the measurement could not see. Recording the mismatch rather than tuning the
 expectation to match is what made both visible.
 
-Clocked shifts are now specified and modelled. SPI and I2C firmware, their
-platform oracles, randomized RTL comparison, the formal proof, and all hardware
-evidence remain open.
+Clocked shifts are now specified and modelled, and a shift can take its bit
+period from a register, which is what makes a measured rate usable rather than
+only readable. The formal proof and all hardware evidence remain open.

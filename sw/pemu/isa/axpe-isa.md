@@ -23,7 +23,17 @@ is still a closed form:
 |---|---|---|
 | Everything not below | `max(D, 1)` | Yes |
 | `SHOUT` / `SHIN` / `SHIO` of `n` bits | `n × max(D, 1)` | Yes, `n` and `D` are both encoded |
+| the same three with `P` set | `n × max(P, 1)` | No: `P` is a register. Still exact |
 | `WAITE` | `w`, where `1 ≤ w ≤ max(D, 1)` | Bounded, not exact |
+
+**Exact and statically known are two claims, not one.** A shift that takes its
+cell duration from the period register still retires on the cycle it declares —
+the count is a function of machine state at issue and of nothing external, so
+the proof carries `P` as a symbol rather than a bound. What is lost is only the
+listing: `axpe_as.py` prints `10xP` where it would print `4340`, because a
+number it cannot stand behind is worse than a formula. `WAITE` is a different
+thing again, and remains the only instruction whose cost depends on something
+outside the machine.
 
 **`D` is the cell duration, not an addition to a fetch cycle.** An instruction
 written `D=434` occupies exactly 434 cycles, and every instruction occupies at
@@ -56,6 +66,7 @@ instruction that secretly costs more than it says.
 | `STACK` | 4 × `clog2(IMEM_WORDS)` | Call stack; `CALL` pushes, `RET` pops |
 | `SHREG` | 16 | Shift engine register, aliased onto a named `Rn` per instruction |
 | `SHCFG` | 15 | Shift engine wiring, see §5 |
+| `P` | `DELAY_BITS` | Shift engine bit period, written by `SHPER`, used by a shift whose `P` bit is set. Same width as `D`, because it holds the same kind of value. See §5.2 |
 | `PDIR` | 8 | `uio` direction, 1 = drive |
 | `PDRN` | 8 | `uio` open-drain mask, 1 = open-drain |
 | `Z`, `C`, `T` | 1 each | Zero, carry, timeout |
@@ -91,7 +102,8 @@ All instructions are 32 bits, one word.
 
 - `op` — opcode, 32 encodings, §4
 - `a` — destination or primary register
-- `b` — source register, or the high 3 bits of `imm8`
+- `b` — source register, the high 3 bits of `imm8`, or the shift period-select
+  bit (§5.2)
 - `x` — shift amount / bit count, or the low 5 bits of `imm8`
 - `delay` — `D`, always. 0 to 65535 cycles.
 
@@ -136,9 +148,10 @@ this instruction set is written down. Regenerate with
 | Op | Mnemonic | Operands | Retires in | Effect |
 |---|---|---|---|---|
 | `0A` | `SHCFG` | reg | `max(D,1)` | Shift engine wiring takes Ra. |
-| `0B` | `SHOUT` | reg, nbits | `n*max(D,1)` | Clock n bits out of Ra, each bit occupying D cycles. |
-| `0C` | `SHIN` | reg, nbits | `n*max(D,1)` | Clock n bits into Ra. |
-| `0D` | `SHIO` | reg, nbits | `n*max(D,1)` | Full duplex: out and in together, which is what SPI wants. |
+| `0B` | `SHOUT` | reg, nbits, [P] | `n*max(D,1)` or `n*max(P,1)` | Clock n bits out of Ra, each bit occupying D cycles, or the period register's cycles when P is set. |
+| `0C` | `SHIN` | reg, nbits, [P] | `n*max(D,1)` or `n*max(P,1)` | Clock n bits into Ra. |
+| `0D` | `SHIO` | reg, nbits, [P] | `n*max(D,1)` or `n*max(P,1)` | Full duplex: out and in together, which is what SPI wants. |
+| `0E` | `SHPER` | reg | `max(D,1)` | The shift period register takes Ra. It is what a measured interval is loaded into, so that a shift with P set transmits at a rate this chip discovered rather than one it was told. Loading it does not retime a transfer already running. |
 
 ### ALU
 
@@ -166,7 +179,7 @@ this instruction set is written down. Regenerate with
 | `1E` | `RET` | -- | `max(D,1)` | Pop. |
 | `1F` | `HALT` | -- | `max(D,1)` | Stop fetching. |
 
-Reserved encodings: `0E`, `0F`. Held for stretch protocols.
+Reserved encodings: `0F`. Held for stretch protocols.
 
 <!-- end generated -->
 
@@ -183,7 +196,9 @@ level-high. See §4.1 for what it returns.
 For `SHOUT`, `SHIN` and `SHIO`, `D` is the **bit period**, not a trailing hold.
 `SHOUT R0, 8, D=BAUD` is eight bits, each occupying exactly `BAUD` cycles.
 Timing lives in the instruction; wiring lives in `SHCFG`. That split is what
-keeps the retirement cost readable at the call site.
+keeps the retirement cost readable at the call site. Writing `P` in place of
+`D=…` takes that bit period from the period register instead; see §5.2. Naming
+both is an assembler error, because one of them would be silently dead.
 
 A 16-bit constant costs two instructions, `LDIL` then `LDIH`. That is the price
 of every instruction carrying a full delay field, and it is worth it.
@@ -221,10 +236,13 @@ that can **listen to one it has never seen**:
   both waits, as `autobaud.s` does.
 - **Autobaud.** The narrowest low pulse on an idle-high line is one bit period.
   Ten instructions, no host involvement. See `sw/pemu/firmware/autobaud.s`.
-- **Self-calibrate — not yet.** `D` is an immediate in the instruction word and
-  nothing routes a register to the timing counter, so firmware can measure a
-  period and cannot then use it. PE-15 adds a delay register and a select bit
-  to close this; until then the returned count is readable but not applicable.
+- **Self-calibrate.** `SHPER` loads the measured count into the period
+  register and a shift with `P` set takes its bit period from there, so the
+  measurement is not merely readable — it is the number that times the reply.
+  `sw/pemu/firmware/autobaud-demo.s` measures an unconfigured peer and answers
+  at that peer's rate with no host involved and no rate written anywhere in the
+  program. See §5.2. This closes a gap the board carried openly: until it
+  landed, `WAITE` could characterise a peer and not talk to one.
 - **Timestamp edges** for protocol identification, rather than only waiting on
   them.
 
@@ -278,9 +296,12 @@ A clocked shift's bit cell of `D` cycles **splits at its half point**:
 Three rules the machine enforces, rejecting the instruction before issue
 without consuming a cycle:
 
-1. **`D` must be even and non-zero.** A cell that cannot split at its half
-   point has no defined clock position. Flooring would give an asymmetric duty
-   cycle that the listing no longer tells you, so it is refused instead.
+1. **The cell must be even and non-zero.** A cell that cannot split at its
+   half point has no defined clock position. Flooring would give an asymmetric
+   duty cycle that the listing no longer tells you, so it is refused instead.
+   The test is against the cell the transfer will actually use, so a period
+   register holding an odd value is refused exactly as an odd `D` is — and that
+   is the reachable case, since a measured interval is odd about half the time.
 2. **The clock may not share a pin with either data line,** and must be a
    drivable `uio` pin.
 3. **`din` may equal `dout`.** A single bidirectional data line is exactly
@@ -289,8 +310,47 @@ without consuming a cycle:
 
 None of these can be an assembler error. `SHCFG` is loaded from a register, so
 the configuration is not visible at assembly time and the machine is the only
-place that knows it. An unclocked shift has no half point to find, so it
-accepts any `D`, including `0` for one cycle per bit.
+place that knows it — and with `P` set, neither is the period. An unclocked
+shift has no half point to find, so it accepts any cell, including `0` for one
+cycle per bit.
+
+### 5.2 The period register
+
+```
+ 23   22   21
++----+----+---+
+|    rsv  | P |      the b field, under SHOUT / SHIN / SHIO
++----+----+---+
+```
+
+`SHPER Ra` writes `Ra` into the 16-bit period register. A `SHOUT`, `SHIN` or
+`SHIO` written with `P` takes its bit period from that register instead of from
+its own `D`; without `P` nothing changes, and the encoding of every existing
+program is untouched. The remaining two bits of `b` are reserved, and a shift
+that sets either is refused — which is what keeps them reserved, rather than
+leaving a later use of them blocked by firmware that set them meaninglessly.
+
+Three properties worth stating, because each is a decision:
+
+- **It is per instruction, not a mode.** Two transfers with nothing between
+  them may run at different rates, and one of them may be a fixed protocol
+  while the other answers a measured peer. A mode bit in a control register
+  would have made the bit period of a shift depend on code that ran earlier.
+- **It costs no encoding space.** `b` is unused by the shift shape, and `SHPER`
+  took one of the two reserved opcodes. The measurement feature and its use
+  together cost one 16-bit register.
+- **A running transfer is not retimed.** The engine latches its cell at issue,
+  so `SHPER` between two shifts affects the second and never the first.
+
+`max(P, 1)` applies as everywhere else, so a period register nobody wrote
+shifts at one cycle per bit rather than stalling.
+
+Only the shift engine reads it. A pin held by `PINSET`, `PINCLR` or `DELAY`
+still takes an immediate `D`, which is why `uart_tx_measured` sends the whole
+8N1 frame — start bit, eight data bits, stop bit — as one ten-cell `SHOUT`
+rather than as a start bit beside a shift. One cell of a frame at the wrong
+period is a framing error at the far end, and it would be the cell the receiver
+uses to find every other one.
 
 ## 6. Worked examples
 
@@ -364,6 +424,35 @@ spi_xfer:
     RET
 ```
 
+### UART transmit at a measured rate
+
+```asm
+; R0 = byte, R2 = cycles per bit, as `autobaud` counted them off the wire.
+uart_tx_measured:
+    LDIL  R1, (15<<0)|(0<<4)      ; clk = none, dout = uio[0]
+    LDIH  R1, 0x00
+    SHCFG R1,        D=0
+    SHL   R0, 1,     D=0          ; make room for the start bit at bit 0
+    LDIL  R1, 0x00
+    LDIH  R1, 0x02                ; R1 = 0x0200, the stop bit at bit 9
+    OR    R0, R1,    D=0
+    SHPER R2,        D=0          ; every cell below now takes R2 cycles
+    SHOUT R0, 10, P               ; start, 8 data bits, stop
+    RET
+```
+
+Total: `8 + 10×max(P,1)` cycles, of which the listing prints the `8` and the
+formula for the rest. The whole frame is one transfer because only the shift
+engine reads the period register (§5.2); a start bit built from `PINCLR` would
+still be held for an immediate `D`, and one cell at the wrong period is a
+framing error at the receiver.
+
+Compare this with the fixed-rate `uart_tx` above. The two differ in exactly one
+thing — where the bit period came from — and that is the difference between a
+chip that speaks a protocol it was configured for and one that speaks a
+protocol it found. `sw/pemu/firmware/autobaud-demo.s` is the whole loop:
+measure, load, answer.
+
 ## 7. Open questions
 
 - `IMEM_WORDS` default, pending the PE-02 flow trial. 256 costs 6.9% of the die
@@ -371,5 +460,12 @@ spi_xfer:
 - Whether `SHIO` earns its opcode or SPI should compose `SHOUT` and `SHIN`.
   Decide by measuring both in PE-05, not by argument.
 - Target clock, which sets the fastest reachable bit rate for every protocol.
-- Whether the two reserved opcodes are enough for a stretch protocol, or whether
-  low-speed USB needs more than the shift engine can express.
+- Whether the one remaining reserved opcode (`0F`) is enough for a stretch
+  protocol, or whether low-speed USB needs more than the shift engine can
+  express. `0E` went to `SHPER` in PE-15.
+- Whether anything other than the shift engine should be able to read the period
+  register. A `DELAY` that could would let a firmware hold a line for a measured
+  interval, which I2C clock stretching and inter-frame gaps would both use; it
+  costs a select bit in a field `DELAY` does not currently use. Not taken in
+  PE-15, because the mandatory protocols do not need it and the card's claim is
+  narrower without it.

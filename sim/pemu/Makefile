@@ -22,7 +22,7 @@ PYTHON ?= python3
 # than transcribed into the testbench, so what the peers judge is what the
 # submission ships.
 FIRMWARE := $(ROOT)/sw/pemu/firmware
-DEMOS := uart-demo spi-demo i2c-demo
+DEMOS := uart-demo spi-demo i2c-demo autobaud-demo
 HEX := $(DEMOS:%=$(BUILD)/fw/%.hex)
 
 VFLAGS := --cc --exe --build -Wall -I$(ROOT)/sw/pemu/isa

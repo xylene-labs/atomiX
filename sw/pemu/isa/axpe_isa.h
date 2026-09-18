@@ -19,6 +19,11 @@
 #define AXPE_X_MASK 0x001f0000u
 #define AXPE_DELAY_LO   0
 #define AXPE_DELAY_MASK 0x0000ffffu
+/* Bits inside the b field: shift_b_layout */
+#define AXPE_SHIFT_B_P_LO   0
+#define AXPE_SHIFT_B_P_MASK 0x01u
+#define AXPE_SHIFT_B_RSV_LO   1
+#define AXPE_SHIFT_B_RSV_MASK 0x06u
 
 typedef enum {
     AXPE_OP_DELAY = 0,
@@ -35,6 +40,7 @@ typedef enum {
     AXPE_OP_SHOUT = 11,
     AXPE_OP_SHIN = 12,
     AXPE_OP_SHIO = 13,
+    AXPE_OP_SHPER = 14,
     AXPE_OP_MOV = 16,
     AXPE_OP_ADD = 17,
     AXPE_OP_SUB = 18,
@@ -57,6 +63,7 @@ typedef enum {
 typedef enum {
     AXPE_TIMING_FIXED,  /* max(D,1) */
     AXPE_TIMING_PERBIT,  /* n*max(D,1) */
+    AXPE_TIMING_PERBIT_REG,  /* n*max(P,1) */
     AXPE_TIMING_BOUNDED,  /* w, 1<=w<=max(D,1) */
 } axpe_timing_t;
 
@@ -75,7 +82,7 @@ static const axpe_timing_t axpe_timing_of[32] = {
     [11] = AXPE_TIMING_PERBIT,  /* SHOUT */
     [12] = AXPE_TIMING_PERBIT,  /* SHIN */
     [13] = AXPE_TIMING_PERBIT,  /* SHIO */
-    [14] = AXPE_TIMING_FIXED,  /* reserved */
+    [14] = AXPE_TIMING_FIXED,  /* SHPER */
     [15] = AXPE_TIMING_FIXED,  /* reserved */
     [16] = AXPE_TIMING_FIXED,  /* MOV */
     [17] = AXPE_TIMING_FIXED,  /* ADD */
@@ -110,7 +117,7 @@ static const char *const axpe_mnemonic_of[32] = {
     [11] = "SHOUT",
     [12] = "SHIN",
     [13] = "SHIO",
-    [14] = 0,
+    [14] = "SHPER",
     [15] = 0,
     [16] = "MOV",
     [17] = "ADD",

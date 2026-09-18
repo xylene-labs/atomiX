@@ -7,6 +7,11 @@
 #include <cstdio>
 #include <vector>
 
+/* The b-field bit that takes a shift's cell duration from the period register
+ * rather than from its own D. Named from the generated header, so a program
+ * built here cannot mean something else than one the assembler emits. */
+static const unsigned P_BIT = 1u << AXPE_SHIFT_B_P_LO;
+
 static uint32_t random_word(uint32_t &state)
 {
     state ^= state << 13;
@@ -86,14 +91,31 @@ static std::vector<uint32_t> random_engine_program(uint32_t seed)
          * An unclocked one may be zero, which is one cycle per bit. */
         const unsigned cell = clk == 15u ? (choice >> 20) % 4u
                                          : 2u * (1u + ((choice >> 20) % 3u));
+        /* Half the draws take that same cell out of the period register
+         * instead of the instruction word. The two paths must produce
+         * identical waveforms and identical cycle counts, which is the whole
+         * claim: where the number came from changes nothing about the timing.
+         * Drawn legal for the same reason the SHCFG values are -- an odd
+         * period under a clock is a machine reject, and rejects compare fault
+         * behaviour rather than engine timing. */
+        const bool use_period = ((choice >> 2) & 1u) != 0;
+        const unsigned bsel = use_period ? P_BIT : 0u;
+        const unsigned encoded_cell = use_period ? 0u : cell;
+        if (use_period) {
+            program.push_back(encode_imm(AXPE_OP_LDIL, 4, cell & 0xffu, 0));
+            program.push_back(encode_imm(AXPE_OP_LDIH, 4, (cell >> 8) & 0xffu, 0));
+            program.push_back(encode(AXPE_OP_SHPER, 4, 0, 0, 0));
+        }
         program.push_back(encode_imm(AXPE_OP_LDIL, 1, cfg & 0xffu, 0));
         program.push_back(encode_imm(AXPE_OP_LDIH, 1, (cfg >> 8) & 0x7fu, 0));
         program.push_back(encode(AXPE_OP_SHCFG, 1, 0, 0, 0));
         program.push_back(encode_imm(AXPE_OP_LDIL, 0, choice >> 24, 0));
         /* Two transfers with nothing between them: the second issues on the
          * cycle the first retires. */
-        program.push_back(encode(shift_ops[(choice >> 24) % 3u], 0, 0, nbits, cell));
-        program.push_back(encode(shift_ops[(choice >> 26) % 3u], 2, 0, nbits, cell));
+        program.push_back(encode(shift_ops[(choice >> 24) % 3u], 0, bsel, nbits,
+                                 encoded_cell));
+        program.push_back(encode(shift_ops[(choice >> 26) % 3u], 2, bsel, nbits,
+                                 encoded_cell));
         program.push_back(encode(AXPE_OP_POUT, 0, 0, 0, 0));
         program.push_back(encode(AXPE_OP_POUT, 2, 0, 0, 0));
         /* A wait, then the instruction that consumes what it measured. */
@@ -341,6 +363,75 @@ int main(int argc, char **argv)
         encode(AXPE_OP_POUT, 0, 0, 0, 1),      // the measured count
         encode(AXPE_OP_HALT, 0, 0, 0, 0),
     };
+    // A shift whose cell comes from the period register rather than its own D.
+    const std::vector<uint32_t> period_unclocked = {
+        encode_imm(AXPE_OP_LDIL, 1, 0x0f, 0),  // no clock, dout=uio0
+        encode_imm(AXPE_OP_LDIH, 1, 0x01, 0),  // din=uio1, LSB first
+        encode(AXPE_OP_SHCFG, 1, 0, 0, 0),
+        encode_imm(AXPE_OP_LDIL, 2, 7, 0),     // an odd period, legal unclocked
+        encode(AXPE_OP_SHPER, 2, 0, 0, 0),
+        encode_imm(AXPE_OP_LDIL, 0, 0xa5, 0),
+        encode(AXPE_OP_SHOUT, 0, P_BIT, 8, 0), // D is zero and must be ignored
+        encode(AXPE_OP_HALT, 0, 0, 0, 0),
+    };
+    const std::vector<uint32_t> period_clocked = {
+        encode_imm(AXPE_OP_LDIL, 1, 0x54, 0),  // clk4, dout5
+        encode_imm(AXPE_OP_LDIH, 1, 0x16, 0),  // din6, MSB first
+        encode(AXPE_OP_SHCFG, 1, 0, 0, 0),
+        encode_imm(AXPE_OP_LDIL, 2, 6, 0),
+        encode(AXPE_OP_SHPER, 2, 0, 0, 0),
+        encode_imm(AXPE_OP_LDIL, 0, 0xa5, 0),
+        encode(AXPE_OP_SHIO, 0, P_BIT, 8, 0),
+        encode(AXPE_OP_POUT, 0, 0, 0, 0),
+        encode(AXPE_OP_HALT, 0, 0, 0, 0),
+    };
+    // The select bit is per instruction, not a mode. Two transfers with
+    // nothing between them run at different rates, the second issuing on the
+    // cycle the first retires -- which is where the engine reloads its timer
+    // from the incoming instruction rather than the outgoing one.
+    const std::vector<uint32_t> period_and_delay_adjacent = {
+        encode_imm(AXPE_OP_LDIL, 1, 0x0f, 0),
+        encode_imm(AXPE_OP_LDIH, 1, 0x01, 0),
+        encode(AXPE_OP_SHCFG, 1, 0, 0, 0),
+        encode_imm(AXPE_OP_LDIL, 2, 5, 0),
+        encode(AXPE_OP_SHPER, 2, 0, 0, 0),
+        encode_imm(AXPE_OP_LDIL, 0, 0xa5, 0),
+        encode(AXPE_OP_SHOUT, 0, 0, 8, 2),     // D=2
+        encode(AXPE_OP_SHOUT, 0, P_BIT, 8, 2), // P=5, and its D=2 is dead
+        encode(AXPE_OP_HALT, 0, 0, 0, 0),
+    };
+    // Reloading the register between transfers retimes the next one and not
+    // the one that already ran.
+    const std::vector<uint32_t> period_reloaded = {
+        encode_imm(AXPE_OP_LDIL, 1, 0x0f, 0),
+        encode_imm(AXPE_OP_LDIH, 1, 0x01, 0),
+        encode(AXPE_OP_SHCFG, 1, 0, 0, 0),
+        encode_imm(AXPE_OP_LDIL, 0, 0xa5, 0),
+        encode_imm(AXPE_OP_LDIL, 2, 3, 0),
+        encode(AXPE_OP_SHPER, 2, 0, 0, 0),
+        encode(AXPE_OP_SHOUT, 0, P_BIT, 8, 0),
+        encode_imm(AXPE_OP_LDIL, 2, 9, 0),
+        encode(AXPE_OP_SHPER, 2, 0, 0, 0),
+        encode(AXPE_OP_SHOUT, 0, P_BIT, 8, 0),
+        encode(AXPE_OP_HALT, 0, 0, 0, 0),
+    };
+    // The feature end to end, in five instructions: measure a pulse, load what
+    // was measured, transmit at it. SHPER issues on the cycle the WAITE
+    // retires, so it reads a value the register file does not hold yet -- the
+    // same forwarding path an ALU instruction after a WAITE uses, now carrying
+    // a number into the timing counter.
+    const std::vector<uint32_t> measure_then_transmit = {
+        encode_imm(AXPE_OP_LDIL, 1, 0x0f, 0),
+        encode_imm(AXPE_OP_LDIH, 1, 0x01, 0),
+        encode(AXPE_OP_SHCFG, 1, 0, 0, 0),
+        encode_imm(AXPE_OP_LDIL, 0, 0xa5, 0),
+        encode_imm(AXPE_OP_WAITE, 2, 0x00, 6), // rising uio0
+        encode_imm(AXPE_OP_WAITE, 2, 0x10, 6), // falling uio0: the pulse width
+        encode(AXPE_OP_SHPER, 2, 0, 0, 0),     // issues into that retirement
+        encode(AXPE_OP_POUT, 2, 0, 0, 0),
+        encode(AXPE_OP_SHOUT, 0, P_BIT, 8, 0),
+        encode(AXPE_OP_HALT, 0, 0, 0, 0),
+    };
     const std::vector<uint32_t> wait_timeout = {
         encode_imm(AXPE_OP_WAITE, 0, 0x00, 4), // rising uio0, held low
         encode(AXPE_OP_POUT, 0, 0, 0, 0),
@@ -367,13 +458,18 @@ int main(int argc, char **argv)
     if (!compare_case("wait-timeout", wait_timeout, input_low)) return 1;
     if (!compare_case("wait-interval", wait_interval, input_pulse)) return 1;
     if (!compare_case("wait-flag-branch", wait_flag_branch, input_low)) return 1;
+    if (!compare_case("period-unclocked", period_unclocked)) return 1;
+    if (!compare_case("period-clocked", period_clocked)) return 1;
+    if (!compare_case("period-and-delay-adjacent", period_and_delay_adjacent)) return 1;
+    if (!compare_case("period-reloaded", period_reloaded)) return 1;
+    if (!compare_case("measure-then-transmit", measure_then_transmit, input_pulse)) return 1;
     for (uint32_t seed = 1; seed <= 48; ++seed) {
         const auto program = random_engine_program(seed * 0x85ebca6bu);
         char name[40];
         std::snprintf(name, sizeof(name), "random-engine-%u", seed);
         if (!compare_case(name, program)) return 1;
     }
-    std::puts("axpe cosim: scalar, control, shift and wait timing match "
-              "cycle for cycle across 112 randomized programs");
+    std::puts("axpe cosim: scalar, control, shift, wait and register-period "
+              "timing match cycle for cycle across 112 randomized programs");
     return 0;
 }

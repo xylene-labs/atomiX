@@ -1,0 +1,105 @@
+{
+  "schema": 1,
+  "checkpoint": "PE-15 a measured period firmware can use",
+  "date": "2026-09-18",
+  "evidence_kind": "host-rtl-simulation",
+  "base_commit": "e1a7236c72937b0520b33e84fa103316c34ea75d",
+  "source_state": "uncommitted working tree; no commit-pinned approval claimed",
+  "claim": "axpe can transmit at a bit period it measured rather than one it was told. A period register (SHPER, opcode 0x0E) and a per-instruction select bit in the b field let SHOUT/SHIN/SHIO take their cell duration from architectural state, and autobaud-demo.s measures an unconfigured peer and answers at that peer's rate, end to end, in one unchanged elaborated chip.",
+  "not_claimed": [
+    "the cost of a selected shift is exact but no longer static: n*max(P,1) is a function of machine state at issue, so the assembler prints the formula rather than a number and a program containing one has no duration readable from its text",
+    "nothing outside the shift engine takes a register period. A pin held by PINSET/PINCLR/DELAY still takes an immediate D, which is why the measured-rate UART frame is sent as one ten-cell shift rather than as a start bit, eight data bits and a stop bit",
+    "the peers are simulated and written in this repository: independent of the firmware and of the golden model, not of the author",
+    "no hardware peer has seen any of this; clock tolerance against a real transmitter is what PE-09 exists to find, and a measurement is only as good as the edges a real line delivers",
+    "no synthesis, place-and-route, FPGA or silicon result. The added state is one 16-bit register counted from its declaration, not a mapped area",
+    "autobaud's own accuracy is unchanged and was already evidence: this card makes the number usable, it does not make it more correct"
+  ],
+  "tools": {
+    "verilator": "Verilator 5.050 2026-07-01 rev v5.050-60-g3d2421f3b",
+    "host_compiler": "g++ (Ubuntu 11.4.0-1ubuntu1~22.04.3) 11.4.0"
+  },
+  "inputs_sha256": {
+    "sw/pemu/isa/axpe-isa.json": "d60e77699decd1c03b55fc9788fcdae9d5119b64892a8b20a1ca8a42fe086903",
+    "components/pemu/axpe/axpe.sv": "1835160b3a4c7e847de2ea86ff12976735392873980080230c8d2b02f4f3489a",
+    "sw/pemu/model/axpe_model.c": "4339a1f1409653749e9d42848c4bde7344440416010af0f61b07a7b95c0bd921",
+    "sw/pemu/firmware/autobaud.s": "cf2c3914671b5e05e4a9304a8eb7ee5d1b7273f6b998450a402fb42b8459c458",
+    "sw/pemu/firmware/autobaud-demo.s": "ab7e72b22979a778c7a84e9e3b8a4d84dc9934e87686771eccb02e86f4158fcc",
+    "sw/pemu/firmware/uart.s": "85b60ebd94a640668d3bace20ea13f46b809d6f6b4e7c068224c220dd42a0077",
+    "sim/pemu/axpe_cosim.cpp": "6870cb1da135740fd0f236fe6bedbe1c69814979bac0a9f97006d75e4776a6a6",
+    "sim/pemu/axpe_peers.h": "43e6ce00aec7dffa1505ce0c887e9e25df4780e1d6b7e809bc91a6d0c6a0a377",
+    "sim/pemu/axpe_chip_tb.cpp": "038d0edf95653788f157ac636a0728f961a3d09ee7de9f7a42ed7ba7bc8b0aff"
+  },
+  "command": "make pemu-chip-check",
+  "verification": [
+    {
+      "command": "make pemu-model-check",
+      "result": "pass, 19 model test groups and the assembler self-check"
+    },
+    {
+      "command": "make pemu-cosim-check",
+      "result": "pass, cycle for cycle with no tolerated deviation"
+    },
+    {
+      "command": "make pemu-chip-check",
+      "result": "pass"
+    },
+    {
+      "command": "make verification-check",
+      "result": "pass"
+    },
+    {
+      "command": "make registry-check",
+      "result": "pass"
+    }
+  ],
+  "results": [
+    {
+      "what": "end-to-end measurement and reply, on the chip",
+      "how": "autobaud-demo.hex is loaded over the host port into one elaborated axpe_chip against a peer that transmits 0x55 frames at its own bit period and decodes the reply at that same period. Neither the demo, autobaud.s nor uart.s names the peer's rate.",
+      "checked": "at 37 and again at 53 cycles per bit, the chip published the measured period on uo_out and the peer's own receiver decoded 0x37 with a low start bit and a high stop bit at their centres"
+    },
+    {
+      "what": "edge placement against the measured period, in the golden model",
+      "how": "every transition the demo puts on TX is compared with the exact 8N1 frame for 0x37 at the measured period",
+      "checked": "at 37 and 53 cycles per bit, every edge lands on an exact multiple of the measured period from the start bit, with no constant offset and nothing accumulated across the ten cells"
+    },
+    {
+      "what": "the two paths are interchangeable",
+      "how": "for SHOUT, SHIN and SHIO, over periods 1, 2, 3, 7 and 434 and bit counts 1, 8 and 16, the model runs the same cell duration through D and through the period register",
+      "checked": "identical cycle counts, identical received values and identical pin traces"
+    },
+    {
+      "what": "RTL against the golden model",
+      "how": "five directed cases -- unclocked, clocked, a selected and an unselected transfer back to back, a reload between transfers, and a WAITE feeding SHPER on the cycle it retires -- plus half of the 48 randomized engine programs drawing the period from the register instead of the word",
+      "checked": "cycle for cycle across 112 randomized programs and seventeen directed cases, with no tolerated deviation"
+    },
+    {
+      "what": "the clocked-cell rules follow the cell actually used",
+      "how": "a clocked shift selecting a period register holding 0, 1 or 3",
+      "checked": "refused before issue without consuming a cycle, exactly as an odd immediate D is; 2 and 6 run"
+    }
+  ],
+  "defects_found": [
+    {
+      "where": "sw/pemu/firmware/autobaud.s and sw/pemu/firmware/uart.s",
+      "found_by": "the assembler's duplicate-symbol rule, the first time both were included into one program",
+      "was": "both files independently defined RX_PIN and EDGE_FALL for the same wire",
+      "why_it_matters": "the two agreed, but nothing made them agree: a change to the pin map had to be made twice, and the assembler cannot tell two definitions of one name apart from a program calling the wrong routine",
+      "fix": "autobaud's constants are prefixed, and check_axpe_as.py compares the pin each file's WAITE actually encodes rather than trusting a comment"
+    },
+    {
+      "where": "components/pemu/axpe/axpe.sv, components/pemu/axpe/axpe_shift.sv",
+      "found_by": "checking that the new period register follows the delay_bits knob rather than a literal 16",
+      "was": "the core only elaborates at reg_width = delay_bits = 16, though the manifest declares both as knobs; at reg_width < delay_bits it fails with a hard error, a replication of a negative count on axpe.sv:164",
+      "why_it_matters": "a knob declared and never exercised reads as configurable and is not, which is worse than an honest constant",
+      "fix": "not fixed here. It is pre-existing -- linting at HEAD and with this change gives identical diagnostic counts -- it belongs to PE-08, and it is a second RTL change in a lane that takes one at a time. Recorded on the board with the diagnostics instead",
+      "honest_note": "it touches no claim in this record or elsewhere on the board: every axpe result is at the default parameters, and PE-15's own register was made DELAY_BITS wide rather than 16 so it does not add to the problem"
+    }
+  ],
+  "counter_evidence": [
+    "an RTL that ignores the select bit and keeps taking the encoded D fails period-unclocked immediately, reporting 15 cycles where the model needs 63",
+    "replacing the demo's `SHOUT R0, 10, P` with a hardcoded `D=37` passes the 37-cycle peer and fails the 53-cycle one, whose receiver decodes 0xEF instead of 0x37 -- which is why the chip bench runs two rates and not one",
+    "the assembler refuses an instruction naming both D and P rather than picking one, and refuses P on any instruction without the bit"
+  ],
+  "method_note": "The select bit is described once, in axpe-isa.json's shift_b_layout, and the RTL, the golden model and the differential harness all read its position from the generated headers rather than from a literal. The generator now also refuses a layout whose sub-fields overlap, and refuses a timing class that claims to be statically known without being exact -- the distinction this card forced into the open, since a register-period shift is exact and not static."
+}

@@ -61,6 +61,14 @@ axpe_result axpe_step(axpe_model *m, axpe_input input,
     unsigned op = FIELD(w, OP), a = FIELD(w, A), b = FIELD(w, B);
     unsigned x = FIELD(w, X), d = FIELD(w, DELAY), imm = (b << 5) | x;
     unsigned next = m->pc + 1;
+    /* A shift's cell duration: the encoded D, or the period register when the
+     * instruction's P bit selects it. Both are max(.,1), so the shortest cell
+     * is one cycle either way and a period register left at zero shifts at
+     * full rate rather than stalling. */
+    const unsigned psel = (axpe_timing_of[op] == AXPE_TIMING_PERBIT) &&
+                          ((b & AXPE_SHIFT_B_P_MASK) >> AXPE_SHIFT_B_P_LO);
+    const unsigned shift_cell = (psel ? (m->period ? m->period : 1u)
+                                      : (d ? d : 1u));
     uint32_t value = m->r[a];
     uint32_t rhs = m->r[b];
     int halt = 0;
@@ -73,6 +81,10 @@ axpe_result axpe_step(axpe_model *m, axpe_input input,
         return m->status = AXPE_ENCODING;
     if (axpe_timing_of[op] == AXPE_TIMING_PERBIT) {
         if (!x || x > AXPE_REG_W) return m->status = AXPE_ENCODING;
+        /* The rest of b is reserved. Refusing it now is what keeps those bits
+         * available: firmware that set them meaninglessly and worked would
+         * make any later use of them a compatibility break. */
+        if (b & AXPE_SHIFT_B_RSV_MASK) return m->status = AXPE_ENCODING;
         unsigned cfg_clk = m->shcfg & 15;
         unsigned cfg_dout = (m->shcfg >> 4) & 15;
         unsigned cfg_din = (m->shcfg >> 8) & 15;
@@ -83,8 +95,12 @@ axpe_result axpe_step(axpe_model *m, axpe_input input,
             /* A clocked cell splits at its half point, so it needs an even,
              * non-zero period. SHCFG is loaded from a register, so neither
              * this nor the aliasing rule below can be an assembler error --
-             * the machine is the only place that knows the configuration. */
-            if (cfg_clk >= 8 || (d & 1u) || d < 2u)
+             * the machine is the only place that knows the configuration.
+             * The test is against the cell the transfer will actually use, so
+             * a period register holding an odd or too-short value is refused
+             * exactly as an odd D is. That value came from measuring a peer,
+             * which makes it a reachable case rather than a theoretical one. */
+            if (cfg_clk >= 8 || (shift_cell & 1u) || shift_cell < 2u)
                 return m->status = AXPE_UNSUPPORTED;
             /* din == dout is legal and is what I2C's SDA is. A clock sharing
              * a pin with either data line is not. */
@@ -123,7 +139,7 @@ axpe_result axpe_step(axpe_model *m, axpe_input input,
         unsigned clk = m->shcfg & 15;
         unsigned cpol = (m->shcfg >> 13) & 1;
         unsigned cpha = (m->shcfg >> 14) & 1;
-        unsigned cell = d ? d : 1u;
+        const unsigned cell = shift_cell;
         uint16_t received = 0;
         if (clk == 15) {
             /* Unclocked: emit or sample at each cell's first edge and hold. */
@@ -170,6 +186,7 @@ axpe_result axpe_step(axpe_model *m, axpe_input input,
         case AXPE_OP_PDIR: m->direction = imm; break;
         case AXPE_OP_PDRN: m->drain = imm; break;
         case AXPE_OP_SHCFG: m->shcfg = value & 0x7fff; break;
+        case AXPE_OP_SHPER: m->period = value; break;
         case AXPE_OP_MOV: m->r[a] = rhs; break;
         case AXPE_OP_ADD:
         case AXPE_OP_ADDI:
