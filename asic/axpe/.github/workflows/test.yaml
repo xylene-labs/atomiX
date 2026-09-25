@@ -1,0 +1,33 @@
+name: test
+on: [push, workflow_dispatch]
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.11"
+      - name: Install simulator and test dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y verilator
+          pip install -r test/requirements.txt
+      - name: Run RTL loader test
+        run: make -C test SIM=verilator
+      - name: Test summary
+        uses: test-summary/action@31493c76ec9e7aa675f1585d3ed6f1da69269a86 # v2.4
+        if: always()
+        with:
+          paths: test/results.xml
+      - name: Upload test artifacts
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        if: success() || failure()
+        with:
+          name: test-results
+          path: |
+            test/tb.fst
+            test/results.xml

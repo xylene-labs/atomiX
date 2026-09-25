@@ -17,13 +17,38 @@ it marks what is still open. Nothing here is a silicon claim.
 |---|---|
 | Deadline | 2027-01-18 |
 | Process | IHP 130nm CMOS5L, through Tiny Tapeout |
-| Area | 6×4 tiles; tile = 200µm × 150µm, so 1200µm × 600µm ≈ 0.72 mm². An 8×4 option (~30% more) was under discussion and is not assumed |
+| Area | 6×4 tiles. The announcement's nominal estimate is 200µm × 150µm per tile, or about 0.7 mm²; the pinned CMOS5L support tools define the actual 6×4 hardening rectangle as 1289.28µm × 710.64µm = 0.916 mm². An 8×4 option remains outside the current rules and is not assumed |
 | Logic budget | ~1K logic cells per tile → ~24K cells. This is the competition announcement's estimate, not a measurement; PE-02 replaces it with one |
 | Pins | Tiny Tapeout harness: 8 input, 8 output, 8 bidirectional, plus `clk`, `rst_n`, `ena` |
 | Mandatory protocols | UART, SPI, I2C |
 | Stretch | Low-speed USB, 10Mbit Ethernet. Also named as interesting: JTAG, SWD, PS/2, CAN |
 | Licence | Open source, required |
 | Judged on | Unique functionality, and novel design and verification methodology |
+
+### 1.1 Official template baseline
+
+The competition page links Tiny Tapeout's `cmos5l` Verilog-template branch and
+requires `tiles: "6x4"`.  PE-01 pins that branch at
+`b86a2a781484bcab7ba522dc5de540086695a430` (tree
+`5d72d5b9e04c0732d32c7f7d0f72cf950508e551`) and imports it byte-for-byte under
+[`asic/tt-axpe/`](../asic/tt-axpe).  Its top-level contract is a unique
+`tt_um_*` module with eight dedicated inputs, eight dedicated outputs, eight
+bidirectional input/output/enable paths, `ena`, `clk`, and active-low `rst_n`.
+
+The template's `info.yaml` comment is older than the flow it invokes: it lists
+only `*x2` shapes.  The `ihp-sg13cmos5l` support-tools revision
+`d66cf179e7bc4d296362ab7e2e3b344dc3c4f665` explicitly carries `6x4` with the
+rectangle `0 0 1289.28 710.64`, so the competition rule is both unambiguous and
+accepted by the named technology data.  That revision also knows `8x4`, but
+tool support is not permission: Jane Street's current page still says 6×4 is
+the maximum and that a larger allocation would be announced separately.
+
+The baseline is intentionally not customised yet.  In particular, its CI GDS
+workflow selects CMOS5L while the devcontainer still names SG13G2, and its
+actions follow moving branch names.  PE-02 owns pinning the executable flow,
+binding axpe and running it.  PE-01 is source provenance and interface evidence,
+not a synthesis or physical-design result; the exact upstream record and the
+known drift are in [`asic/README.md`](../asic/README.md).
 
 ## 2. The memory finding, and why it is a gate
 
@@ -41,60 +66,78 @@ A 256-instruction, 32-bit-wide program memory is 8,192 bits. In flip-flops that
 is **more storage than the entire 6×4 budget holds**, before a single gate of
 CPU exists. In latches it is two-thirds of the chip. The obvious shape for this
 design is therefore not affordable in the obvious way — which is what PE-02
-exists to settle, and §2.1 now settles it.
+exists to settle. The first pinned-PDK inspection and flow candidate are below;
+only place-and-route can settle whether the fallback actually fits.
 
-### 2.1 Measured macro footprints
+### 2.1 Macro lead rejected; bounded inferred-store trial
 
 Measured 2026-09-17 from the `SIZE` records in the IHP-Open-PDK `main` branch
-LEF files under `ihp-sg13g2/libs.ref/sg13g2_sram/lef/`, against a 6×4 die of
-1200µm × 600µm = 720,000 µm²:
+LEF files under `ihp-sg13g2/libs.ref/sg13g2_sram/lef/`. The shares below are
+recomputed against the pinned CMOS5L support tools' 6×4 hardening rectangle,
+1289.28µm × 710.64µm = 916,214 µm²:
 
 | Macro | Footprint (µm) | Area (µm²) | Share of 6×4 |
 |---|---|---|---|
-| `RM_IHPSG13_1P_64x16_c2` | 236.80 × 64.36 | 15,240 | 2.1% |
-| `RM_IHPSG13_1P_256x8_c3_bm_bist` | 236.80 × 74.10 | 17,547 | 2.4% |
-| `RM_IHPSG13_1P_256x16_c2_bm_bist` | 236.80 × 118.78 | 28,127 | 3.9% |
-| `RM_IHPSG13_1P_256x32_c2_bm_bist` | 416.64 × 118.78 | 49,488 | 6.9% |
-| `RM_IHPSG13_1P_512x16_c2_bm_bist` | 236.80 × 191.34 | 45,309 | 6.3% |
-| `RM_IHPSG13_1P_512x32_c2_bm_bist` | 416.64 × 191.34 | 79,720 | 11.1% |
+| `RM_IHPSG13_1P_64x16_c2` | 236.80 × 64.36 | 15,240 | 1.7% |
+| `RM_IHPSG13_1P_256x8_c3_bm_bist` | 236.80 × 74.10 | 17,547 | 1.9% |
+| `RM_IHPSG13_1P_256x16_c2_bm_bist` | 236.80 × 118.78 | 28,127 | 3.1% |
+| `RM_IHPSG13_1P_256x32_c2_bm_bist` | 416.64 × 118.78 | 49,488 | 5.4% |
+| `RM_IHPSG13_1P_512x16_c2_bm_bist` | 236.80 × 191.34 | 45,309 | 4.9% |
+| `RM_IHPSG13_1P_512x32_c2_bm_bist` | 416.64 × 191.34 | 79,720 | 8.7% |
 
-**This inverts the assumption the gate was opened on.** A 256-instruction,
-32-bit program memory is impossible in flip-flops — more storage than the whole
-die holds — and costs **6.9% of the die** as a macro. The constraint on program
-size was never area; it was the choice of storage primitive, and one route is
-roughly fifteen times denser than the other.
+These are real SG13G2 macro dimensions, but they are **not a CMOS5L
+implementation result**. Inspection of the exact IHP-Open-PDK commit
+`2bbec755dc67ca3db0261c3d6163e15735d66710` installed by the pinned official
+GDS action found no SRAM LEF/GDS/liberty/Verilog views under
+`ihp-sg13cmos5l/libs.ref`; the table's macros exist only under
+`ihp-sg13g2/libs.ref/sg13g2_sram`. Importing one across technologies without an
+explicitly supported library contract would turn a useful footprint estimate
+into a false flow claim, so PE-02 rejects that candidate for now.
 
 **But 256 words is a ceiling the ISA imposes, not a budget choice.** `BR` and
 `CALL` targets are eight bits, so nothing past word 255 can be jumped to
-however large the store is. The 512x32 macro at 11.1% buys addressable nothing.
+however large the store is. The 512x32 macro at 8.7% buys addressable nothing.
 Raising the ceiling is an ISA change — a wider target field, or paging — and it
 would cost encoding bits that are already spent. RTL elaboration at
 `IMEM_WORDS=512` is what surfaced this; the parameter sweep the project's own
 knob rule requires is what ran it.
 
-So the instruction store is an SRAM macro, and the remaining risk is
-*integration*, not budget: Tiny Tapeout's own documentation says integrating the
-IHP macro "is not trivial," and whether their 6×4 flow accepts a macro at all is
-still unconfirmed. Aspect ratio is comfortable — 416.64 × 118.78 µm is about a
-third of the die width and a fifth of its height, so placement has room.
+The bounded fallback is the existing 32-bit ISA with **64 inferred instruction
+words**: 2,048 storage bits before synthesis overhead. The mandatory images are
+UART 36 words, SPI 15, I2C 54 and autobaud 55, so 64 is the smallest
+power-of-two profile that preserves every T1 program. It is selected by
+[`configs/tt-axpe-6x4.json`](../configs/tt-axpe-6x4.json), while 256 remains the
+component default; `imem_words` is bounded to powers of two from 16 through 256.
+The exact Tiny Tapeout wrapper passes the same two-program and independent-peer
+suite as the direct chip boundary at 64 words. That is functional simulation,
+not evidence that 2,048 inferred bits place or route.
 
-PE-02 is not closed until a macro has been through the flow. Two fallbacks stay
-live until it is, and both are affordable precisely because the knobs below keep
-them reachable:
+The executable flow inputs and success criteria are frozen before the run in
+[`asic/axpe/flow-lock.json`](../asic/axpe/flow-lock.json): 6×4, 20 ns, no setup,
+hold or routing violations, and no power claim. `make tt-export` verifies the
+pristine template hash, resolves the component profile and emits a standalone
+repository with source hashes and a commit-pinned GDS workflow. A smaller
+latch implementation or streamed window remains a fallback if the first
+physical run refutes the inferred array.
 
-1. **Small latch-based program memory.** 64 instructions × 16 bits is 1,024
-   bits, roughly two tiles at published latch density. Low risk, but it
-   constrains firmware hard and pushes complexity into the encoding.
-2. **Streamed program.** Hold a small instruction window on-chip and load it
-   over a serial port, in the same spirit as the FPGA loader this project
-   already runs. Cheapest in area, costs a pin and a load protocol.
+### 2.2 ASIC dependency map
 
-**The architecture must not bet on which one wins.** The program store depth and
-instruction width are declared as component `parameters` with defaults and docs,
-bounded in `tools/configure.py`, and exercised at a non-default value by
-`configs/sim-axpe-tiny.json` — the same four-step rule the rest of the project
-applies to every knob. PE-02 then picks the value with measured numbers rather
-than the ISA being written around a guess.
+RX-08's portability audit is deliberately at source and interface boundaries,
+not at module names alone:
+
+| Boundary | Classification and exact dependency | Replacement / verification route |
+|---|---|---|
+| Core, decode, timing, shift and pad logic | Portable synthesizable SystemVerilog in `axpe*.sv`; no FPGA primitive, PLL, generated clock, initial block or vendor arithmetic | Use the same sources unchanged; cycle-for-cycle cosimulation and independent UART/SPI/I2C peers remain the functional gates |
+| Instruction store | `axpe_imem.sv` requires one synchronous-read/write address and no promised read-during-write value; it has no reset or initial contents | The host must load every program after reset. CMOS5L has no compatible SRAM views, so this run maps 64×32 to standard cells; any later macro or streamed window must preserve this contract and rerun the two-program chip suite |
+| Clock and reset | One external `clk`; active-low asynchronous reset for state; `ena` and the loader's `running` state hold the core reset while leaving the host alive | The Tiny Tapeout wrapper connects these ports directly. No clock conversion is inferred; STA owns the external input/output assumptions |
+| Loader clock-domain boundary | Host SCLK, MOSI and CS are asynchronous pads sampled by `clk`; SCLK is synchronized and contractually limited to `clk/4` | `docs/pemu-host-protocol.md` is the adapter contract; wrapper simulation exercises it, while CDC signoff beyond the explicit synchronizer remains open |
+| Protocol I/O | `ui_in`, `uo_out` and `uio_*` are generic logic; open-drain behavior is expressed through `uio_oe`, not a device primitive | The `tt_um_*` wrapper is the only technology harness adapter. Independent protocol peers test behavior; post-route STA tests the declared pad-delay budget |
+| Configuration and ISA include | Component parameters become generated Verilog defines; `axpe_isa.svh` is generated from the normative ISA JSON | `tools/tt_axpe.py check` resolves a non-default 64-word profile, hashes every exported source and rejects template drift or nondeterministic output |
+
+The audit therefore proceeds with the standard-cell store for this bounded
+experiment. It rejects the SG13G2 SRAM as a cross-technology substitution and
+defers a memory-macro claim until CMOS5L supplies compatible LEF, GDS, liberty
+and simulation views. It does not require an FPGA-specific replacement.
 
 The same figures constrain the datapath. With a whole-chip ceiling near 7,680
 flip-flops and logic still to pay for, a wide register file is not affordable: a
@@ -262,8 +305,6 @@ components/pemu/axpe/       RTL and manifest
   axpe_chip.sv              the three composed, in Tiny Tapeout pin shape
 docs/pemu-host-protocol.md  the frozen host contract
 components/pemu/none/       opt-out arm
-configs/sim-axpe.json       Verilator profile
-configs/sim-axpe-tiny.json  every knob at a non-default value
 configs/tangprimer25k-axpe.json   FPGA bring-up, loader-based
 configs/tt-axpe-6x4.json    ASIC area and timing budget
 sw/pemu/isa/axpe-isa.md     normative specification
@@ -273,8 +314,9 @@ sw/pemu/firmware/           uart.s, spi.s, i2c.s and their loadable demos
 sim/pemu/axpe_peers.h       independent UART, SPI and I2C peers
 sim/pemu/                   cosimulation and conformance benches
 formal/pemu/                timing-determinism proof
-tools/axpe_area.py          cell-budget tracker
-asic/tt-axpe/               Tiny Tapeout CMOS5L wrapper and flow config
+asic/tt-axpe/               pristine official CMOS5L template baseline
+asic/axpe/                  wrapper, project metadata and pinned flow overlay
+tools/tt_axpe.py            deterministic standalone-repository exporter
 ```
 
 The Tiny Tapeout submission repository is generated from this tree by
@@ -355,13 +397,12 @@ competition itself was tested rather than assumed.
 
 ## 7. Open questions
 
-- PE-02: whether the Tiny Tapeout 6×4 flow accepts an IHP SRAM macro, and what
-  the real cells-per-tile figure is. `axpe_imem.sv` is now shaped for one — one
-  address port, synchronous read, no read-during-write — so the swap is a
-  substitution rather than a redesign, but the flow has still not seen it. Macro footprints are measured (§2.1); these
-  two are not. The depth question is settled at 256 by the eight-bit branch
-  target, so `RM_IHPSG13_1P_256x32_c2_bm_bist` at 6.9% is the candidate unless
-  the ISA gains a wider target.
+- PE-02: whether the 64×32 inferred store and the rest of axpe place and route
+  in the official 6×4 CMOS5L flow at 20 ns. The exact pinned PDK has no
+  compatible SRAM macro views; the SG13G2 footprint table in §2.1 is context,
+  not a substitution license. If the inferred store fails, the next experiment
+  is a smaller latch store or streamed instruction window, with the same
+  single-port synchronous contract.
 - PE-03: instruction width, register count and datapath width, under §2's ceiling.
 - Target clock frequency, and therefore the fastest protocol bit rate reachable.
 - Whether the 8×4 tile option becomes available, and what it would buy.

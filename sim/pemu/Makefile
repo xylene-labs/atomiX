@@ -1,6 +1,7 @@
 ROOT := ../..
 VERILATOR ?= verilator
 BUILD := build
+TT_STAGE ?= $(ROOT)/build/asic/tt-axpe
 
 CORE_RTL := \
 	$(ROOT)/components/pemu/axpe/axpe.sv \
@@ -14,6 +15,19 @@ CHIP_RTL := $(CORE_RTL) \
 	$(ROOT)/components/pemu/axpe/axpe_imem.sv \
 	$(ROOT)/components/pemu/axpe/axpe_host.sv \
 	$(ROOT)/components/pemu/axpe/axpe_chip.sv
+
+TT_RTL := \
+	$(TT_STAGE)/src/tt_um_shubhgau_atomix_axpe.sv \
+	$(TT_STAGE)/src/axpe.sv \
+	$(TT_STAGE)/src/axpe_decode.sv \
+	$(TT_STAGE)/src/axpe_timing.sv \
+	$(TT_STAGE)/src/axpe_shift.sv \
+	$(TT_STAGE)/src/axpe_pads.sv \
+	$(TT_STAGE)/src/axpe_imem.sv \
+	$(TT_STAGE)/src/axpe_host.sv \
+	$(TT_STAGE)/src/axpe_chip.sv
+
+-include $(TT_STAGE)/test/profile.mk
 
 MODEL := $(ROOT)/sw/pemu/model/axpe_model.c
 PYTHON ?= python3
@@ -46,6 +60,13 @@ $(BUILD)/chip/Vaxpe_chip: axpe_chip_tb.cpp axpe_cases.h axpe_device.h axpe_peers
 	$(VERILATOR) $(VFLAGS) --top-module axpe_chip --Mdir $(BUILD)/chip \
 		$(CHIP_RTL) axpe_chip_tb.cpp $(MODEL)
 
+$(BUILD)/tt/Vtt_um_shubhgau_atomix_axpe: axpe_tt_tb.cpp axpe_cases.h \
+		axpe_device.h axpe_peers.h $(TT_RTL) $(TT_STAGE)/test/profile.mk $(DEPS)
+	@mkdir -p $(BUILD)/tt
+	$(VERILATOR) $(VFLAGS) $(PROFILE_DEFINES) \
+		--top-module tt_um_shubhgau_atomix_axpe --Mdir $(BUILD)/tt \
+		$(TT_RTL) axpe_tt_tb.cpp $(MODEL)
+
 # Two gates, separately runnable, because they answer different questions:
 # `core` is whether the machine keeps its declared cycle counts, `chip` is
 # whether a fabricated one could be given a different program at all.
@@ -55,9 +76,14 @@ core: $(BUILD)/Vaxpe
 chip: $(BUILD)/chip/Vaxpe_chip $(HEX)
 	$(BUILD)/chip/Vaxpe_chip $(BUILD)/fw
 
+# Same suite, same firmware and same peers, but through the exact source tree
+# exported to the official CMOS5L template and with the 6x4 profile defines.
+tt: $(BUILD)/tt/Vtt_um_shubhgau_atomix_axpe $(HEX)
+	$(BUILD)/tt/Vtt_um_shubhgau_atomix_axpe $(BUILD)/fw
+
 check: core chip
 
 clean:
 	rm -rf $(BUILD)
 
-.PHONY: check core chip clean
+.PHONY: check core chip tt clean

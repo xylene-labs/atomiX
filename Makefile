@@ -69,6 +69,7 @@ help:
 	@echo "  make fuzz-loader        # binary-format parser regression with libFuzzer/sanitizers"
 	@echo "  make fuzz-coverage      # what that corpus reaches inside the loader"
 	@echo "  make verify-smoke       # fast integrated verification ladder"
+	@echo "  make tt-export          # reproducible Tiny Tapeout axpe repository"
 	@echo "  make nightly-integrated # broad software/RTL suite with stage logs"
 	@echo "  make component-test"
 	@echo "  make web                 # boot the machine in a browser (needs emcc)"
@@ -406,12 +407,26 @@ pemu-model-check:
 pemu-cosim-check: pemu-model-check
 	$(MAKE) -C sim/pemu core
 
+TT_AXPE_PROFILE ?= configs/tt-axpe-6x4.json
+TT_AXPE_OUTPUT ?= build/asic/tt-axpe-export
+
+# The official template is immutable source provenance.  Export combines it
+# with the selected component/profile into a standalone Tiny Tapeout tree.
+tt-export:
+	$(PYTHON) tools/tt_axpe.py export --profile "$(TT_AXPE_PROFILE)" \
+	  --output "$(TT_AXPE_OUTPUT)"
+
+pemu-asic-check: tt-export
+	$(PYTHON) tools/tt_axpe.py check --profile "$(TT_AXPE_PROFILE)" \
+	  --output "$(TT_AXPE_OUTPUT)"
+	$(MAKE) -C sim/pemu tt TT_STAGE="$(abspath $(TT_AXPE_OUTPUT))"
+
 # Programmability: two different programs loaded over the host port into one
 # unchanged design. A preinitialised memory image does not pass this.
-pemu-chip-check:
+pemu-chip-check: pemu-asic-check tt-export
 	$(MAKE) -C sim/pemu chip
 
-.PHONY: pemu-model-check pemu-cosim-check pemu-chip-check
+.PHONY: pemu-model-check pemu-cosim-check pemu-chip-check pemu-asic-check tt-export
 
 # `validate` checks the manifest; `self-test` checks the runner, by running a
 # suite built to go wrong: a stage whose tool is missing, one naming a

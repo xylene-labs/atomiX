@@ -101,6 +101,12 @@ unless the caller states that the test was re-run.
   dependency map, selected block, bounded next experiment, and an explicit
   proceed/defer decision. No PDK or physical device is needed for the audit;
   completing it does not prove an ASIC implementation.
+  Current execution: `axpe` is the selected block. PE-01 pins the official
+  CMOS5L template and its `tt_um_*` I/O/reset contract. PE-02 has now bound the
+  wrapper and found that the exact pinned CMOS5L PDK has no compatible SRAM
+  macro views: the 64×32 inferred fallback preserves the single-port,
+  synchronous-read contract and passes the shared chip suite, but the complete
+  dependency map and physical result remain open.
 
 <a id="rx-09"></a>
 
@@ -118,6 +124,12 @@ unless the caller states that the test was re-run.
   block execution. This gate establishes neither sign-off nor manufactured
   silicon; fabrication needs its own verification, test, packaging, resource,
   and bring-up plan.
+  Current execution: the protocol-emulator board records the official 6×4
+  source baseline and exact support-tools rectangle. The action, support tools,
+  PDK commit, LibreLane version, 20 ns clock, 64-word candidate and pass/fail
+  criteria are pinned in `asic/axpe/flow-lock.json`; `make tt-export` produces
+  the hashed input repository. Wrapper-level functional verification passes,
+  but no physical flow has completed yet, so RX-09 remains open.
 
 ## R1 — Partial reconfiguration of an FPGA
 

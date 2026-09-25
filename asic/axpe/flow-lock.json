@@ -1,0 +1,35 @@
+{
+  "schema": "org.atomix.tt-axpe-flow-lock.v1",
+  "template": {
+    "repository": "https://github.com/TinyTapeout/ttihp-verilog-template.git",
+    "ref": "cmos5l",
+    "commit": "b86a2a781484bcab7ba522dc5de540086695a430",
+    "tree": "5d72d5b9e04c0732d32c7f7d0f72cf950508e551",
+    "canonical_sha256": "ec1d700224739bc1fae99814f3b7991e69b6bbfec412f83e129658072867d6e3"
+  },
+  "flow": {
+    "gds_action": "TinyTapeout/tt-gds-action@3412659307918422f3f0727917cf9b499aaca588",
+    "support_tools_repository": "TinyTapeout/tt-support-tools",
+    "support_tools_commit": "d66cf179e7bc4d296362ab7e2e3b344dc3c4f665",
+    "pdk": "ihp-sg13cmos5l",
+    "pdk_repository": "https://github.com/IHP-GmbH/IHP-Open-PDK.git",
+    "pdk_commit": "2bbec755dc67ca3db0261c3d6163e15735d66710",
+    "librelane": "3.1.0.dev3"
+  },
+  "candidate": {
+    "profile": "configs/tt-axpe-6x4.json",
+    "top_module": "tt_um_shubhgau_atomix_axpe",
+    "tiles": "6x4",
+    "die_area_um": [0.0, 0.0, 1289.28, 710.64],
+    "clock_period_ns": 20.0,
+    "instruction_store": "64x32 inferred synchronous single-port array"
+  },
+  "success_criteria": {
+    "flow_completes": true,
+    "routing_violations": 0,
+    "setup_violations": 0,
+    "hold_violations": 0,
+    "mandatory_firmware_fits_words": 64,
+    "power_claim": false
+  }
+}

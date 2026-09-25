@@ -85,6 +85,8 @@ FPGA environment once per shell: `source "$HOME/opt/oss-cad-suite/environment"`.
 make pemu-model-check   # ISA drift, assembler, C model and firmware checks
 make pemu-cosim-check   # Verilated RTL against the C model, cycle for cycle
 make pemu-chip-check    # programmability, and UART/SPI/I2C against peers
+make pemu-asic-check    # deterministic export plus the same suite at tt_um_*
+make tt-export          # standalone, pinned Tiny Tapeout CMOS5L repository
 ```
 
 The model command requires a host C compiler and Python. The cosimulation adds
@@ -112,7 +114,16 @@ runs each against a peer in `sim/pemu/axpe_peers.h` written from the protocol's
 own rules rather than from axpe's model. The peers resolve the bus the way a
 wire does, with pull-ups and pull-downs, so I2C's open-drain path is exercised
 rather than assumed. They are simulated peers: hardware peers are PE-09's job
-and this is not that evidence. See
+and this is not that evidence.
+
+The same gate also resolves `configs/tt-axpe-6x4.json`, exports the immutable
+official template plus the maintained axpe overlay, and repeats the whole chip
+suite through the exact `tt_um_shubhgau_atomix_axpe` top at the profile's
+64-word depth. `make tt-export` is the independently runnable export step; it
+verifies the template's canonical hash and refuses to overwrite a directory it
+did not create. Its commit-pinned GDS workflow is the reproducible physical-flow
+entry point. Export and Verilated wrapper passes are still host simulation, not
+place-and-route evidence.
 [model conventions](../sw/pemu/model/README.md) and the
 [PE-05 evidence](../research/benchmarks/axpe-cosim.json).
 

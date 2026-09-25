@@ -67,9 +67,9 @@ card instead of taking time from the submission. All owners are unassigned.
 
 | Card / outcome | Tier | Priority | State | Depends on / blocker | First reviewable slice |
 |---|---|---|---|---|---|
-| PE-01: competition entry and official template baseline | T1 | P0 | Active | Registered 2026-09-18; the template itself is still outstanding | Register, record the confirmed rules and template revision, resolve the template's current tile-shape metadata against the required 6x4 allocation, and pull it into `asic/tt-axpe/` unmodified |
-| PE-14: post-fabrication programming and host contract | T1 | P0 | Review | PE-01 for the template's wrapper module name and revision | Done: [`docs/pemu-host-protocol.md`](../pemu-host-protocol.md) freezes the pins and framing, and `make pemu-chip-check` loads two unrelated programs into one elaborated design and runs both cycle-exact. Remaining: the top is `axpe_chip`, not the `tt_um_*` name the official template requires, which PE-01 supplies |
-| PE-02: instruction-memory and early-flow feasibility gate | T1 | P0 | Ready | PE-01; PE-14 write/read semantics settled 2026-09-18 | Put the writable instruction-store candidate and loader shell through the official 6x4 flow, recording mapped area, routability, timing and macro failures rather than relying on LEF footprint alone |
+| PE-01: competition entry and official template baseline | T1 | P0 | Review | Baseline imported 2026-09-25; maintainer review owed | Done: registration is recorded; the linked `cmos5l` template is pinned at `b86a2a7` and imported unchanged under [`asic/tt-axpe/`](../../asic/tt-axpe); the official 6x4 rule is reconciled with support-tools rectangle `1289.28 × 710.64µm`, and stale upstream comments remain visible rather than silently repaired |
+| PE-14: post-fabrication programming and host contract | T1 | P0 | Review | PE-01 wrapper contract resolved; PE-02 binds it | Done: [`docs/pemu-host-protocol.md`](../pemu-host-protocol.md) freezes the pins and framing, and `make pemu-chip-check` loads two unrelated programs into one elaborated design and runs both cycle-exact. Remaining: bind `axpe_chip` behind the pinned template's unique `tt_um_*` top during PE-02; maintainer review is still owed |
+| PE-02: instruction-memory and early-flow feasibility gate | T1 | P0 | Active | Wrapper/profile/export pass host verification; native CMOS5L flow still to run | Pinned action, support tools, PDK and LibreLane; rejected the SG13G2-only macro as incompatible; `make tt-export` emits the 64×32 inferred-store 6x4 candidate and the exact `tt_um_*` wrapper passes the shared two-program and protocol-peer suite. Remaining: record mapped area, routability and timing from the official flow |
 | PE-03: `axpe` ISA specification | T1 | P0 | Review | PE-02 budget | Done: `axpe-isa.json` is the single source, `axpe-isa.md` is generated from it, and `WAITE` returns its elapsed cycle count |
 | PE-04: golden model and assembler | T1 | P0 | Review | PE-03 timing decisions | Model, assembler, UART/autobaud and four-mode clocked shifts pass via `make pemu-model-check`; close only after effect/reset/fault conventions receive commit-pinned review |
 | PE-05: RTL and cycle-for-cycle cosimulation | T1 | P0 | Review | PE-04 | Done: `make pemu-cosim-check` compares every cycle with no tolerated deviation across 112 randomized programs and twelve directed cases, and the handoff gap is closed. Close only after commit-pinned review of the retirement and forwarding path |
@@ -80,7 +80,7 @@ card instead of taking time from the submission. All owners are unassigned.
 | PE-08: profile knobs exercised | T2 | P1 | Next | PE-05 | `configs/sim-axpe-tiny.json` runs every declared knob at a non-default value with limits derived from the build's own defines. **Known broken before the card is pulled**: `reg_width` and `delay_bits` do not elaborate away from 16 -- see the 2026-09-18 decision below, which has the diagnostics |
 | PE-09: Tang Primer bring-up | T3 | P1 | Next | PE-05, PE-14; Dock access; a `.cst` exposing a PMOD header; peer hardware arriving | Load firmware at runtime into one unchanged FPGA image, then run UART against CP2102, SPI against a Pi Pico 2 target, and I2C against an AT24C256. Add a capture-clock divider so the 24 MS/s analyzer can witness edge placement in `axpe` cycles |
 | PE-11: gate-level firmware simulation | T3 | P1 | Next | PE-10 | The same three firmware images pass post-P&R netlist simulation. Prepared 2026-09-18: the bench is split so the oracle, the cases and the peers know nothing about what simulates the part, leaving a `Device` binding of six methods. A Verilator run over a synthesised netlist reuses them directly; an event-driven run carrying SDF needs its own driver, and the cases still port |
-| PE-13: firmware-vs-fixed-logic experiment | T3 | P2 | Next | PE-05, PE-07; only after baseline competition gates | Compare `axpe` with `uart.mmio16550` under one oracle if schedule remains; this is supporting co-design evidence, not a substitute for programmability, mandatory protocols or a hardened chip |
+| PE-13: firmware-vs-fixed-logic experiment | T3 | P2 | Descoped | Cut 2026-09-25 when PE-01 missed its 2026-09-22 phase date | The comparison remains a useful future platform experiment, but it is outside the competition lane; its time now belongs to PE-02 and the first PE-10 hardening run |
 | PE-12: submission package | T1 | P0 | Next | PE-01, PE-06, PE-07, PE-10; PE-14 demonstrated | `make tt-export` produces the Tiny Tapeout repository, evidence index and a reproducible demo that loads multiple protocol images into one unchanged hardened design |
 
 ## Schedule
@@ -364,9 +364,42 @@ conformance against an independent peer, and no synthesis, P&R, FPGA or silicon
 claim. PE-06 is unblocked. No commit-pinned approval or completed card is
 claimed.
 
+### PE-01 checkpoint — 2026-09-25
+
+The entry now has an exact official source baseline. The competition page's
+CMOS5L link resolves to Tiny Tapeout's `cmos5l` template branch; commit
+`b86a2a781484bcab7ba522dc5de540086695a430`, tree
+`5d72d5b9e04c0732d32c7f7d0f72cf950508e551`, is imported unchanged under
+[`asic/tt-axpe/`](../../asic/tt-axpe). The imported top fixes the wrapper
+contract PE-14 was waiting for: a unique `tt_um_*` module with the standard
+eight input, eight output, eight bidirectional, `ena`, `clk` and `rst_n` ports.
+
+The apparent tile conflict is upstream documentation drift, not an unresolved
+choice. Jane Street's current rule says `tiles: "6x4"`; the template's
+`info.yaml` comment still lists only `*x2` shapes; and the
+`ihp-sg13cmos5l` support-tools branch at
+`d66cf179e7bc4d296362ab7e2e3b344dc3c4f665` accepts `6x4` with the hardening
+rectangle `0 0 1289.28 710.64`. The same tool revision contains `8x4`, but the
+competition page still caps entries at 6×4, so tool capability does not expand
+the allocation. The exact rectangle also corrects the macro-area denominator:
+the 256×32 candidate occupies 5.4%, not the 6.9% derived from the announcement's
+nominal 1200µm × 600µm estimate.
+
+The baseline preserves defects as well as files. Its CI workflow selects
+CMOS5L, while its devcontainer still names SG13G2, and the actions name moving
+branches. PE-02 must pin those executable inputs, bind `axpe_chip` behind the
+wrapper, and run the flow. This checkpoint is source/interface evidence only:
+no synthesis, P&R, gate-level, FPGA or silicon result is claimed. PE-01 is in
+Review because the maintainer still owes the commit-pinned review.
+
+Phase 0 landed three days after its 2026-09-22 date. Per the board's pre-written
+descope order, PE-13 is cut from the competition lane now; the slip is not taken
+from PE-02 or the first PE-10 run and is not hidden by spending submission
+buffer.
+
 | Phase | Cards | By |
 |---|---|---|
-| 0 — official entry and template | PE-01 | 2026-09-22 |
+| 0 — official entry and template | PE-01 | 2026-09-22 (reviewable slice landed 2026-09-25; PE-13 cut) |
 | 1 — runtime programmability and early 6x4 hardening | PE-14, PE-02; first PE-10 run | 2026-10-08 |
 | 2 — ISA, model and cycle-exact RTL | PE-03, PE-04, PE-05 | 2026-10-29 |
 | 3 — mandatory runtime-loaded protocols | PE-07 | 2026-11-19 |
@@ -400,6 +433,12 @@ claim or trigger re-synthesis.
 
 ## Priority decisions
 
+- 2026-09-25: PE-01 pins the official CMOS5L template at `b86a2a7` and the
+  current 6×4 technology rectangle at 1289.28µm × 710.64µm. The stale `*x2`
+  comment and SG13G2 devcontainer setting stay visible in the pristine import;
+  PE-02 owns the executable, commit-pinned flow. Because phase 0 missed its date
+  by three days, PE-13 is the first scope removed under the descope order. No
+  ASIC flow evidence exists yet.
 - 2026-09-18: registration is done, and the mandatory-email step this board
   listed as a PE-01 blocker was not a requirement. PE-01 stays open for what it
   is actually for: the official template revision, its tile-shape metadata
@@ -562,8 +601,10 @@ claim or trigger re-synthesis.
   unknown peer, and generating every derived artifact from one ISA description.
   Both are recorded in [§3.1](../protocol-emulator.md).
 - 2026-09-17: that gate is half closed, and in the favourable direction. Measured
-  IHP-Open-PDK LEF footprints put a 256×32 single-port SRAM macro at 6.9% of the
-  6×4 die and a 512×32 at 11.1% — see [§2.1](../protocol-emulator.md). Program
-  size was never the constraint; the storage primitive was. PE-02 stays Active
+  IHP-Open-PDK LEF footprints originally put a 256×32 single-port SRAM macro at
+  6.9% of the announcement's nominal 1200µm × 600µm area and a 512×32 at 11.1%.
+  PE-01 later pinned the actual hardening rectangle and corrected those shares
+  to 5.4% and 8.7% — see [§2.1](../protocol-emulator.md). Program
+  size was never the constraint; the storage primitive was. PE-02 stays Ready
   because area affordability is not flow acceptance: the macro has to go through
   the Tiny Tapeout 6×4 flow before PE-03 may assume it.

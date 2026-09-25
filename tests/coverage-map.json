@@ -500,6 +500,14 @@
     ".:pemu-chip-check": {
       "kind": "suite",
       "stage": "pemu-chip"
+    },
+    ".:pemu-asic-check": {
+      "kind": "via",
+      "aggregate": "pemu-chip-check"
+    },
+    ".:tt-export": {
+      "kind": "via",
+      "aggregate": "pemu-chip-check"
     }
   }
 }

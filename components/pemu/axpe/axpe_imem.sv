@@ -1,17 +1,16 @@
 // The writable instruction store.
 //
 // Single port, synchronous read, one address shared by reads and writes --
-// deliberately the shape an IHP SG13G2 SRAM macro has, because PE-02 replaces
-// the cells below with one and a behavioural model that is more capable than
-// the macro would hide the integration cost rather than measure it. In
-// particular there is exactly one address port, so the host cannot write while
-// the core fetches; the host contract makes that a rule rather than a race, by
-// refusing writes while the core is running.
+// deliberately the shape a future technology memory must preserve.  The
+// pinned CMOS5L PDK has no compatible SRAM macro views, so PE-02 first measures
+// a 64-word inferred-cell fallback rather than importing an SG13G2 macro into a
+// different technology.  In particular there is exactly one address port, so
+// the host cannot write while the core fetches; the host contract makes that a
+// rule rather than a race, by refusing writes while the core is running.
 //
-// A write cycle does not produce read data. The macro does not promise it, so
-// neither does this: `rdata` holds during a write instead of quietly
-// forwarding, which is what would let firmware depend on behaviour the silicon
-// will not have.
+// A write cycle does not produce read data.  `rdata` holds during a write
+// instead of quietly forwarding, so firmware cannot depend on a read-during-
+// write behavior that a later technology memory may not provide.
 `default_nettype none
 
 module axpe_imem #(

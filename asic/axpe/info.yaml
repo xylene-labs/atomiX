@@ -1,0 +1,48 @@
+# Tiny Tapeout project information
+project:
+  title:        "atomiX axpe protocol emulator"
+  author:       "Shubhendra Gautam"
+  discord:      ""
+  description:  "Runtime-programmable, cycle-timed UART/SPI/I2C protocol emulator"
+  language:     "SystemVerilog"
+  clock_hz:     50000000
+  tiles:        "6x4"
+  top_module:   "tt_um_shubhgau_atomix_axpe"
+  source_files:
+    - "tt_um_shubhgau_atomix_axpe.sv"
+    - "axpe.sv"
+    - "axpe_decode.sv"
+    - "axpe_timing.sv"
+    - "axpe_shift.sv"
+    - "axpe_pads.sv"
+    - "axpe_imem.sv"
+    - "axpe_host.sv"
+    - "axpe_chip.sv"
+
+pinout:
+  ui[0]: "Host SCLK / firmware input 0"
+  ui[1]: "Host MOSI / firmware input 1"
+  ui[2]: "Host CS_n / firmware input 2"
+  ui[3]: "Firmware input 3"
+  ui[4]: "Firmware input 4"
+  ui[5]: "Firmware input 5"
+  ui[6]: "Firmware input 6"
+  ui[7]: "Firmware input 7"
+  uo[0]: "Host MISO while selected / firmware output 0"
+  uo[1]: "Firmware output 1"
+  uo[2]: "Firmware output 2"
+  uo[3]: "Firmware output 3"
+  uo[4]: "Firmware output 4"
+  uo[5]: "Firmware output 5"
+  uo[6]: "Firmware output 6"
+  uo[7]: "Firmware output 7"
+  uio[0]: "Protocol bidirectional 0"
+  uio[1]: "Protocol bidirectional 1"
+  uio[2]: "Protocol bidirectional 2"
+  uio[3]: "Protocol bidirectional 3"
+  uio[4]: "Protocol bidirectional 4"
+  uio[5]: "Protocol bidirectional 5"
+  uio[6]: "Protocol bidirectional 6"
+  uio[7]: "Protocol bidirectional 7"
+
+yaml_version: 6

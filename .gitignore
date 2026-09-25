@@ -79,6 +79,15 @@ sim/web/public/machines/
 # editor noise
 *.swp
 .vscode/
+# PE-01 carries the official CMOS5L template as a pristine source baseline.
+# Its editor settings and flow JSON are upstream inputs, not local editor noise
+# or generated FPGA artifacts, so broad repository rules must not hide them.
+!asic/tt-axpe/.vscode/
+!asic/tt-axpe/.vscode/**
+!asic/tt-axpe/**/*.json
+# PE-02's export recipe and flow lock are source inputs.  The exported tree
+# itself remains under build/ and is never committed.
+!asic/axpe/**/*.json
 # Formal-generated jobs, solver databases, and counterexample traces.
 formal/build/
 sim/unit/morph_outputs.bin
