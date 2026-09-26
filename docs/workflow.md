@@ -121,11 +121,13 @@ official template plus the maintained axpe overlay, and repeats the whole chip
 suite through the exact `tt_um_shubhgau_atomix_axpe` top at the profile's
 64-word depth. `make tt-export` is the independently runnable export step; it
 verifies the template's canonical hash and refuses to overwrite a directory it
-did not create. Its commit-pinned GDS workflow is the reproducible physical-flow
-entry point. Export and Verilated wrapper passes are still host simulation, not
-place-and-route evidence.
-[model conventions](../sw/pemu/model/README.md) and the
-[PE-05 evidence](../research/benchmarks/axpe-cosim.json).
+did not create or an export containing a `runs/` tree. Its commit-pinned GDS
+workflow is the physical-flow entry point. The first 6×4 run, its exact inputs
+and commands, and the 20 ns timing failure are recorded in the
+[CMOS5L feasibility evidence](../research/benchmarks/axpe-cmos5l-feasibility.json).
+Export and Verilated wrapper passes are host simulation; the routed result is
+separate evidence. See also the [model conventions](../sw/pemu/model/README.md)
+and [PE-05 evidence](../research/benchmarks/axpe-cosim.json).
 
 ### Choose / inspect a profile
 ```bash

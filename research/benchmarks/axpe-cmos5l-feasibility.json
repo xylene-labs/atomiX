@@ -1,0 +1,143 @@
+{
+  "schema": "org.atomix.axpe-cmos5l-feasibility.v1",
+  "date": "2026-09-27",
+  "evidence_kind": "synthesis-and-place-route, not silicon",
+  "source_commit": "9bc2079ff0a8f3cd321ac761225fea7f28dd54b4",
+  "source_state": "RTL, profile and exporter at source_commit; this evidence and its documentation are uncommitted and await maintainer review",
+  "candidate": {
+    "top": "tt_um_shubhgau_atomix_axpe",
+    "profile": "configs/tt-axpe-6x4.json",
+    "profile_sha256": "01b1b9beffb015bf8c2cc6c55192921c17d81a6b5962501",
+    "flow_lock_sha256": "c641879e66eeb812fbd990012d038015aaf3c79ff488af38d8ce00e0ee531bc4",
+    "export_manifest_sha256": "16d9208029661e4d67e2fca787617ee048bf7b0dc0eb044324a2e592ecf2ebc0",
+    "template_canonical_sha256": "ec1d700224739bc1fae99814f3b7991e69b6bbfec412f83e129658072867d6e3",
+    "die_um": [0, 0, 1289.28, 710.64],
+    "clock_period_ns": 20,
+    "instruction_store": "64x32 inferred, synchronous, single-port",
+    "compatible_cmos5l_sram_views": false
+  },
+  "tools": {
+    "template_commit": "b86a2a781484bcab7ba522dc5de540086695a430",
+    "gds_action_commit": "3412659307918422f3f0727917cf9b499aaca588",
+    "support_tools_commit": "d66cf179e7bc4d296362ab7e2e3b344dc3c4f665",
+    "pdk_commit": "2bbec755dc67ca3db0261c3d6163e15735d66710",
+    "librelane_version": "3.1.0.dev3",
+    "librelane_source_commit": "ca6adb1e2982cd75445a68b632d461213d8ca421",
+    "yosys_version": "0.66",
+    "nix_portable_sha256": "b409c55904c909ac3aeda3fb1253319f86a89ddd1ba31a5dec33d4a06414c72a"
+  },
+  "execution": {
+    "export_command": "python3 tools/tt_axpe.py export --profile configs/tt-axpe-6x4.json --output build/asic/tt-axpe-flow",
+    "support_tools_preparation": "Checkout tt-support-tools at support_tools_commit into build/asic/tt-axpe-flow/tt",
+    "user_config_command": "From build/asic/tt-axpe-flow: PATH=../tt-flow-venv/bin:$PATH ../tt-flow-venv/bin/python tt/tt_tool.py --ihp --create-user-config",
+    "configuration": "build/asic/tt-axpe-flow/src/config_merged.json",
+    "configuration_sha256": "416bb19e395b9cf089c7c7cf0d2c9917b2a50d3d6a4f16dc3d6065653e04e360",
+    "flow": "LibreLane Classic with the pinned CMOS5L PDK and Tiny Tapeout support-tools DEF; user configuration created by tt/tt_tool.py --ihp --create-user-config",
+    "flow_command_prefix": "cd build/asic/tt-axpe-flow; PDK_ROOT=<absolute path to pinned IHP-Open-PDK checkout> python -m librelane --pdk-root <same checkout> --pdk ihp-sg13cmos5l --manual-pdk",
+    "shell_command": "NP_LOCATION=build/asic/nix-portable-state build/asic/nix-portable nix-shell build/asic/librelane-src/shell.nix --option extra-substituters https://nix-cache.fossi-foundation.org --option extra-trusted-public-keys nix-cache.fossi-foundation.org:3+K59iFwXqKsL7BNu6Guy0v+uTlwsxYQxjspXzqLYQs= --run <flow command>",
+    "initial_run_dir": "build/asic/tt-axpe-flow/runs/wokwi",
+    "initial_arguments": "--run-tag wokwi --force-run-dir runs/wokwi src/config_merged.json",
+    "initial_run_interrupted_after": "33-odb-manualglobalplacement; 34-openroad-detailedplacement had no state_out.json",
+    "checkpoint_state_sha256": "b19ab3fe451a86df34827b732a67d2839fabd718715c4a3d79d3262ad182fe73",
+    "resume_run_dir": "build/asic/tt-axpe-flow/src/runs/resume34",
+    "resume_arguments": "--run-tag resume34 -i runs/wokwi/33-odb-manualglobalplacement/state_out.json --from OpenROAD.DetailedPlacement --to OpenROAD.STAPostPNR src/config_merged.json",
+    "routing_run_dir": "build/asic/tt-axpe-flow/src/runs/route6",
+    "routing_arguments": "--run-tag route6 -i src/runs/resume34/10-openroad-stamidpnr-3/state_out.json --from OpenROAD.DetailedRouting --to OpenROAD.STAPostPNR -c OPENROAD_THREADS=6 src/config_merged.json",
+    "routing_restart_reason": "LibreLane 3.1.0.dev3 passed -threads None to OpenROAD when OPENROAD_THREADS was unset, leaving detailed routing at roughly one CPU; the first attempt was stopped during detail routing and restarted from the completed pre-route checkpoint with six threads.",
+    "resume_environment": "Run from build/asic/tt-axpe-flow in the LibreLane shell.nix with PDK_ROOT pointing to the pinned IHP-Open-PDK checkout and --pdk ihp-sg13cmos5l --manual-pdk.",
+    "sdc": {
+      "input_delay_ns": 4,
+      "output_delay_ns": 4,
+      "clock_uncertainty_ns": 0.25,
+      "clock_transition_ns": 0.15,
+      "timing_derate_percent": 5,
+      "origin": "LibreLane base.sdc defaults; no board-specific external timing contract"
+    }
+  },
+  "synthesis": {
+    "mapped_cells": 12026,
+    "mapped_cell_area_um2": 227278.548,
+    "flip_flops": 2497,
+    "source": "initial_run_dir/06-yosys-synthesis/reports/stat.rpt"
+  },
+  "global_route": {
+    "overflow": 0,
+    "routed_nets": 16503,
+    "wirelength_um": 1046037,
+    "source": "resume_run_dir/06-openroad-globalrouting/openroad-globalrouting.log"
+  },
+  "verification": [
+    {
+      "command": "make verification-check",
+      "result": "pass"
+    },
+    {
+      "command": "make verify-smoke",
+      "result": "pass, 14/14 stages including pemu-chip and candidate-registry"
+    }
+  ],
+  "post_route": {
+    "stage": "RC-extracted STA after detailed routing; the requested flow stopped at OpenROAD.STAPostPNR",
+    "post_route_stage_completed": true,
+    "full_classic_gds_flow_completed": false,
+    "standard_cells": 16667,
+    "standard_cell_area_um2": 287809,
+    "core_area_um2": 902417,
+    "standard_cell_core_utilization_percent": 31.89,
+    "openroad_routing_drc_errors": 0,
+    "antenna_net_violations": 0,
+    "antenna_pin_violations": 0,
+    "critical_disconnected_pins": 0,
+    "corners": {
+      "nom_fast_1p32V_m40C": {
+        "setup_worst_slack_ns": 9.126206,
+        "setup_violations": 0,
+        "hold_worst_slack_ns": 0.115755,
+        "hold_violations": 0
+      },
+      "nom_typ_1p20V_25C": {
+        "setup_worst_slack_ns": 5.478659,
+        "setup_violations": 0,
+        "hold_worst_slack_ns": 0.300749,
+        "hold_violations": 0
+      },
+      "nom_slow_1p08V_125C": {
+        "setup_worst_slack_ns": -0.903274,
+        "setup_total_negative_slack_ns": -0.903274,
+        "setup_violations": 1,
+        "hold_worst_slack_ns": 0.632688,
+        "hold_violations": 0,
+        "register_to_register_setup_worst_slack_ns": 14.465706,
+        "register_to_register_setup_violations": 0
+      }
+    },
+    "slow_corner_worst_path": "uio_in[4] to u_axpe_chip.mem_rdata[27] read-data register (_16964_/D); an input-to-register next-fetch/store-read path",
+    "electrical_violations": {
+      "max_slew_slow_corner": 9,
+      "max_fanout_each_corner": 164,
+      "max_cap_each_corner": 0
+    },
+    "metrics_sha256": "3a846b5a6d72c8bfb1216a020d51ae9473e06e1e1938c5e46c4fbff3296d9e3c",
+    "slow_setup_report_sha256": "a2f93ed029c6b95ee35b9d07e43b639370943ddea6b78fdb5428a551c71a8db6",
+    "detailed_route_log_sha256": "e9ad386296a3710722dc8cd5525803cd9f91bd165973cf5ab81d352a95c33017",
+    "sources": [
+      "routing_run_dir/final/metrics.json",
+      "routing_run_dir/12-openroad-stapostpnr/nom_slow_1p08V_125C/max.rpt",
+      "routing_run_dir/01-openroad-detailedrouting/openroad-detailedrouting.log",
+      "routing_run_dir/03-openroad-checkantennas-1/openroad-checkantennas-1.log"
+    ]
+  },
+  "outcome": "The inferred 64x32 store fits and routes in 6x4, but the predeclared 20 ns pass criterion is refuted by one slow-corner setup violation; full GDS/DRC/LVS signoff remains open.",
+  "next_decision": "Proceed with the standard-cell store. Run a separately locked clock-period experiment, starting at 25 ns with explicit I/O constraints, and repair the slow-corner slew/fanout violations before PE-10 closure. A 25 ns timing pass is an inference from this run, not yet measured.",
+  "not_claimed": [
+    "completed full GDS/DRC/LVS signoff",
+    "power without an activity model and source-location file",
+    "gate-level firmware replay",
+    "fabricated or measured silicon"
+  ],
+  "automation_failure": {
+    "event": "An earlier full run reached Magic DRC, then make verify-smoke invoked tt-export and replaced its run directory before DRC/LVS completed.",
+    "impact": "The earlier post-route metrics and GDS were lost; recovered open-handle logs alone are not a completed flow result.",
+    "fix": "The default export and flow directories are separate, and the exporter refuses to replace any marked output containing runs/; tools/tt_axpe.py check exercises the guard."
+  }
+}

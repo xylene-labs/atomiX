@@ -68,13 +68,13 @@ card instead of taking time from the submission. All owners are unassigned.
 | Card / outcome | Tier | Priority | State | Depends on / blocker | First reviewable slice |
 |---|---|---|---|---|---|
 | PE-01: competition entry and official template baseline | T1 | P0 | Review | Baseline imported 2026-09-25; maintainer review owed | Done: registration is recorded; the linked `cmos5l` template is pinned at `b86a2a7` and imported unchanged under [`asic/tt-axpe/`](../../asic/tt-axpe); the official 6x4 rule is reconciled with support-tools rectangle `1289.28 × 710.64µm`, and stale upstream comments remain visible rather than silently repaired |
-| PE-14: post-fabrication programming and host contract | T1 | P0 | Review | PE-01 wrapper contract resolved; PE-02 binds it | Done: [`docs/pemu-host-protocol.md`](../pemu-host-protocol.md) freezes the pins and framing, and `make pemu-chip-check` loads two unrelated programs into one elaborated design and runs both cycle-exact. Remaining: bind `axpe_chip` behind the pinned template's unique `tt_um_*` top during PE-02; maintainer review is still owed |
-| PE-02: instruction-memory and early-flow feasibility gate | T1 | P0 | Active | Wrapper/profile/export pass host verification; native CMOS5L flow still to run | Pinned action, support tools, PDK and LibreLane; rejected the SG13G2-only macro as incompatible; `make tt-export` emits the 64×32 inferred-store 6x4 candidate and the exact `tt_um_*` wrapper passes the shared two-program and protocol-peer suite. Remaining: record mapped area, routability and timing from the official flow |
+| PE-14: post-fabrication programming and host contract | T1 | P0 | Review | Maintainer review owed | Done: [`docs/pemu-host-protocol.md`](../pemu-host-protocol.md) freezes the pins and framing; `make pemu-chip-check` loads two unrelated programs into one elaborated design and runs both cycle-exact; PE-02 also binds it behind the pinned template's unique `tt_um_*` top |
+| PE-02: instruction-memory and early-flow feasibility gate | T1 | P0 | Review | Measured 20 ns refutation; maintainer review owed | The pinned 64×32 inferred-store candidate passes wrapper simulation, fits 6×4 at 31.9% core utilization and routes with zero OpenROAD DRC/antenna errors. Post-route slow-corner STA has one −0.903 ns setup violation; electrical violations remain. The result and interrupted earlier attempt are recorded in [`axpe-cmos5l-feasibility.json`](../../research/benchmarks/axpe-cmos5l-feasibility.json). Decision: retain this store; PE-10 tests a separately locked 25 ns target and I/O contract |
 | PE-03: `axpe` ISA specification | T1 | P0 | Review | PE-02 budget | Done: `axpe-isa.json` is the single source, `axpe-isa.md` is generated from it, and `WAITE` returns its elapsed cycle count |
 | PE-04: golden model and assembler | T1 | P0 | Review | PE-03 timing decisions | Model, assembler, UART/autobaud and four-mode clocked shifts pass via `make pemu-model-check`; close only after effect/reset/fault conventions receive commit-pinned review |
 | PE-05: RTL and cycle-for-cycle cosimulation | T1 | P0 | Review | PE-04 | Done: `make pemu-cosim-check` compares every cycle with no tolerated deviation across 112 randomized programs and twelve directed cases, and the handoff gap is closed. Close only after commit-pinned review of the retirement and forwarding path |
 | PE-07: mandatory UART, SPI and I2C firmware | T1 | P0 | Review | PE-05, PE-14 both done | Done in simulation: all three load into one unchanged chip image and pass peers written from each protocol, with I2C covering ACK/NACK, repeated start, STOP and bus release. Remaining for closure: hardware peers, which is PE-09 |
-| PE-10: staged CMOS5L synthesis and place-and-route | T1 | P0 | Next | PE-01, PE-02 and PE-14 for the first integrated run; PE-07 for final closure | Harden the smallest programmable chip as soon as loader and memory compose, then repeat on the final mandatory-protocol architecture with actual area, timing and violations recorded |
+| PE-10: staged CMOS5L synthesis and place-and-route | T1 | P0 | Active | First integrated post-route run complete; 20 ns timing and electrical checks fail | Next: lock and run a 25 ns target with explicit I/O delays, repair slew/fanout, then complete GDS/DRC/LVS and repeat on the final mandatory-protocol architecture. The first run's actual area, route and timing are recorded under PE-02 |
 | PE-15: a measured period firmware can use | T2 | P0 | Review | PE-03, PE-05 both satisfied | Done in simulation: `SHPER` (opcode `0E`) writes a period register and one bit of the shift shape's unused `b` field selects it, so `SHOUT`/`SHIN`/`SHIO` take their bit period from architectural state. `autobaud-demo.s` measures an unconfigured peer and answers at its rate, checked at two different rates through one unchanged chip image. Close only after commit-pinned review of the exact-but-not-static timing split and the reserved-bit rule |
 | PE-06: timing-determinism proof | T2 | P0 | Ready | PE-05 (unblocked 2026-09-18) | Every instruction proved to retire in its declared cycle count, `WAITE` bounded by its timeout |
 | PE-08: profile knobs exercised | T2 | P1 | Next | PE-05 | `configs/sim-axpe-tiny.json` runs every declared knob at a non-default value with limits derived from the build's own defines. **Known broken before the card is pulled**: `reg_width` and `delay_bits` do not elaborate away from 16 -- see the 2026-09-18 decision below, which has the diagnostics |
@@ -396,6 +396,19 @@ Phase 0 landed three days after its 2026-09-22 date. Per the board's pre-written
 descope order, PE-13 is cut from the competition lane now; the slip is not taken
 from PE-02 or the first PE-10 run and is not hidden by spending submission
 buffer.
+
+### PE-02 checkpoint — 2026-09-27
+
+The documented pinned CMOS5L feasibility run reached post-route RC extraction and STA.
+The inferred 64×32 store fits the 6×4 core and OpenROAD reports zero final
+routing DRC, antenna and critical disconnected-pin errors. The 20 ns criterion
+fails by 0.903 ns on one slow-corner input-to-instruction-read-register path;
+all hold checks pass, while slew and fanout violations remain. The result is a
+bounded refutation of the clock target, with the exact inputs, commands,
+metrics and automation failure in
+[`axpe-cmos5l-feasibility.json`](../../research/benchmarks/axpe-cmos5l-feasibility.json).
+PE-02 awaits maintainer review. PE-10 now owns the separately locked 25 ns
+experiment and full GDS/DRC/LVS closure; no signoff or silicon result is claimed.
 
 | Phase | Cards | By |
 |---|---|---|

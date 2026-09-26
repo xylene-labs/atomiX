@@ -102,11 +102,15 @@ unless the caller states that the test was re-run.
   proceed/defer decision. No PDK or physical device is needed for the audit;
   completing it does not prove an ASIC implementation.
   Current execution: `axpe` is the selected block. PE-01 pins the official
-  CMOS5L template and its `tt_um_*` I/O/reset contract. PE-02 has now bound the
-  wrapper and found that the exact pinned CMOS5L PDK has no compatible SRAM
-  macro views: the 64×32 inferred fallback preserves the single-port,
-  synchronous-read contract and passes the shared chip suite, but the complete
-  dependency map and physical result remain open.
+  CMOS5L template and its `tt_um_*` I/O/reset contract. The source and
+  interface dependency map is in `docs/protocol-emulator.md` §2.2: it covers
+  the store, startup/reset, clock, asynchronous host pins, protocol I/O and
+  generated configuration. The exact pinned CMOS5L PDK has no compatible SRAM
+  macro views, so the bounded experiment proceeds with a 64×32 inferred,
+  synchronous-read store. The shared chip suite passes through the wrapper.
+  Decision: proceed to RX-09 with this standard-cell candidate and defer SRAM
+  binding until compatible CMOS5L views exist. The audit awaits maintainer
+  review; physical feasibility belongs to RX-09.
 
 <a id="rx-09"></a>
 
@@ -128,8 +132,15 @@ unless the caller states that the test was re-run.
   source baseline and exact support-tools rectangle. The action, support tools,
   PDK commit, LibreLane version, 20 ns clock, 64-word candidate and pass/fail
   criteria are pinned in `asic/axpe/flow-lock.json`; `make tt-export` produces
-  the hashed input repository. Wrapper-level functional verification passes,
-  but no physical flow has completed yet, so RX-09 remains open.
+  the hashed input repository. Wrapper-level functional verification passes.
+  The pinned CMOS5L run reached post-route RC extraction and STA: the 64×32
+  standard-cell store fits and routes with zero OpenROAD routing DRC and
+  antenna violations, but one slow-corner setup path misses 20 ns by 0.903 ns;
+  slew and fanout violations remain. See
+  `research/benchmarks/axpe-cmos5l-feasibility.json` for commands, hashes and
+  limits. Decision: proceed with this store and test a separately locked 25 ns
+  target and explicit I/O timing contract in PE-10. RX-09 remains open for that
+  measured pass and full GDS/DRC/LVS verification; no silicon claim follows.
 
 ## R1 — Partial reconfiguration of an FPGA
 

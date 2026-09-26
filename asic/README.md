@@ -43,7 +43,11 @@ views under `ihp-sg13cmos5l/libs.ref`. The similarly named 256×32 macro exists
 only in the SG13G2 library, so it is not silently treated as CMOS5L-compatible.
 The first hardening candidate instead uses a 64×32 inferred synchronous array:
 all four mandatory firmware images fit (largest: 55 words), and the physical
-flow must now determine whether those cells fit the 6×4 rectangle.
+flow measured 31.9% standard-cell utilization in the 6×4 core and zero
+OpenROAD routing DRC errors. Its 20 ns slow-corner setup check misses by
+0.903 ns, so the declared timing gate fails. The post-route evidence and
+remaining GDS/DRC/LVS limits are recorded in
+[`axpe-cmos5l-feasibility.json`](../research/benchmarks/axpe-cmos5l-feasibility.json).
 
 To compare the baseline with upstream, clone the pinned commit elsewhere and
 run `diff -ru --exclude=.git <clone> asic/tt-axpe`.  An empty diff, plus the

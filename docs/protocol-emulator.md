@@ -144,6 +144,33 @@ flip-flops and logic still to pay for, a wide register file is not affordable: a
 32-bit × 8-entry file alone is 256 flip-flops. The working assumption is a
 narrow datapath and few registers, revisited in PE-03.
 
+### 2.3 First CMOS5L physical result
+
+The pinned 64×32 standard-cell candidate synthesized to 12,026 cells and
+227,279 µm², including 2,497 flip-flops. In the official 6×4 rectangle,
+post-route standard cells occupy 287,809 µm² of a 902,417 µm² core (31.9%).
+Global routing had zero overflow; detailed OpenROAD routing DRC, the final
+antenna check, and the critical disconnected-pin check all reported zero.
+
+The 20 ns timing criterion **fails** after RC extraction. The slow
+`1.08 V / 125 °C` corner has one setup violation, with −0.903 ns worst slack
+and total negative slack. Its path starts at `uio_in[4]` and ends at the
+instruction store's registered read data; register-to-register setup has
++14.466 ns worst slack. All three corners have zero hold violations; the
+fast and typical corners have zero setup violations. The slow corner also has
+9 max-slew violations, and each corner reports 164 max-fanout violations.
+These are violations to resolve, not clean signoff.
+
+The result refutes the declared 20 ns target, not the store's capacity or
+routability. PE-02 proceeds with the inferred store and hands PE-10 a new,
+separately locked timing experiment starting at 25 ns, with an explicit I/O
+delay contract and electrical-violation repair. A 25 ns pass is only an
+inference from the current slack until that run is measured. This run stopped
+after post-route STA; full GDS, Magic DRC, LVS, gate-level firmware replay,
+power with an activity model, and silicon behavior remain unproved. The exact
+inputs, commands, hashes, metrics, and the interrupted earlier attempt are in
+[`axpe-cmos5l-feasibility.json`](../research/benchmarks/axpe-cmos5l-feasibility.json).
+
 ## 3. Architecture direction
 
 A single timed-ISA micro-CPU. Cycle timing is part of the instruction encoding
@@ -397,12 +424,10 @@ competition itself was tested rather than assumed.
 
 ## 7. Open questions
 
-- PE-02: whether the 64×32 inferred store and the rest of axpe place and route
-  in the official 6×4 CMOS5L flow at 20 ns. The exact pinned PDK has no
-  compatible SRAM macro views; the SG13G2 footprint table in §2.1 is context,
-  not a substitution license. If the inferred store fails, the next experiment
-  is a smaller latch store or streamed instruction window, with the same
-  single-port synchronous contract.
+- PE-10: whether a separately locked 25 ns target can clear slow-corner setup,
+  slew and fanout violations under an explicit I/O timing contract, then pass
+  the full GDS/DRC/LVS flow. The 64×32 inferred store already routes in 6×4;
+  changing memory capacity is not indicated by the first physical result.
 - PE-03: instruction width, register count and datapath width, under §2's ceiling.
 - Target clock frequency, and therefore the fastest protocol bit rate reachable.
 - Whether the 8×4 tile option becomes available, and what it would buy.
