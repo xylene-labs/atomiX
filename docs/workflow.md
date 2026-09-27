@@ -129,6 +129,44 @@ Export and Verilated wrapper passes are host simulation; the routed result is
 separate evidence. See also the [model conventions](../sw/pemu/model/README.md)
 and [PE-05 evidence](../research/benchmarks/axpe-cosim.json).
 
+For the separate PE-10 25 ns candidate, use the pinned flow helper after the
+local PDK, LibreLane/Nix and Tiny Tapeout Python environment from the feasibility
+run have been installed under `build/asic/`:
+
+```bash
+python3 tools/tt_axpe_flow.py prepare
+python3 tools/tt_axpe_flow.py run --tag pe10-25ns
+python3 tools/tt_axpe_flow.py status --tag pe10-25ns
+python3 tools/tt_axpe_flow.py summarize --tag pe10-25ns
+```
+
+`prepare` exports the new profile and generates the merged Tiny Tapeout config;
+`run` checks source hashes and tool commits, then runs through post-route STA
+with six OpenROAD threads; `summarize` writes compact metrics alongside the
+run. The script refuses to replace an existing run. After post-route STA, this
+continues through GDS/DRC/LVS without rerouting:
+
+```bash
+python3 tools/tt_axpe_flow.py run --tag pe10-25ns-signoff --resume-from-tag pe10-25ns --from OpenROAD.IRDropReport --full
+```
+
+The 25 ns lock declares a provisional 4 ns
+input/output delay, represented as 16% of the period in LibreLane's fallback
+SDC. This is a test constraint, not an externally verified pad contract or a
+signoff claim. Run trees and console logs stay under `build/asic/`, not Git.
+
+For the separate CTS fanout experiment, the 25 ns profile limits sink clusters
+to eight and resumes from the baseline's completed pre-CTS state:
+
+```bash
+python3 tools/tt_axpe_flow.py prepare --profile configs/tt-axpe-6x4-25ns-cts8.json --flow-lock asic/axpe/flow-lock-25ns-cts8.json --workdir build/asic/tt-axpe-25ns-cts8
+python3 tools/tt_axpe_flow.py run --profile configs/tt-axpe-6x4-25ns-cts8.json --flow-lock asic/axpe/flow-lock-25ns-cts8.json --workdir build/asic/tt-axpe-25ns-cts8 --tag pe10-25ns-cts8 --initial-state build/asic/tt-axpe-25ns/runs/pe10-25ns/34-openroad-detailedplacement/state_out.json --from OpenROAD.CTS
+```
+
+These are different flow locks and run trees; the baseline evidence is not
+overwritten. The checkpoint is reusable only while its hashed baseline export
+and parent run remain available.
+
 ### Choose / inspect a profile
 ```bash
 make component-list                              # catalog of selectable components

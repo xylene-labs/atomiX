@@ -1,0 +1,91 @@
+{
+  "schema": "org.atomix.axpe-cmos5l-25ns.v1",
+  "date": "2026-09-27",
+  "evidence_kind": "CMOS5L post-route extraction and STA, not silicon",
+  "source_commit": "e82bdafe543809c6d876ef05d310cb4e059b873c",
+  "source_state": "RTL at source_commit; the 25 ns profile, flow lock, helper and this record are uncommitted, with hashes below, pending maintainer review",
+  "candidate": {
+    "profile": "configs/tt-axpe-6x4-25ns.json",
+    "profile_sha256": "ec5649fa1686e515fc81ffe1e640079ff991de5bb6b0e30d43f5e8651ef96b54",
+    "flow_lock": "asic/axpe/flow-lock-25ns.json",
+    "flow_lock_sha256": "ee24486dfa132379cc75c7ad9f2b4adc2806f72bc8a4aab8dc5111a25f75bdb1",
+    "export_manifest_sha256": "199de96c2636fc3c9b84310fb87a6f3652aaea5fbfd1832db573a8bc1b562bae",
+    "merged_config_sha256": "0f5eee8fd46a0cdcf7a8268bdff97dd84721d3d43f60c9f5830c43473e74e29a",
+    "top": "tt_um_shubhgau_atomix_axpe",
+    "tiles": "6x4",
+    "clock_period_ns": 25,
+    "input_delay_ns": 4,
+    "output_delay_ns": 4,
+    "io_contract": "Provisional LibreLane base.sdc delay using IO_DELAY_CONSTRAINT=16%; not an external pad contract",
+    "instruction_store": "64x32 inferred synchronous single-port array"
+  },
+  "flow": {
+    "template_commit": "b86a2a781484bcab7ba522dc5de540086695a430",
+    "support_tools_commit": "d66cf179e7bc4d296362ab7e2e3b344dc3c4f665",
+    "pdk_commit": "2bbec755dc67ca3db0261c3d6163e15735d66710",
+    "librelane_version": "3.1.0.dev3",
+    "librelane_source_commit": "ca6adb1e2982cd75445a68b632d461213d8ca421",
+    "nix_portable_sha256": "b409c55904c909ac3aeda3fb1253319f86a89ddd1ba31a5dec33d4a06414c72a",
+    "prepare_command": "python3 tools/tt_axpe_flow.py prepare",
+    "route_command": "python3 tools/tt_axpe_flow.py run --tag pe10-25ns",
+    "summary_command": "python3 tools/tt_axpe_flow.py summarize --tag pe10-25ns",
+    "signoff_command": "python3 tools/tt_axpe_flow.py run --tag pe10-25ns-signoff --resume-from-tag pe10-25ns --from OpenROAD.IRDropReport --full",
+    "local_run_dir": "build/asic/tt-axpe-25ns/runs/pe10-25ns",
+    "openroad_threads": 6
+  },
+  "post_route": {
+    "stage": "RC-extracted STA after detailed routing; full GDS/DRC/LVS is a separate continuation",
+    "metrics_sha256": "da3d76eafd1b2638dca7d5b57508806bcd46f7c88c47885db1050505a10f5277",
+    "slow_setup_report_sha256": "27d652314028bba9e2f4011fdd9f950393501d1f0be0625f0b19bfa052b886e0",
+    "route_console_sha256": "877d53251ca2546e0cf76bd2e9a6e9dc34120cb11a8ca7df141ec8c9c148d3d4",
+    "standard_cells": 16678,
+    "standard_cell_area_um2": 287869,
+    "core_area_um2": 902417,
+    "standard_cell_core_utilization_percent": 31.9,
+    "openroad_routing_drc_errors": 0,
+    "antenna_net_violations": 0,
+    "antenna_pin_violations": 0,
+    "corners": {
+      "nom_fast_1p32V_m40C": {
+        "setup_worst_slack_ns": 14.10779,
+        "setup_violations": 0,
+        "hold_worst_slack_ns": 0.11275,
+        "hold_violations": 0,
+        "max_slew_violations": 0,
+        "max_fanout_violations": 162
+      },
+      "nom_typ_1p20V_25C": {
+        "setup_worst_slack_ns": 10.464462,
+        "setup_violations": 0,
+        "hold_worst_slack_ns": 0.296268,
+        "hold_violations": 0,
+        "max_slew_violations": 0,
+        "max_fanout_violations": 162
+      },
+      "nom_slow_1p08V_125C": {
+        "setup_worst_slack_ns": 4.090991,
+        "setup_violations": 0,
+        "hold_worst_slack_ns": 0.625243,
+        "hold_violations": 0,
+        "max_slew_violations": 14,
+        "max_fanout_violations": 162
+      }
+    },
+    "worst_setup_path": "uio_in[4] to instruction read-data register _16964_/D; 4 ns input delay included",
+    "fanout_root_cause": "160 of 162 violating drivers are CTS leaf clock buffers, typically driving 14-18 sinks against a limit of 8; the other two are fanout buffers. Test CTS sink-cluster size next",
+    "slew_gap": "14 violating pins at the slow corner; worst slew 3.344 ns versus a 2.507 ns limit",
+    "sources": [
+      "local_run_dir/final/metrics.json",
+      "local_run_dir/55-openroad-stapostpnr/nom_slow_1p08V_125C/max.rpt",
+      "local_run_dir/55-openroad-stapostpnr/nom_slow_1p08V_125C/checks.rpt"
+    ]
+  },
+  "verification": [
+    {"command": "python3 tools/tt_axpe.py check --profile configs/tt-axpe-6x4-25ns.json --flow-lock asic/axpe/flow-lock-25ns.json --output build/asic/tt-axpe-25ns-export-check", "result": "pass"},
+    {"command": "make config-check CONFIG=configs/tt-axpe-6x4-25ns.json", "result": "pass"},
+    {"command": "make verify-smoke", "result": "pass, 14/14 stages"}
+  ],
+  "outcome": "The 25 ns candidate fits, routes cleanly and passes post-route setup and hold with the stated test I/O delay, but it fails electrical slew/fanout checks and is not signed off.",
+  "next": "Complete the separate GDS/DRC/LVS continuation; test CTS sink clustering to repair clock-leaf fanout, then repair slow-corner slew and rerun timing and signoff on the final architecture.",
+  "not_claimed": ["completed GDS/DRC/LVS signoff", "gate-level firmware replay", "power from an activity model", "fabricated or measured silicon"]
+}

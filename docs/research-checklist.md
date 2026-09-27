@@ -139,8 +139,13 @@ unless the caller states that the test was re-run.
   slew and fanout violations remain. See
   `research/benchmarks/axpe-cmos5l-feasibility.json` for commands, hashes and
   limits. Decision: proceed with this store and test a separately locked 25 ns
-  target and explicit I/O timing contract in PE-10. RX-09 remains open for that
-  measured pass and full GDS/DRC/LVS verification; no silicon claim follows.
+  target and explicit I/O timing contract in PE-10. The separately locked 25 ns
+  run now measures +4.091 ns slow-corner setup slack, zero setup/hold and
+  OpenROAD routing DRC/antenna violations, but has 14 slow-corner max-slew and
+  162 max-fanout violations. Its 4 ns I/O delay is a provisional test contract,
+  not an externally verified pad constraint. See
+  `research/benchmarks/axpe-cmos5l-25ns.json`. RX-09 remains open for electrical
+  repair and full GDS/DRC/LVS verification; no silicon claim follows.
 
 ## R1 — Partial reconfiguration of an FPGA
 

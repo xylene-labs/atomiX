@@ -49,6 +49,21 @@ OpenROAD routing DRC errors. Its 20 ns slow-corner setup check misses by
 remaining GDS/DRC/LVS limits are recorded in
 [`axpe-cmos5l-feasibility.json`](../research/benchmarks/axpe-cmos5l-feasibility.json).
 
+The separately locked PE-10 candidate uses
+[`flow-lock-25ns.json`](axpe/flow-lock-25ns.json) and
+`configs/tt-axpe-6x4-25ns.json`. `python3 tools/tt_axpe_flow.py prepare` creates
+its own export in `build/asic/tt-axpe-25ns/`; `run` verifies the pinned PDK,
+LibreLane and support-tool commits and performs post-route STA; `summarize`
+extracts compact metrics. See [`docs/workflow.md`](../docs/workflow.md) for the
+command sequence and limits. Its measured post-route result is +4.091 ns
+slow-corner setup slack with zero routing DRC/antenna errors, but 14 slew and
+162 fanout violations; see
+[`axpe-cmos5l-25ns.json`](../research/benchmarks/axpe-cmos5l-25ns.json).
+This does not change the 20 ns feasibility lock.
+The independent `flow-lock-25ns-cts8.json` profile tests whether constraining
+CTS sink clusters to eight removes the measured clock-leaf fanout violations;
+it has its own export and never replaces the baseline run.
+
 To compare the baseline with upstream, clone the pinned commit elsewhere and
 run `diff -ru --exclude=.git <clone> asic/tt-axpe`.  An empty diff, plus the
 executable mode on `.devcontainer/copy_tt_support_tools.sh`, reproduces the

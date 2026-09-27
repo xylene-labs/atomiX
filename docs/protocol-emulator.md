@@ -171,6 +171,16 @@ power with an activity model, and silicon behavior remain unproved. The exact
 inputs, commands, hashes, metrics, and the interrupted earlier attempt are in
 [`axpe-cmos5l-feasibility.json`](../research/benchmarks/axpe-cmos5l-feasibility.json).
 
+PE-10's separate 25 ns candidate is now measured, not inferred. With a
+provisional 4 ns input/output delay, its post-route slow-corner setup slack is
++4.091 ns; every setup and hold check passes. OpenROAD routing DRC and final
+antenna checks are clear. Standard cells use 287,869 µm² of the same core.
+This is not electrical closure: the slow corner has 14 max-slew violations,
+and all corners have 162 max-fanout violations; 160 are CTS leaf clock buffers.
+The GDS/DRC/LVS continuation and electrical repair remain PE-10 work. Exact
+inputs and reports are in
+[`axpe-cmos5l-25ns.json`](../research/benchmarks/axpe-cmos5l-25ns.json).
+
 ## 3. Architecture direction
 
 A single timed-ISA micro-CPU. Cycle timing is part of the instruction encoding
@@ -424,10 +434,10 @@ competition itself was tested rather than assumed.
 
 ## 7. Open questions
 
-- PE-10: whether a separately locked 25 ns target can clear slow-corner setup,
-  slew and fanout violations under an explicit I/O timing contract, then pass
-  the full GDS/DRC/LVS flow. The 64×32 inferred store already routes in 6×4;
-  changing memory capacity is not indicated by the first physical result.
+- PE-10: repair 14 slow-corner slew and 162 fanout violations in the measured
+  25 ns candidate, establish an external I/O pad contract, then pass full
+  GDS/DRC/LVS. The 64×32 inferred store routes in 6×4 with positive setup and
+  hold slack; changing memory capacity is not indicated by these results.
 - PE-03: instruction width, register count and datapath width, under §2's ceiling.
 - Target clock frequency, and therefore the fastest protocol bit rate reachable.
 - Whether the 8×4 tile option becomes available, and what it would buy.

@@ -310,6 +310,10 @@ SETTINGS: dict[str, dict[str, Any]] = {
     # Place-and-route.
     "pnr_seed": {"type": int, "min": 1, "max": 1 << 16},
     "pnr_extra_args": {"type": str},
+    # The ASIC carrier owns this timing target; it is a flow constraint, not
+    # an RTL parameter. Export must compare it with the selected flow lock.
+    "asic_clock_period_ns": {"type": int, "min": 5, "max": 1000},
+    "asic_cts_sink_clustering_size": {"type": int, "min": 1, "max": 64},
 }
 
 
