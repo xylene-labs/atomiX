@@ -98,6 +98,8 @@ def validate_export(workdir: Path, lock_path: Path, profile: Path,
         "clock_period_ns": lock["candidate"]["clock_period_ns"],
         "io_delay_ns": lock["candidate"].get("io_delay_ns"),
         "cts_sink_clustering_size": lock["candidate"].get("cts_sink_clustering_size"),
+        "max_fanout": lock["candidate"].get("max_fanout"),
+        "max_transition_ps": lock["candidate"].get("max_transition_ps"),
     }
     for key, value in expected.items():
         if manifest.get(key) != value:
@@ -132,6 +134,12 @@ def validate_export(workdir: Path, lock_path: Path, profile: Path,
                 raise FlowError(f"{merged}: I/O delay disagrees with the lock")
         if config.get("CTS_SINK_CLUSTERING_SIZE") != expected["cts_sink_clustering_size"]:
             raise FlowError(f"{merged}: CTS sink-cluster size disagrees with the lock")
+        if expected["max_fanout"] is not None and (
+                config.get("MAX_FANOUT_CONSTRAINT") != expected["max_fanout"]):
+            raise FlowError(f"{merged}: max fanout disagrees with the lock")
+        if expected["max_transition_ps"] is not None and (
+                config.get("MAX_TRANSITION_CONSTRAINT") != expected["max_transition_ps"] / 1000):
+            raise FlowError(f"{merged}: max transition disagrees with the lock")
 
 
 def prepare(args: argparse.Namespace) -> tuple[Path, dict[str, Any]]:

@@ -142,10 +142,17 @@ unless the caller states that the test was re-run.
   target and explicit I/O timing contract in PE-10. The separately locked 25 ns
   run now measures +4.091 ns slow-corner setup slack, zero setup/hold and
   OpenROAD routing DRC/antenna violations, but has 14 slow-corner max-slew and
-  162 max-fanout violations. Its 4 ns I/O delay is a provisional test contract,
-  not an externally verified pad constraint. See
+  162 max-fanout violations. Its separate GDS continuation passes Magic DRC,
+  LVS and antenna checks. A CTS cluster-size-8 trial reduces fanout and
+  slow-corner slew violations to six each while keeping setup and hold clear;
+  that trial has not completed GDS/DRC/LVS. Smaller CTS clusters and a global
+  fanout limit of six both worsened comparable pre-route fanout checks; those
+  trials stopped during detailed routing without post-route claims. The 4 ns
+  I/O delay is a provisional test contract, not an externally verified pad
+  constraint. See
   `research/benchmarks/axpe-cmos5l-25ns.json`. RX-09 remains open for electrical
-  repair and full GDS/DRC/LVS verification; no silicon claim follows.
+  repair, final-architecture signoff and pad-contract validation; no silicon
+  claim follows.
 
 ## R1 — Partial reconfiguration of an FPGA
 

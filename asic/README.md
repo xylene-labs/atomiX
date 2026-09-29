@@ -57,12 +57,22 @@ LibreLane and support-tool commits and performs post-route STA; `summarize`
 extracts compact metrics. See [`docs/workflow.md`](../docs/workflow.md) for the
 command sequence and limits. Its measured post-route result is +4.091 ns
 slow-corner setup slack with zero routing DRC/antenna errors, but 14 slew and
-162 fanout violations; see
+162 fanout violations. A separate GDS continuation passes Magic DRC, LVS and
+antenna checks, while those electrical violations remain; see
 [`axpe-cmos5l-25ns.json`](../research/benchmarks/axpe-cmos5l-25ns.json).
 This does not change the 20 ns feasibility lock.
 The independent `flow-lock-25ns-cts8.json` profile tests whether constraining
 CTS sink clusters to eight removes the measured clock-leaf fanout violations;
-it has its own export and never replaces the baseline run.
+it has its own export and never replaces the baseline run. Its post-route
+result has six fanout and six slow-corner slew violations, with setup and hold
+still clear. Electrical closure and full GDS/DRC/LVS on that variant remain open.
+The independently locked `flow-lock-25ns-electric.json` profile tightens
+fanout and transition targets during synthesis. It was stopped during detailed
+routing after the global fanout limit created 14 pre-route violations, eight
+on upstream CTS buffers. A size-4 CTS experiment also stopped during detailed
+routing after its comparable mid-PNR fanout count worsened. Neither partial
+route has post-route or GDS evidence; both inputs and stop reasons are in the
+same evidence record.
 
 To compare the baseline with upstream, clone the pinned commit elsewhere and
 run `diff -ru --exclude=.git <clone> asic/tt-axpe`.  An empty diff, plus the

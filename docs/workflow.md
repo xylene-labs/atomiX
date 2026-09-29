@@ -165,7 +165,29 @@ python3 tools/tt_axpe_flow.py run --profile configs/tt-axpe-6x4-25ns-cts8.json -
 
 These are different flow locks and run trees; the baseline evidence is not
 overwritten. The checkpoint is reusable only while its hashed baseline export
-and parent run remain available.
+and parent run remain available. The baseline's GDS continuation passes Magic
+DRC, LVS and antenna checks but retains electrical violations. The CTS-size-8
+trial reaches post-route STA with six fanout and six slow-corner slew
+violations; its GDS continuation has not run. See the bounded
+[25 ns evidence](../research/benchmarks/axpe-cmos5l-25ns.json).
+
+The electrical-repair experiment keeps CTS clusters at eight, tightens the
+flow's synthesis/STA fanout target to six and transition target to 1.5 ns,
+and starts from the RTL again because synthesis must see those constraints:
+
+```bash
+python3 tools/tt_axpe_flow.py prepare --profile configs/tt-axpe-6x4-25ns-electric.json --flow-lock asic/axpe/flow-lock-25ns-electric.json --workdir build/asic/tt-axpe-25ns-electric
+python3 tools/tt_axpe_flow.py run --profile configs/tt-axpe-6x4-25ns-electric.json --flow-lock asic/axpe/flow-lock-25ns-electric.json --workdir build/asic/tt-axpe-25ns-electric --tag pe10-25ns-electric
+python3 tools/tt_axpe_flow.py summarize --profile configs/tt-axpe-6x4-25ns-electric.json --flow-lock asic/axpe/flow-lock-25ns-electric.json --workdir build/asic/tt-axpe-25ns-electric --tag pe10-25ns-electric
+```
+
+`asic_max_fanout` and `asic_max_transition_ps` are profile settings checked
+against the flow lock and emitted as `MAX_FANOUT_CONSTRAINT` and
+`MAX_TRANSITION_CONSTRAINT`; the latter converts picoseconds to nanoseconds.
+This trial was stopped during detailed routing after its pre-route check found
+14 fanout violations, including eight upstream clock buffers at fanout 16
+against the tightened limit of six. It has no post-route or GDS result; the
+command and inputs remain here so the failed idea is reproducible.
 
 ### Choose / inspect a profile
 ```bash

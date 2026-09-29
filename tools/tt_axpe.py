@@ -110,6 +110,16 @@ def validate_lock(lock: dict[str, Any]) -> None:
                                  not isinstance(cts_size, int) or
                                  not 1 <= cts_size <= 64):
         raise ExportError("flow lock cts_sink_clustering_size must be 1..64")
+    fanout = candidate.get("max_fanout")
+    if fanout is not None and (isinstance(fanout, bool) or
+                               not isinstance(fanout, int) or
+                               not 1 <= fanout <= 64):
+        raise ExportError("flow lock max_fanout must be 1..64")
+    transition_ps = candidate.get("max_transition_ps")
+    if transition_ps is not None and (isinstance(transition_ps, bool) or
+                                      not isinstance(transition_ps, int) or
+                                      not 100 <= transition_ps <= 10000):
+        raise ExportError("flow lock max_transition_ps must be 100..10000")
 
 
 def populate(staging: Path, profile: Path, lock: dict[str, Any],
@@ -160,6 +170,18 @@ def populate(staging: Path, profile: Path, lock: dict[str, Any],
     if cts_size is not None:
         configure.check_setting(profile, "asic_cts_sink_clustering_size", cts_size)
         template_config["CTS_SINK_CLUSTERING_SIZE"] = cts_size
+    fanout = settings.get("asic_max_fanout")
+    if fanout != lock["candidate"].get("max_fanout"):
+        raise ExportError(f"{profile}: max fanout disagrees with flow lock")
+    if fanout is not None:
+        configure.check_setting(profile, "asic_max_fanout", fanout)
+        template_config["MAX_FANOUT_CONSTRAINT"] = fanout
+    transition_ps = settings.get("asic_max_transition_ps")
+    if transition_ps != lock["candidate"].get("max_transition_ps"):
+        raise ExportError(f"{profile}: max transition disagrees with flow lock")
+    if transition_ps is not None:
+        configure.check_setting(profile, "asic_max_transition_ps", transition_ps)
+        template_config["MAX_TRANSITION_CONSTRAINT"] = transition_ps / 1000
     template_config["VERILOG_DEFINES"] = defines
     (staging / "src" / "config.json").write_text(
         json.dumps(template_config, indent=2) + "\n")
@@ -210,6 +232,8 @@ def populate(staging: Path, profile: Path, lock: dict[str, Any],
         "clock_period_ns": period,
         "io_delay_ns": io_delay,
         "cts_sink_clustering_size": cts_size,
+        "max_fanout": fanout,
+        "max_transition_ps": transition_ps,
         "template_canonical_sha256": canonical_tree_hash(TEMPLATE),
         "sources": dict(sorted(source_hashes.items())),
     }

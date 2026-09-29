@@ -177,9 +177,22 @@ provisional 4 ns input/output delay, its post-route slow-corner setup slack is
 antenna checks are clear. Standard cells use 287,869 µm² of the same core.
 This is not electrical closure: the slow corner has 14 max-slew violations,
 and all corners have 162 max-fanout violations; 160 are CTS leaf clock buffers.
-The GDS/DRC/LVS continuation and electrical repair remain PE-10 work. Exact
-inputs and reports are in
+The separate GDS continuation has now completed with zero Magic DRC errors,
+uniquely matching LVS circuits and a passing antenna check. A CTS cluster-size-8
+trial reaches +4.846 ns slow-corner setup slack and reduces fanout and
+slow-corner slew violations to six each. Its GDS/DRC/LVS stage is not yet run,
+and the remaining fanout and slew violations require repair. These are flow
+results at a provisional I/O delay, not a validated external pad contract or
+silicon behavior. Exact inputs and reports are in
 [`axpe-cmos5l-25ns.json`](../research/benchmarks/axpe-cmos5l-25ns.json).
+
+Two locked negative trials narrow the repair route. Reducing CTS clusters to
+four worsened the comparable pre-route fanout count from two to 13. Tightening
+the global fanout target to six made eight upstream clock buffers exceed it at
+fanout 16, for 14 pre-route violations. Both trials were stopped during
+detailed routing; neither has a post-route or GDS result. The six remaining
+violations in the completed size-eight run call for selective data-path repair,
+not a tighter whole-design fanout target.
 
 ## 3. Architecture direction
 

@@ -18,8 +18,8 @@ identities, timeouts, requirements, ordering, and suite membership.
 | Platform agreement | ISS, QEMU, and Verilator | platform assumptions leaking into software |
 | Search | deterministic fuzz and paging campaigns | long-tail instruction and VM interactions |
 | Formal | separate weekly workflow | bounded architectural counterexamples |
-| ASIC synthesis | none yet -- PE-10 | mapped cell area, constructs that do not synthesise, state the RTL implies but nobody counted |
-| ASIC place-and-route and STA | none yet -- PE-10 | routability against a fixed tile, real area, setup and hold closure, and the clock period a cycle count is denominated in |
+| ASIC synthesis | PE-02/PE-10 pinned CMOS5L runs; [evidence](../research/benchmarks/axpe-cmos5l-25ns.json) | mapped cell area, constructs that do not synthesise, state the RTL implies but nobody counted |
+| ASIC place-and-route and STA | PE-10 25 ns route and GDS continuation; electrical closure open | routability against a fixed tile, real area, setup and hold closure, and the clock period a cycle count is denominated in |
 | Gate-level | none yet -- PE-11 | uninitialised state, X propagation, and delay-dependent failures that no two-state simulation can express |
 | Physical, FPGA | explicit Primer procedure only | tool, timing, configuration, clock, power, and electrical failures |
 | Physical, silicon | does not exist | everything a shuttle return finds, none of which any row above predicts |
@@ -32,18 +32,20 @@ meet timing; a gate-level result is not a place-and-route signoff; and nothing
 simulated at any level is a silicon result, because nothing taped out exists
 until it comes back measured.
 
-### The three ASIC rows are empty on purpose
+### ASIC evidence is staged
 
-They are listed rather than omitted because an absent row is the easiest kind
-of claim to make by accident. `axpe` is an ASIC entry whose evidence today is
-entirely RTL equivalence and RTL integration, months ahead of schedule on those
-two and unstarted on these three, and the ordering of that table is the honest
-shape of the project rather than a plan.
+The first two rows now have bounded CMOS5L evidence. The 25 ns candidate
+synthesizes and routes in the official 6×4 rectangle, passes setup and hold
+at all reported corners under a provisional 4 ns I/O delay, and its separate
+GDS continuation passes Magic DRC, LVS and antenna checks. It still has
+electrical slew and fanout violations, and the I/O delay is not an externally
+validated pad contract. The [PE-10 record](../research/benchmarks/axpe-cmos5l-25ns.json)
+identifies exact inputs, reports and gaps. Gate-level and silicon rows remain
+empty.
 
-What fills them is PE-10 for the first two and PE-11 for the third, and they
-have a dependency worth naming: all three sit behind the official template in
-PE-01, so PE-01 is the unlock for the ASIC verification story and not only for
-the entry's validity.
+PE-10 still owns electrical closure and the final-architecture run. PE-11
+owns gate-level replay. The official template pinned by PE-01 supplies the
+wrapper and flow boundary for both.
 
 The gate-level row earns its place separately from the other two. The oracle
 and the peers in `sim/pemu/` are already independent of what simulates the

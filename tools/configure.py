@@ -314,6 +314,8 @@ SETTINGS: dict[str, dict[str, Any]] = {
     # an RTL parameter. Export must compare it with the selected flow lock.
     "asic_clock_period_ns": {"type": int, "min": 5, "max": 1000},
     "asic_cts_sink_clustering_size": {"type": int, "min": 1, "max": 64},
+    "asic_max_fanout": {"type": int, "min": 1, "max": 64},
+    "asic_max_transition_ps": {"type": int, "min": 100, "max": 10000},
 }
 
 

@@ -3,7 +3,7 @@
   "date": "2026-09-27",
   "evidence_kind": "CMOS5L post-route extraction and STA, not silicon",
   "source_commit": "e82bdafe543809c6d876ef05d310cb4e059b873c",
-  "source_state": "RTL at source_commit; the 25 ns profile, flow lock, helper and this record are uncommitted, with hashes below, pending maintainer review",
+  "source_state": "RTL at source_commit; the baseline and CTS-size-8 flow inputs are committed at 66964bb. The new CTS-size-4 and electrical-trial inputs and this updated result are uncommitted, with hashes below, pending maintainer review",
   "candidate": {
     "profile": "configs/tt-axpe-6x4-25ns.json",
     "profile_sha256": "ec5649fa1686e515fc81ffe1e640079ff991de5bb6b0e30d43f5e8651ef96b54",
@@ -72,7 +72,7 @@
       }
     },
     "worst_setup_path": "uio_in[4] to instruction read-data register _16964_/D; 4 ns input delay included",
-    "fanout_root_cause": "160 of 162 violating drivers are CTS leaf clock buffers, typically driving 14-18 sinks against a limit of 8; the other two are fanout buffers. Test CTS sink-cluster size next",
+    "fanout_root_cause": "160 of 162 violating drivers are CTS leaf clock buffers, typically driving 14-18 sinks against a limit of 8; the other two are fanout buffers. The separate CTS-size-8 trial below tests this diagnosis",
     "slew_gap": "14 violating pins at the slow corner; worst slew 3.344 ns versus a 2.507 ns limit",
     "sources": [
       "local_run_dir/final/metrics.json",
@@ -80,12 +80,78 @@
       "local_run_dir/55-openroad-stapostpnr/nom_slow_1p08V_125C/checks.rpt"
     ]
   },
+  "baseline_gds_continuation": {
+    "command": "python3 tools/tt_axpe_flow.py run --tag pe10-25ns-signoff --resume-from-tag pe10-25ns --from OpenROAD.IRDropReport --full",
+    "run_dir": "build/asic/tt-axpe-25ns/runs/pe10-25ns-signoff",
+    "last_step": "17-misc-reportmanufacturability",
+    "gds_sha256": "0376123e3f487cbd71fadee07d6639e1ae253747ac130865db4c348c1a055034",
+    "gds_path": "run_dir/final/gds/tt_um_shubhgau_atomix_axpe.gds",
+    "metrics_sha256": "b4d30f997ffa6c9c9c3a1e1210d7d3b02fcf8ac93774419f87b2271426d4d98f",
+    "magic_drc_report_sha256": "341d003398713a7bc71364f61b93a1f2e81b951ec7fffd1e8fbe2c34c168988b",
+    "lvs_report_sha256": "1561913c5661f12ffa8e88a050403f974a81dd126d1b2201a9a59d29d6558445",
+    "manufacturability_report_sha256": "038bd8e28c459644f9838180d7a82ccd04cac768605e2348af10b43fa259cf29",
+    "magic_drc_count": 0,
+    "lvs_result": "Circuits match uniquely",
+    "antenna_result": "pass",
+    "setup_and_hold": "pass at all three corners, as in the post-route report",
+    "electrical_limit": "The resumed baseline still has 14 slow-corner max-slew and 162 max-fanout violations; clean DRC/LVS does not close them"
+  },
+  "cts8_trial": {
+    "profile": "configs/tt-axpe-6x4-25ns-cts8.json",
+    "profile_sha256": "90aeed7636490dfe9db60b7f7544f9ab77113479ed6de88b01d88a28de796e91",
+    "flow_lock": "asic/axpe/flow-lock-25ns-cts8.json",
+    "flow_lock_sha256": "763ee3f8fbce7ac1b19e65cd211854588e70b1676ad74f07b2174ee2d9cbce45",
+    "command": "python3 tools/tt_axpe_flow.py run --profile configs/tt-axpe-6x4-25ns-cts8.json --flow-lock asic/axpe/flow-lock-25ns-cts8.json --workdir build/asic/tt-axpe-25ns-cts8 --tag pe10-25ns-cts8 --initial-state build/asic/tt-axpe-25ns/runs/pe10-25ns/34-openroad-detailedplacement/state_out.json --from OpenROAD.CTS",
+    "metrics_sha256": "0b0a404c2d411fd86edc123e343848c5bccf31c03651fbbd43d00d07f88f4f61",
+    "slow_checks_report_sha256": "c62cb2af12e40f1b508c0eb2ce48c7ba7b909d2786aff402e980e286aadce0a7",
+    "slow_setup_worst_slack_ns": 4.846079,
+    "slow_hold_worst_slack_ns": 0.633588,
+    "slow_max_slew_violations": 6,
+    "max_fanout_violations_each_corner": 6,
+    "openroad_routing_drc_errors": 0,
+    "antenna_net_violations": 0,
+    "antenna_pin_violations": 0,
+    "diagnosis": "The 160 clock-leaf fanout violations disappear; six data-path drivers still exceed fanout 8, and three gate arcs still exceed 2.507 ns slew at the slow corner",
+    "scope": "Post-route RC and STA only; this CTS variant has not completed GDS/DRC/LVS"
+  },
+  "cts4_stopped_trial": {
+    "profile": "configs/tt-axpe-6x4-25ns-cts4.json",
+    "profile_sha256": "2f57bd2556f4265f62258dcb689f00e8b34d1d6c6dc3c8a3377386e8516fb375",
+    "flow_lock": "asic/axpe/flow-lock-25ns-cts4.json",
+    "flow_lock_sha256": "5afffc9dd57ce2e5b626df1ac8e9f3b91cea676d41e6e5de4beaeb5f9c278368",
+    "command": "python3 tools/tt_axpe_flow.py run --profile configs/tt-axpe-6x4-25ns-cts4.json --flow-lock asic/axpe/flow-lock-25ns-cts4.json --workdir build/asic/tt-axpe-25ns-cts4 --tag pe10-25ns-cts4 --initial-state build/asic/tt-axpe-25ns/runs/pe10-25ns/34-openroad-detailedplacement/state_out.json --from OpenROAD.CTS",
+    "stop_point": "During OpenROAD detailed routing; no post-route metrics or GDS exist",
+    "reason": "At comparable mid-PNR STA the size-4 tree had 13 max-fanout violations versus two for the size-8 tree; the experiment was stopped to prioritize data-path electrical repair",
+    "mid_pnr_checks_sha256": "f9d94be55f0ab5e50aeffefa720847bf8c64894d475dfe25dc783b5da80039d1",
+    "mid_pnr_fanout_violations": 13,
+    "mid_pnr_slew_violations": 0,
+    "result": "inconclusive for post-route timing; no pass claimed"
+  },
+  "electric_stopped_trial": {
+    "profile": "configs/tt-axpe-6x4-25ns-electric.json",
+    "profile_sha256": "7fcfb7268f734f1dbc5fae5bc43c73d9eeef340c9e9e6c65b773602e815f0a55",
+    "flow_lock": "asic/axpe/flow-lock-25ns-electric.json",
+    "flow_lock_sha256": "01e8e4fac7ee851182ed95e504d9b678aa9141aafb3923546cef1abc086f66fe",
+    "merged_config_sha256": "8a1fa79498eb002c33c1cff9c4ba1c6180f4cd8df44cbe5d3ae9c243ad77aac1",
+    "command": "python3 tools/tt_axpe_flow.py run --profile configs/tt-axpe-6x4-25ns-electric.json --flow-lock asic/axpe/flow-lock-25ns-electric.json --workdir build/asic/tt-axpe-25ns-electric --tag pe10-25ns-electric",
+    "targets": {"cts_sink_clustering_size": 8, "max_fanout": 6, "max_transition_ns": 1.5},
+    "mid_pnr_checks_sha256": "8666d1f4ba961d33ae2532ab79424cf82490d08e4fad07de81255fc2446880ac",
+    "mid_pnr_fanout_violations": 14,
+    "mid_pnr_slew_violations": 0,
+    "diagnosis": "At the post-global-route pre-detailed-route checkpoint, eight upstream CTS buffers each drive 16 sinks against the tightened limit of six. The same limit also reports six other drivers. This global constraint cannot clear the clock tree as configured.",
+    "stop_point": "During OpenROAD detailed routing; no post-route metrics or GDS exist",
+    "result": "The globally tightened fanout constraint is refuted for this CTS tree; post-route timing is unmeasured and no pass is claimed"
+  },
   "verification": [
     {"command": "python3 tools/tt_axpe.py check --profile configs/tt-axpe-6x4-25ns.json --flow-lock asic/axpe/flow-lock-25ns.json --output build/asic/tt-axpe-25ns-export-check", "result": "pass"},
     {"command": "make config-check CONFIG=configs/tt-axpe-6x4-25ns.json", "result": "pass"},
+    {"command": "make config-check-all", "result": "pass, including both new trial profiles"},
+    {"command": "python3 tools/tt_axpe.py check --profile configs/tt-axpe-6x4-25ns-electric.json --flow-lock asic/axpe/flow-lock-25ns-electric.json --output build/asic/tt-axpe-25ns-electric-export-check", "result": "pass, non-default flow constraints exported"},
+    {"command": "python3 tools/tt_axpe.py check --profile configs/tt-axpe-6x4-25ns-electric.json --flow-lock asic/axpe/flow-lock-25ns-cts8.json --output build/asic/tt-axpe-25ns-electric-mismatch-check", "result": "expected failure: max fanout disagrees with flow lock"},
+    {"command": "make verification-check", "result": "pass"},
     {"command": "make verify-smoke", "result": "pass, 14/14 stages"}
   ],
-  "outcome": "The 25 ns candidate fits, routes cleanly and passes post-route setup and hold with the stated test I/O delay, but it fails electrical slew/fanout checks and is not signed off.",
-  "next": "Complete the separate GDS/DRC/LVS continuation; test CTS sink clustering to repair clock-leaf fanout, then repair slow-corner slew and rerun timing and signoff on the final architecture.",
-  "not_claimed": ["completed GDS/DRC/LVS signoff", "gate-level firmware replay", "power from an activity model", "fabricated or measured silicon"]
+  "outcome": "The baseline 25 ns GDS continuation passes Magic DRC, LVS and antenna checks and keeps setup/hold clear. Electrical closure fails. CTS clustering at eight reduces fanout violations from 162 to six and slow-corner slew violations from 14 to six, with positive setup/hold slack.",
+  "next": "Repair the six remaining data-path fanout violations and six slow-corner slew violations with a selective net or cell strategy that does not tighten the CTS fanout limit, then repeat full GDS/DRC/LVS and timing on the final architecture and validate the I/O delay against an external pad contract.",
+  "not_claimed": ["electrical signoff", "final-architecture GDS/DRC/LVS", "gate-level firmware replay", "power from an activity model", "fabricated or measured silicon"]
 }

@@ -74,7 +74,7 @@ card instead of taking time from the submission. All owners are unassigned.
 | PE-04: golden model and assembler | T1 | P0 | Review | PE-03 timing decisions | Model, assembler, UART/autobaud and four-mode clocked shifts pass via `make pemu-model-check`; close only after effect/reset/fault conventions receive commit-pinned review |
 | PE-05: RTL and cycle-for-cycle cosimulation | T1 | P0 | Review | PE-04 | Done: `make pemu-cosim-check` compares every cycle with no tolerated deviation across 112 randomized programs and twelve directed cases, and the handoff gap is closed. Close only after commit-pinned review of the retirement and forwarding path |
 | PE-07: mandatory UART, SPI and I2C firmware | T1 | P0 | Review | PE-05, PE-14 both done | Done in simulation: all three load into one unchanged chip image and pass peers written from each protocol, with I2C covering ACK/NACK, repeated start, STOP and bus release. Remaining for closure: hardware peers, which is PE-09 |
-| PE-10: staged CMOS5L synthesis and place-and-route | T1 | P0 | Active | 25 ns post-route passes setup/hold; electrical checks fail; full signoff pending | The separately locked 25 ns candidate routes with zero OpenROAD DRC/antenna errors and +4.091 ns slow-corner setup slack using a provisional 4 ns I/O delay. It still has 14 slow-corner slew and 162 fanout violations (160 at CTS leaf clock buffers). The scripted GDS/DRC/LVS continuation is underway; then repair electrical checks and repeat on the final mandatory-protocol architecture. See [`axpe-cmos5l-25ns.json`](../../research/benchmarks/axpe-cmos5l-25ns.json) |
+| PE-10: staged CMOS5L synthesis and place-and-route | T1 | P0 | Active | Baseline GDS/DRC/LVS pass; electrical checks fail | The 25 ns baseline passes setup/hold at all corners, Magic DRC, LVS and antenna checks. Its provisional 4 ns I/O delay is not a pad contract. A CTS cluster-size-8 trial reduces max-fanout violations from 162 to 6 and slow-corner max-slew violations from 14 to 6 while keeping timing positive. Repair both electrical violation classes, then repeat full signoff on the final architecture. See [`axpe-cmos5l-25ns.json`](../../research/benchmarks/axpe-cmos5l-25ns.json) |
 | PE-15: a measured period firmware can use | T2 | P0 | Review | PE-03, PE-05 both satisfied | Done in simulation: `SHPER` (opcode `0E`) writes a period register and one bit of the shift shape's unused `b` field selects it, so `SHOUT`/`SHIN`/`SHIO` take their bit period from architectural state. `autobaud-demo.s` measures an unconfigured peer and answers at its rate, checked at two different rates through one unchanged chip image. Close only after commit-pinned review of the exact-but-not-static timing split and the reserved-bit rule |
 | PE-06: timing-determinism proof | T2 | P0 | Ready | PE-05 (unblocked 2026-09-18) | Every instruction proved to retire in its declared cycle count, `WAITE` bounded by its timeout |
 | PE-08: profile knobs exercised | T2 | P1 | Next | PE-05 | `configs/sim-axpe-tiny.json` runs every declared knob at a non-default value with limits derived from the build's own defines. **Known broken before the card is pulled**: `reg_width` and `delay_bits` do not elaborate away from 16 -- see the 2026-09-18 decision below, which has the diagnostics |
@@ -418,10 +418,20 @@ and antenna errors. All setup and hold checks pass; the slow-corner worst setup
 slack is +4.091 ns. Standard cells occupy 287,869 µm² of a 902,417 µm² core.
 Electrical closure is still open: 14 slow-corner max-slew violations and 162
 max-fanout violations, 160 of them clock-tree leaf buffers. The separate
-GDS/DRC/LVS continuation is running. A separately locked CTS-size-8 trial has
-already reduced typical-corner post-CTS fanout violations from 160 to zero;
-its post-route result is still pending. Inputs, hashes and exact commands are in
+GDS continuation has completed: Magic DRC reports zero errors, LVS matches
+uniquely and the antenna check passes. These do not clear the electrical
+violations. A separately locked CTS cluster-size-8 trial reached post-route STA:
+slow-corner setup slack improved to +4.846 ns, fanout violations fell to six
+at every corner and slow-corner slew violations fell to six. The remaining
+fanout drivers are data-path nets, so clock clustering alone cannot close the
+card. This variant still needs GDS/DRC/LVS. Inputs, hashes and exact commands are in
 [`axpe-cmos5l-25ns.json`](../../research/benchmarks/axpe-cmos5l-25ns.json).
+Two further locked trials were stopped during detailed routing after the
+comparable pre-route checks worsened: cluster size four left 13 fanout
+violations against size eight's two; a global fanout target of six created 14
+violations, eight on upstream CTS buffers at fanout 16. Neither stopped trial
+has post-route or GDS evidence. The remaining repair needs a selective
+data-path strategy without constraining the whole clock tree.
 
 | Phase | Cards | By |
 |---|---|---|
