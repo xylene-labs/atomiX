@@ -316,6 +316,13 @@ SETTINGS: dict[str, dict[str, Any]] = {
     "asic_cts_sink_clustering_size": {"type": int, "min": 1, "max": 64},
     "asic_max_fanout": {"type": int, "min": 1, "max": 64},
     "asic_max_transition_ps": {"type": int, "min": 100, "max": 10000},
+    "asic_antenna_jumper_only": {"type": bool},
+    "asic_antenna_repair_margin_pct": {"type": int, "min": 0, "max": 100},
+    "asic_abc_buffering": {"type": bool},
+    "asic_synth_strategy": {"type": str, "choices": [
+        "AREA 0", "AREA 1", "AREA 2", "AREA 3",
+        "DELAY 0", "DELAY 1", "DELAY 2", "DELAY 3", "DELAY 4",
+    ]},
 }
 
 

@@ -120,6 +120,22 @@ def validate_lock(lock: dict[str, Any]) -> None:
                                       not isinstance(transition_ps, int) or
                                       not 100 <= transition_ps <= 10000):
         raise ExportError("flow lock max_transition_ps must be 100..10000")
+    jumper_only = candidate.get("antenna_jumper_only")
+    if jumper_only is not None and not isinstance(jumper_only, bool):
+        raise ExportError("flow lock antenna_jumper_only must be true or false")
+    antenna_margin = candidate.get("antenna_repair_margin_pct")
+    if antenna_margin is not None and (isinstance(antenna_margin, bool) or
+                                       not isinstance(antenna_margin, int) or
+                                       not 0 <= antenna_margin <= 100):
+        raise ExportError("flow lock antenna_repair_margin_pct must be 0..100")
+    abc_buffering = candidate.get("abc_buffering")
+    if abc_buffering is not None and not isinstance(abc_buffering, bool):
+        raise ExportError("flow lock abc_buffering must be true or false")
+    synth_strategy = candidate.get("synth_strategy")
+    if synth_strategy is not None and synth_strategy not in (
+            "AREA 0", "AREA 1", "AREA 2", "AREA 3", "DELAY 0", "DELAY 1",
+            "DELAY 2", "DELAY 3", "DELAY 4"):
+        raise ExportError("flow lock synth_strategy is not a LibreLane strategy")
 
 
 def populate(staging: Path, profile: Path, lock: dict[str, Any],
@@ -182,6 +198,32 @@ def populate(staging: Path, profile: Path, lock: dict[str, Any],
     if transition_ps is not None:
         configure.check_setting(profile, "asic_max_transition_ps", transition_ps)
         template_config["MAX_TRANSITION_CONSTRAINT"] = transition_ps / 1000
+    jumper_only = settings.get("asic_antenna_jumper_only")
+    if jumper_only != lock["candidate"].get("antenna_jumper_only"):
+        raise ExportError(f"{profile}: antenna jumper-only setting disagrees with flow lock")
+    if jumper_only is not None:
+        configure.check_setting(profile, "asic_antenna_jumper_only", jumper_only)
+        template_config["GRT_ANTENNA_REPAIR_JUMPER_ONLY"] = jumper_only
+        template_config["DRT_ANTENNA_REPAIR_JUMPER_ONLY"] = jumper_only
+    antenna_margin = settings.get("asic_antenna_repair_margin_pct")
+    if antenna_margin != lock["candidate"].get("antenna_repair_margin_pct"):
+        raise ExportError(f"{profile}: antenna repair margin disagrees with flow lock")
+    if antenna_margin is not None:
+        configure.check_setting(profile, "asic_antenna_repair_margin_pct", antenna_margin)
+        template_config["GRT_ANTENNA_REPAIR_MARGIN"] = antenna_margin
+        template_config["DRT_ANTENNA_REPAIR_MARGIN"] = antenna_margin
+    abc_buffering = settings.get("asic_abc_buffering")
+    if abc_buffering != lock["candidate"].get("abc_buffering"):
+        raise ExportError(f"{profile}: ABC buffering disagrees with flow lock")
+    if abc_buffering is not None:
+        configure.check_setting(profile, "asic_abc_buffering", abc_buffering)
+        template_config["SYNTH_ABC_BUFFERING"] = abc_buffering
+    synth_strategy = settings.get("asic_synth_strategy")
+    if synth_strategy != lock["candidate"].get("synth_strategy"):
+        raise ExportError(f"{profile}: synth strategy disagrees with flow lock")
+    if synth_strategy is not None:
+        configure.check_setting(profile, "asic_synth_strategy", synth_strategy)
+        template_config["SYNTH_STRATEGY"] = synth_strategy
     template_config["VERILOG_DEFINES"] = defines
     (staging / "src" / "config.json").write_text(
         json.dumps(template_config, indent=2) + "\n")
@@ -234,6 +276,10 @@ def populate(staging: Path, profile: Path, lock: dict[str, Any],
         "cts_sink_clustering_size": cts_size,
         "max_fanout": fanout,
         "max_transition_ps": transition_ps,
+        "antenna_jumper_only": jumper_only,
+        "antenna_repair_margin_pct": antenna_margin,
+        "abc_buffering": abc_buffering,
+        "synth_strategy": synth_strategy,
         "template_canonical_sha256": canonical_tree_hash(TEMPLATE),
         "sources": dict(sorted(source_hashes.items())),
     }

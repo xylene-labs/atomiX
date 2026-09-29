@@ -100,6 +100,10 @@ def validate_export(workdir: Path, lock_path: Path, profile: Path,
         "cts_sink_clustering_size": lock["candidate"].get("cts_sink_clustering_size"),
         "max_fanout": lock["candidate"].get("max_fanout"),
         "max_transition_ps": lock["candidate"].get("max_transition_ps"),
+        "antenna_jumper_only": lock["candidate"].get("antenna_jumper_only"),
+        "antenna_repair_margin_pct": lock["candidate"].get("antenna_repair_margin_pct"),
+        "abc_buffering": lock["candidate"].get("abc_buffering"),
+        "synth_strategy": lock["candidate"].get("synth_strategy"),
     }
     for key, value in expected.items():
         if manifest.get(key) != value:
@@ -140,6 +144,21 @@ def validate_export(workdir: Path, lock_path: Path, profile: Path,
         if expected["max_transition_ps"] is not None and (
                 config.get("MAX_TRANSITION_CONSTRAINT") != expected["max_transition_ps"] / 1000):
             raise FlowError(f"{merged}: max transition disagrees with the lock")
+        if expected["antenna_jumper_only"] is not None:
+            for key in ("GRT_ANTENNA_REPAIR_JUMPER_ONLY",
+                        "DRT_ANTENNA_REPAIR_JUMPER_ONLY"):
+                if config.get(key) != expected["antenna_jumper_only"]:
+                    raise FlowError(f"{merged}: {key} disagrees with the lock")
+        if expected["antenna_repair_margin_pct"] is not None:
+            for key in ("GRT_ANTENNA_REPAIR_MARGIN", "DRT_ANTENNA_REPAIR_MARGIN"):
+                if config.get(key) != expected["antenna_repair_margin_pct"]:
+                    raise FlowError(f"{merged}: {key} disagrees with the lock")
+        if expected["abc_buffering"] is not None and (
+                config.get("SYNTH_ABC_BUFFERING") != expected["abc_buffering"]):
+            raise FlowError(f"{merged}: ABC buffering disagrees with the lock")
+        if expected["synth_strategy"] is not None and (
+                config.get("SYNTH_STRATEGY") != expected["synth_strategy"]):
+            raise FlowError(f"{merged}: synth strategy disagrees with the lock")
 
 
 def prepare(args: argparse.Namespace) -> tuple[Path, dict[str, Any]]:

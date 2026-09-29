@@ -1,0 +1,19 @@
+{
+  "schema": 1,
+  "name": "Tiny Tapeout CMOS5L 6x4 axpe 25 ns jumper antenna experiment",
+  "components": {
+    "pemu": "pemu.axpe"
+  },
+  "parameters": {
+    "pemu": {
+      "imem_words": 64
+    }
+  },
+  "settings": {
+    "asic_clock_period_ns": 25,
+    "asic_cts_sink_clustering_size": 8,
+    "asic_max_fanout": 8,
+    "asic_max_transition_ps": 2000,
+    "asic_antenna_jumper_only": true
+  }
+}
