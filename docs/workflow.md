@@ -154,6 +154,9 @@ The 25 ns lock declares a provisional 4 ns
 input/output delay, represented as 16% of the period in LibreLane's fallback
 SDC. This is a test constraint, not an externally verified pad contract or a
 signoff claim. Run trees and console logs stay under `build/asic/`, not Git.
+`summarize` checks that setup, hold, slew, fanout and capacitance metrics exist
+at all three corners. Its one-line output includes the worst electrical counts;
+a clean route-DRC count alone is not electrical closure.
 
 For the separate CTS fanout experiment, the 25 ns profile limits sink clusters
 to eight and resumes from the baseline's completed pre-CTS state:
@@ -188,6 +191,148 @@ This trial was stopped during detailed routing after its pre-route check found
 14 fanout violations, including eight upstream clock buffers at fanout 16
 against the tightened limit of six. It has no post-route or GDS result; the
 command and inputs remain here so the failed idea is reproducible.
+
+The next PE-10 profiles test a fanout limit of eight with a 2 ns transition
+target, ABC buffering under two synthesis strategies, and two antenna-repair
+choices. Each uses its own lock and workdir. For a full RTL-to-route run, select
+`closure`, `abc-area`, or `abc-delay`:
+
+```bash
+variant=closure # or abc-area, abc-delay
+python3 tools/tt_axpe_flow.py prepare --profile configs/tt-axpe-6x4-25ns-$variant.json --flow-lock asic/axpe/flow-lock-25ns-$variant.json --workdir build/asic/tt-axpe-25ns-$variant
+python3 tools/tt_axpe_flow.py run --profile configs/tt-axpe-6x4-25ns-$variant.json --flow-lock asic/axpe/flow-lock-25ns-$variant.json --workdir build/asic/tt-axpe-25ns-$variant --tag pe10-25ns-$variant --threads 2
+```
+
+The antenna trials reuse completed global-routing states. The `jumpers`
+profile resumes the `closure` state; `margin0` resumes the CTS-size-eight state:
+
+```bash
+python3 tools/tt_axpe_flow.py prepare --profile configs/tt-axpe-6x4-25ns-jumpers.json --flow-lock asic/axpe/flow-lock-25ns-jumpers.json --workdir build/asic/tt-axpe-25ns-jumpers
+python3 tools/tt_axpe_flow.py run --profile configs/tt-axpe-6x4-25ns-jumpers.json --flow-lock asic/axpe/flow-lock-25ns-jumpers.json --workdir build/asic/tt-axpe-25ns-jumpers --tag pe10-25ns-jumpers --initial-state build/asic/tt-axpe-25ns-closure/runs/pe10-25ns-closure/39-openroad-globalrouting/state_out.json --from OpenROAD.RepairAntennas --threads 2
+python3 tools/tt_axpe_flow.py prepare --profile configs/tt-axpe-6x4-25ns-margin0.json --flow-lock asic/axpe/flow-lock-25ns-margin0.json --workdir build/asic/tt-axpe-25ns-margin0
+python3 tools/tt_axpe_flow.py run --profile configs/tt-axpe-6x4-25ns-margin0.json --flow-lock asic/axpe/flow-lock-25ns-margin0.json --workdir build/asic/tt-axpe-25ns-margin0 --tag pe10-25ns-margin0 --initial-state build/asic/tt-axpe-25ns-cts8/runs/pe10-25ns-cts8/05-openroad-globalrouting/state_out.json --from OpenROAD.RepairAntennas --threads 2
+```
+
+Use a new tag for every retry; the helper refuses to replace an existing run.
+The closure, jumper and margin-zero trials stopped at detailed routing with an
+unexpected OpenROAD error while using six threads. A new two-thread jumper
+retry reached the antenna check and found 27 violating nets and 35 pins, so it
+was stopped before routing. Their nominal pre-route fanout counts are three,
+zero and two respectively; the ABC variants have 42 and 51 at that checkpoint.
+The ABC area variant later reached post-route STA with 111 fanout and 273
+slow-corner slew violations; the ABC delay variant reaches 102 fanout and 829
+slow-corner slew violations. Both are rejected for electrical closure. The commands,
+hashed inputs and bounded evidence are in
+[`axpe-cmos5l-25ns.json`](../research/benchmarks/axpe-cmos5l-25ns.json).
+
+The locked post-GRT trial enables LibreLane's built-in design repair after the
+CTS-size-eight global-route checkpoint. The profile setting
+`asic_post_grt_design_repair` reaches `RUN_POST_GRT_DESIGN_REPAIR` and is
+checked against the flow lock. The step reruns global routing around
+`repair_design` before antenna repair:
+
+```bash
+python3 tools/tt_axpe_flow.py prepare --profile configs/tt-axpe-6x4-25ns-postgrt.json --flow-lock asic/axpe/flow-lock-25ns-postgrt.json --workdir build/asic/tt-axpe-25ns-postgrt
+python3 tools/tt_axpe_flow.py run --profile configs/tt-axpe-6x4-25ns-postgrt.json --flow-lock asic/axpe/flow-lock-25ns-postgrt.json --workdir build/asic/tt-axpe-25ns-postgrt --tag pe10-25ns-postgrt --initial-state build/asic/tt-axpe-25ns-cts8/runs/pe10-25ns-cts8/05-openroad-globalrouting/state_out.json --from OpenROAD.RepairDesignPostGRT --threads 2
+```
+
+This separate trial was stopped after the antenna and pre-route checks: the
+enabled step inserted no buffers, resized no cells, and left three nominal
+pre-route fanout violations. Its post-route result is unmeasured; the source
+checkpoint must exist to reproduce it with a new tag.
+
+To test repair after antenna insertion, resume from the preceding pass's
+`04-openroad-stamidpnr-3/state_out.json` and stop at the comparable nominal
+STA checkpoint. The helper's `--to` option skips its post-route summary when
+the requested step is earlier than post-route STA. `status` and `summarize`
+also require a completed post-route or signoff step; inherited `final/metrics.json`
+alone is insufficient. For the third pass:
+
+```bash
+python3 tools/tt_axpe_flow.py run --profile configs/tt-axpe-6x4-25ns-postgrt.json --flow-lock asic/axpe/flow-lock-25ns-postgrt.json --workdir build/asic/tt-axpe-25ns-postgrt --tag pe10-25ns-postgrt-after-antenna-3 --initial-state build/asic/tt-axpe-25ns-postgrt/runs/pe10-25ns-postgrt-after-antenna-2/04-openroad-stamidpnr-3/state_out.json --from OpenROAD.RepairDesignPostGRT --to OpenROAD.STAMidPNR-3 --threads 2
+```
+
+Passes three through five are recorded in the 25 ns evidence. Their nominal
+pre-route fanout counts are one, one and two with clean antenna checks. None is
+an all-corner post-route or GDS/DRC/LVS result.
+
+The separate post-antenna candidate disables LibreLane's global-route antenna
+insertion after the repair step. Its locked profile sets
+`asic_antenna_repair_enabled=false`, which exports as `RUN_ANTENNA_REPAIR=false`;
+the flow lock checks that value. Resume from the completed third pass and stop
+at nominal STA:
+
+```bash
+python3 tools/tt_axpe_flow.py prepare --profile configs/tt-axpe-6x4-25ns-postgrt-noant.json --flow-lock asic/axpe/flow-lock-25ns-postgrt-noant.json --workdir build/asic/tt-axpe-25ns-postgrt-noant
+python3 tools/tt_axpe_flow.py run --profile configs/tt-axpe-6x4-25ns-postgrt-noant.json --flow-lock asic/axpe/flow-lock-25ns-postgrt-noant.json --workdir build/asic/tt-axpe-25ns-postgrt-noant --tag pe10-25ns-postgrt-noant-from3 --initial-state build/asic/tt-axpe-25ns-postgrt/runs/pe10-25ns-postgrt-after-antenna-3/04-openroad-stamidpnr-3/state_out.json --from OpenROAD.RepairDesignPostGRT --to OpenROAD.STAMidPNR-3 --threads 2
+python3 tools/tt_axpe_flow.py run --profile configs/tt-axpe-6x4-25ns-postgrt-noant.json --flow-lock asic/axpe/flow-lock-25ns-postgrt-noant.json --workdir build/asic/tt-axpe-25ns-postgrt-noant --tag pe10-25ns-postgrt-noant-antcheck --initial-state build/asic/tt-axpe-25ns-postgrt-noant/runs/pe10-25ns-postgrt-noant-from3/03-openroad-stamidpnr-3/state_out.json --from OpenROAD.CheckAntennas --to OpenROAD.CheckAntennas --threads 2
+python3 tools/tt_axpe_flow.py run --profile configs/tt-axpe-6x4-25ns-postgrt-noant.json --flow-lock asic/axpe/flow-lock-25ns-postgrt-noant.json --workdir build/asic/tt-axpe-25ns-postgrt-noant --tag pe10-25ns-postgrt-noant-route --initial-state build/asic/tt-axpe-25ns-postgrt-noant/runs/pe10-25ns-postgrt-noant-from3/03-openroad-stamidpnr-3/state_out.json --from OpenROAD.DetailedRouting --threads 2
+```
+
+The bounded STA checkpoint has zero nominal fanout, slew and cap violations,
+but the separate antenna check finds 15 violating nets and 16 pins. A
+zero-margin global-route antenna retry clears antenna violations but returns
+one nominal fanout violation, with the same STA report hash as the ordinary
+repair pass. The detailed-route continuation uses its own antenna-repair
+iterations and clears route DRC and antenna. All three corners pass setup and
+hold. It still has one fanout violation at every corner and 19 slow-corner
+slew violations, versus six and six on the CTS-size-eight route. The run is
+post-route evidence only, not electrical closure or GDS/DRC/LVS signoff. An
+in-memory `asic/axpe/experiments/noant-route-repair-probe.tcl` repair attempt
+inserts three buffers and resizes two cells, but uses wire-load estimates for
+its modified design; rerouting and RC extraction are required before its
+after-report can support any timing claim. Hashes and corner counts are in
+`research/benchmarks/axpe-cmos5l-25ns.json`.
+
+Two locked follow-ups isolate post-global-route repair controls. The 35%
+slew-margin trial exports `GRT_DESIGN_REPAIR_MAX_SLEW_PCT=35` (the pinned
+default is 10); its repaired netlist and nominal STA report are identical to
+the no-antenna trial above. The 400 µm max-wire trial exports
+`GRT_DESIGN_REPAIR_MAX_WIRE_LENGTH=400` (default zero). It inserts 272 buffers
+across 211 nets, including a chain on a long connection that failed routed
+slow-corner slew, while nominal fanout, slew and cap checks remain clear:
+
+```bash
+python3 tools/tt_axpe_flow.py prepare --profile configs/tt-axpe-6x4-25ns-postgrt-noant-wire400.json --flow-lock asic/axpe/flow-lock-25ns-postgrt-noant-wire400.json --workdir build/asic/tt-axpe-25ns-postgrt-noant-wire400
+python3 tools/tt_axpe_flow.py run --profile configs/tt-axpe-6x4-25ns-postgrt-noant-wire400.json --flow-lock asic/axpe/flow-lock-25ns-postgrt-noant-wire400.json --workdir build/asic/tt-axpe-25ns-postgrt-noant-wire400 --tag pe10-25ns-postgrt-noant-wire400-from3 --initial-state build/asic/tt-axpe-25ns-postgrt/runs/pe10-25ns-postgrt-after-antenna-3/04-openroad-stamidpnr-3/state_out.json --from OpenROAD.RepairDesignPostGRT --to OpenROAD.STAMidPNR-3 --threads 2
+python3 tools/tt_axpe_flow.py run --profile configs/tt-axpe-6x4-25ns-postgrt-noant-wire400.json --flow-lock asic/axpe/flow-lock-25ns-postgrt-noant-wire400.json --workdir build/asic/tt-axpe-25ns-postgrt-noant-wire400 --tag pe10-25ns-postgrt-noant-wire400-route-retry2 --initial-state build/asic/tt-axpe-25ns-postgrt-noant-wire400/runs/pe10-25ns-postgrt-noant-wire400-from3/03-openroad-stamidpnr-3/state_out.json --from OpenROAD.DetailedRouting --threads 2
+```
+
+The bounded wire-length run also emits missing-route-to-pin warnings from
+global-route parasitic estimation. The first detailed-route attempt was
+interrupted; the supervised `route-retry2` completed with extracted all-corner
+STA. Route DRC, final antenna, setup, hold, fanout and cap checks pass. Slow
+slew still fails on six pins across two `nor4_1`-driven nets, and fast-corner
+hold slack is only +0.007099 ns. This is an improvement over the uncapped
+post-antenna route, not electrical closure or final GDS/DRC/LVS signoff. The
+4 ns I/O delay remains provisional because no CMOS5L pad contract is available.
+
+A tighter 200 µm cap is a separate locked trial from the same third-pass
+checkpoint. It inserts buffers directly after both `nor4_1` drivers left in
+the 400 µm route, but adds 1,246 buffers overall. Its nominal pre-route checks
+are clear; use the separate detailed-route continuation for extracted timing:
+
+```bash
+python3 tools/tt_axpe_flow.py prepare --profile configs/tt-axpe-6x4-25ns-postgrt-noant-wire200.json --flow-lock asic/axpe/flow-lock-25ns-postgrt-noant-wire200.json --workdir build/asic/tt-axpe-25ns-postgrt-noant-wire200
+python3 tools/tt_axpe_flow.py run --profile configs/tt-axpe-6x4-25ns-postgrt-noant-wire200.json --flow-lock asic/axpe/flow-lock-25ns-postgrt-noant-wire200.json --workdir build/asic/tt-axpe-25ns-postgrt-noant-wire200 --tag pe10-25ns-postgrt-noant-wire200-from3 --initial-state build/asic/tt-axpe-25ns-postgrt/runs/pe10-25ns-postgrt-after-antenna-3/04-openroad-stamidpnr-3/state_out.json --from OpenROAD.RepairDesignPostGRT --to OpenROAD.STAMidPNR-3 --threads 2
+python3 tools/tt_axpe_flow.py run --profile configs/tt-axpe-6x4-25ns-postgrt-noant-wire200.json --flow-lock asic/axpe/flow-lock-25ns-postgrt-noant-wire200.json --workdir build/asic/tt-axpe-25ns-postgrt-noant-wire200 --tag pe10-25ns-postgrt-noant-wire200-route --initial-state build/asic/tt-axpe-25ns-postgrt-noant-wire200/runs/pe10-25ns-postgrt-noant-wire200-from3/03-openroad-stamidpnr-3/state_out.json --from OpenROAD.DetailedRouting --threads 2
+```
+
+The 200 µm detailed route completes with zero route DRC and antenna errors.
+Extracted all-corner STA clears setup, hold, slew and cap checks. It leaves
+one fanout violation at each corner: five antenna diodes plus four functional
+sinks raise `input4/X` on `net4` to fanout nine against a limit of eight.
+Fast-corner hold slack is only +0.012071 ns. A separate zero-margin antenna
+trial reuses the same pre-route checkpoint to test whether fewer diodes can
+clear that one net without failing the final antenna check:
+
+```bash
+python3 tools/tt_axpe_flow.py prepare --profile configs/tt-axpe-6x4-25ns-postgrt-noant-wire200-am0.json --flow-lock asic/axpe/flow-lock-25ns-postgrt-noant-wire200-am0.json --workdir build/asic/tt-axpe-25ns-postgrt-noant-wire200-am0
+python3 tools/tt_axpe_flow.py run --profile configs/tt-axpe-6x4-25ns-postgrt-noant-wire200-am0.json --flow-lock asic/axpe/flow-lock-25ns-postgrt-noant-wire200-am0.json --workdir build/asic/tt-axpe-25ns-postgrt-noant-wire200-am0 --tag pe10-25ns-postgrt-noant-wire200-am0-route --initial-state build/asic/tt-axpe-25ns-postgrt-noant-wire200/runs/pe10-25ns-postgrt-noant-wire200-from3/03-openroad-stamidpnr-3/state_out.json --from OpenROAD.DetailedRouting --threads 2
+```
+
+The zero-margin variant must complete detailed routing, final antenna and
+extracted all-corner STA before it can support any improvement claim.
 
 ### Choose / inspect a profile
 ```bash

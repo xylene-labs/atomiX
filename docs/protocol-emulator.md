@@ -194,6 +194,95 @@ detailed routing; neither has a post-route or GDS result. The six remaining
 violations in the completed size-eight run call for selective data-path repair,
 not a tighter whole-design fanout target.
 
+Five later locked trials have reached a nominal-corner pre-route checkpoint.
+The 25 ns closure settings (CTS clusters of eight, fanout limit eight and a
+2 ns transition target) leave three fanout violations there. Adding ABC
+buffering with area or delay synthesis makes that count 42 or 51 respectively.
+The ABC area variant has now completed post-route STA: setup and hold pass and
+routing DRC is zero, but fanout violations reach 111 at every corner and
+slow-corner slew violations reach 273. Of the 111 fanout-violating drivers,
+110 are `sg13cmos5l_buf_1` cells in the final mapped netlist. The ABC delay
+variant also completes post-route STA with passing setup, hold, route DRC and
+antenna checks, but reaches 102 fanout and 829 slow-corner slew violations;
+101 of its fanout violators are `buf_1` cells. Neither ABC variant proceeded to
+GDS. Resuming the
+closure design with antenna jumpers only clears the nominal pre-route fanout
+count, while a zero antenna-repair margin on the CTS-size-eight design leaves
+two. The closure, jumper and zero-margin runs each ended with an unexpected
+OpenROAD detailed-routing error during pin access. Their pre-route counts
+cannot establish electrical closure.
+The two-thread retry of jumper-only repair reached its antenna check and found
+27 violating nets and 35 violating pins. That rejects this antenna strategy
+regardless of its nominal pre-route fanout count; the retry was stopped there.
+The pinned inputs, report hashes and failure boundaries are in
+[`axpe-cmos5l-25ns.json`](../research/benchmarks/axpe-cmos5l-25ns.json).
+
+A bounded resizer probe on the completed CTS-size-eight database reproduces
+its six slow-corner slew and six fanout violations from extracted parasitics.
+With placement estimates, OpenROAD inserts seven buffers across the six
+fanout nets. The placement estimate loses the routed slew violations even
+before repair, so this probe identifies a possible fanout mechanism only; it
+does not establish routed electrical closure. The runnable Tcl and its hashed
+log are in the same evidence record.
+
+The next locked experiment enables LibreLane's built-in post-global-route
+design repair on the CTS-size-eight candidate and reruns global routing from
+that checkpoint.
+Its `asic_post_grt_design_repair` profile setting is validated against the flow
+lock and exercised at `true`. The step runs but inserts no buffers and resizes
+no cells. Its output netlist is identical to the parent, antenna checks pass,
+and the nominal pre-route check still has three fanout violations. The trial
+was stopped before detailed routing; no post-route improvement is claimed.
+
+Resuming that locked repair step from its completed post-antenna state does
+insert buffers. Five successive repair/antenna passes insert 5, 2, 3, 1 and 3
+buffers; antenna checks pass each time. The nominal pre-route fanout count is
+2, 2, 1, 1 and 2: new violations appear after antenna work, so the repeated
+sequence does not converge. The last three passes stop at the STA checkpoint
+using a bounded flow command. A CTS-size-eight GDS continuation and two older
+detailed-route retries were stopped when this more focused checkpoint was
+available; none contributes post-route or signoff evidence.
+
+A further locked variant disables global-route antenna repair after one more
+design-repair step. It reaches zero nominal pre-route fanout, slew and cap
+violations but leaves 15 antenna-violating nets. Detailed routing repairs
+those antennas and completes with zero OpenROAD route DRC and zero final
+antenna violations. All-corner setup and hold pass; slow-corner setup slack is
++3.099 ns. The routed design still has one fanout violation at every corner
+and 19 slow-corner slew violations, so PE-10 electrical closure remains open.
+The variant has not run GDS/DRC/LVS. An in-memory repair probe inserts three
+buffers and resizes two cells, but OpenROAD uses wire-load estimates after
+changing the design; its after-report is not routed timing evidence. The
+provisional 4 ns I/O delay also still needs an external pad contract.
+
+The next bounded repair trials isolate two global-route controls. Raising the
+post-GRT slew margin from its pinned default of 10% to 35% finds three slew
+targets but produces a byte-identical repaired netlist and nominal STA report.
+Five of the seven routed violating gate outputs are `a221oi_1` cells, for
+which the pinned library has no higher drive variant; simply asking the
+resizer for more margin does not change them. A separate 400 µm maximum-wire
+trial inserts 272 buffers across 211 nets, including a chain on a connection
+whose endpoints are separated by at least 746 µm horizontally. Nominal
+pre-route electrical checks remain clear, though global-route parasitic
+estimation emits missing-route-to-pin warnings. The first detailed-route
+attempt was interrupted; a supervised retry completed with zero route DRC and
+antenna errors, zero all-corner setup, hold, fanout and cap violations, and
+six slow-corner slew violations. Slow-corner setup slack is +7.100 ns, but
+fast-corner hold margin is only +0.007 ns. The six slew pins are on two nets
+driven by `nor4_1` cells. This is routed improvement, not electrical closure;
+the variant has no GDS/DRC/LVS result, and the 4 ns I/O delay remains
+provisional without an external pad contract.
+
+A separately locked 200 µm cap inserts buffers after both of those `nor4_1`
+drivers and completes a detailed route with zero DRC and antenna errors.
+Extracted STA clears all-corner setup, hold, slew and cap checks, but one
+max-fanout violation remains at every corner. The input buffer `input4/X`
+drives four functional sinks and five antenna diodes, producing fanout nine
+against the library limit of eight. Fast-corner hold slack is only +0.012 ns.
+The next locked trial reduces detailed-route antenna-repair margin to zero
+to test whether fewer diodes can clear fanout while preserving antenna and
+timing checks. No final-architecture GDS/DRC/LVS is claimed.
+
 ## 3. Architecture direction
 
 A single timed-ISA micro-CPU. Cycle timing is part of the instruction encoding
@@ -447,10 +536,11 @@ competition itself was tested rather than assumed.
 
 ## 7. Open questions
 
-- PE-10: repair 14 slow-corner slew and 162 fanout violations in the measured
-  25 ns candidate, establish an external I/O pad contract, then pass full
-  GDS/DRC/LVS. The 64×32 inferred store routes in 6×4 with positive setup and
-  hold slack; changing memory capacity is not indicated by these results.
+- PE-10: repair the single antenna-diode-induced fanout violation in the best
+  routed 25 ns candidate without losing its 12 ps fast-corner hold margin,
+  establish an external I/O pad contract, then pass full GDS/DRC/LVS on that
+  final architecture. The 64×32 inferred store routes in 6×4; changing memory
+  capacity is not indicated by these results.
 - PE-03: instruction width, register count and datapath width, under §2's ceiling.
 - Target clock frequency, and therefore the fastest protocol bit rate reachable.
 - Whether the 8×4 tile option becomes available, and what it would buy.

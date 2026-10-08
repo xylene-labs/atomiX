@@ -100,6 +100,10 @@ def validate_export(workdir: Path, lock_path: Path, profile: Path,
         "cts_sink_clustering_size": lock["candidate"].get("cts_sink_clustering_size"),
         "max_fanout": lock["candidate"].get("max_fanout"),
         "max_transition_ps": lock["candidate"].get("max_transition_ps"),
+        "post_grt_design_repair": lock["candidate"].get("post_grt_design_repair"),
+        "post_grt_slew_margin_pct": lock["candidate"].get("post_grt_slew_margin_pct"),
+        "post_grt_max_wire_length_um": lock["candidate"].get("post_grt_max_wire_length_um"),
+        "antenna_repair_enabled": lock["candidate"].get("antenna_repair_enabled"),
         "antenna_jumper_only": lock["candidate"].get("antenna_jumper_only"),
         "antenna_repair_margin_pct": lock["candidate"].get("antenna_repair_margin_pct"),
         "abc_buffering": lock["candidate"].get("abc_buffering"),
@@ -144,6 +148,20 @@ def validate_export(workdir: Path, lock_path: Path, profile: Path,
         if expected["max_transition_ps"] is not None and (
                 config.get("MAX_TRANSITION_CONSTRAINT") != expected["max_transition_ps"] / 1000):
             raise FlowError(f"{merged}: max transition disagrees with the lock")
+        if expected["post_grt_design_repair"] is not None and (
+                config.get("RUN_POST_GRT_DESIGN_REPAIR") != expected["post_grt_design_repair"]):
+            raise FlowError(f"{merged}: post-GRT design repair disagrees with the lock")
+        if expected["post_grt_slew_margin_pct"] is not None and (
+                config.get("GRT_DESIGN_REPAIR_MAX_SLEW_PCT") !=
+                expected["post_grt_slew_margin_pct"]):
+            raise FlowError(f"{merged}: post-GRT slew margin disagrees with the lock")
+        if expected["post_grt_max_wire_length_um"] is not None and (
+                config.get("GRT_DESIGN_REPAIR_MAX_WIRE_LENGTH") !=
+                expected["post_grt_max_wire_length_um"]):
+            raise FlowError(f"{merged}: post-GRT max wire length disagrees with the lock")
+        if expected["antenna_repair_enabled"] is not None and (
+                config.get("RUN_ANTENNA_REPAIR") != expected["antenna_repair_enabled"]):
+            raise FlowError(f"{merged}: antenna repair enable disagrees with the lock")
         if expected["antenna_jumper_only"] is not None:
             for key in ("GRT_ANTENNA_REPAIR_JUMPER_ONLY",
                         "DRT_ANTENNA_REPAIR_JUMPER_ONLY"):
@@ -219,23 +237,31 @@ def require_toolchain(args: argparse.Namespace, lock: dict[str, Any]) -> None:
 
 def summarize(workdir: Path, tag: str, lock: dict[str, Any]) -> dict[str, Any]:
     run_dir = workdir / "runs" / tag
+    if not has_complete_report(run_dir):
+        raise FlowError(f"post-route STA or signoff is not complete: {run_dir}")
     metrics_path = run_dir / "final" / "metrics.json"
     if not metrics_path.is_file():
         raise FlowError(f"post-route metrics are not available: {metrics_path}")
     metrics = tt_axpe.read_json(metrics_path)
     export_manifest = tt_axpe.read_json(workdir / tt_axpe.MARKER)
-    required = ("design__instance__count__stdcell",
+    corner_names = ("nom_fast_1p32V_m40C", "nom_typ_1p20V_25C",
+                    "nom_slow_1p08V_125C")
+    corner_metrics = ("timing__setup__ws", "timing__setup_vio__count",
+                      "timing__hold__ws", "timing__hold_vio__count",
+                      "design__max_slew_violation__count",
+                      "design__max_fanout_violation__count",
+                      "design__max_cap_violation__count")
+    required = ["design__instance__count__stdcell",
                 "design__instance__area__stdcell", "design__core__area",
                 "route__drc_errors", "antenna__violating__nets",
-                "antenna__violating__pins",
-                "timing__setup__ws__corner:nom_slow_1p08V_125C",
-                "timing__setup_vio__count__corner:nom_slow_1p08V_125C")
-    missing = [key for key in required if key not in metrics]
+                "antenna__violating__pins"]
+    required += [f"{metric}__corner:{corner}"
+                 for corner in corner_names for metric in corner_metrics]
+    missing = [key for key in required if metrics.get(key) is None]
     if missing:
         raise FlowError(f"{metrics_path}: not a complete post-route report: {missing}")
     corners = {}
-    for corner in ("nom_fast_1p32V_m40C", "nom_typ_1p20V_25C",
-                   "nom_slow_1p08V_125C"):
+    for corner in corner_names:
         suffix = f"__corner:{corner}"
         corners[corner] = {
             "setup_worst_slack_ns": metrics.get("timing__setup__ws" + suffix),
@@ -244,6 +270,7 @@ def summarize(workdir: Path, tag: str, lock: dict[str, Any]) -> dict[str, Any]:
             "hold_violations": metrics.get("timing__hold_vio__count" + suffix),
             "max_slew_violations": metrics.get("design__max_slew_violation__count" + suffix),
             "max_fanout_violations": metrics.get("design__max_fanout_violation__count" + suffix),
+            "max_cap_violations": metrics.get("design__max_cap_violation__count" + suffix),
         }
     result = {
         "schema": "org.atomix.tt-axpe-flow-summary.v1",
@@ -264,9 +291,22 @@ def summarize(workdir: Path, tag: str, lock: dict[str, Any]) -> dict[str, Any]:
     }
     summary = run_dir / "summary.json"
     summary.write_text(json.dumps(result, indent=2) + "\n")
+    slow = corners["nom_slow_1p08V_125C"]
     print(f"summary {summary}: route DRC={result['routing_drc_errors']}, "
-          f"slow setup={corners['nom_slow_1p08V_125C']['setup_worst_slack_ns']} ns")
+          f"antenna nets/pins={result['antenna_net_violations']}/"
+          f"{result['antenna_pin_violations']}, "
+          f"slow setup/hold={slow['setup_worst_slack_ns']}/"
+          f"{slow['hold_worst_slack_ns']} ns, "
+          f"worst-corner slew/fanout/cap="
+          f"{max(c['max_slew_violations'] for c in corners.values())}/"
+          f"{max(c['max_fanout_violations'] for c in corners.values())}/"
+          f"{max(c['max_cap_violations'] for c in corners.values())}")
     return result
+
+
+def has_complete_report(run_dir: Path) -> bool:
+    return (any(run_dir.glob("[0-9]*-openroad-stapostpnr/state_out.json")) or
+            any(run_dir.glob("[0-9]*-misc-reportmanufacturability/state_out.json")))
 
 
 def status(workdir: Path, tag: str) -> None:
@@ -279,7 +319,7 @@ def status(workdir: Path, tag: str) -> None:
     print(f"{tag}: {len(completed)} completed steps; "
           f"latest={steps[-1].name if steps else 'none'}; "
           f"last complete={completed[-1].name if completed else 'none'}")
-    if (run_dir / "final" / "metrics.json").is_file():
+    if has_complete_report(run_dir) and (run_dir / "final" / "metrics.json").is_file():
         print(f"{tag}: final metrics available; use summarize for bounded results")
 
 
@@ -321,7 +361,9 @@ def run(args: argparse.Namespace) -> None:
         flow_command += ["-i", str(state)]
     if args.from_step:
         flow_command += ["--from", args.from_step]
-    if not args.full:
+    if args.to_step:
+        flow_command += ["--to", args.to_step]
+    elif not args.full:
         flow_command += ["--to", "OpenROAD.STAPostPNR"]
     flow_command.append("src/config_merged.json")
     run_dir.mkdir(parents=True)
@@ -342,7 +384,8 @@ def run(args: argparse.Namespace) -> None:
                                    check=False)
     if completed.returncode:
         raise FlowError(f"LibreLane exited {completed.returncode}; see {log_path}")
-    summarize(workdir, tag, lock)
+    if not args.to_step or args.to_step == "OpenROAD.STAPostPNR":
+        summarize(workdir, tag, lock)
 
 
 def cli() -> None:
@@ -369,6 +412,8 @@ def cli() -> None:
     parser.add_argument("--from", dest="from_step")
     parser.add_argument("--full", action="store_true",
                         help="continue through GDS, DRC and LVS instead of stopping at post-route STA")
+    parser.add_argument("--to", dest="to_step",
+                        help="stop at a named LibreLane step for a bounded experiment")
     args = parser.parse_args()
     try:
         if args.threads < 1 or args.threads > 64:
@@ -377,6 +422,8 @@ def cli() -> None:
             raise FlowError("choose --initial-state or --resume-from-tag, not both")
         if args.resume_from_tag and not args.from_step:
             raise FlowError("--resume-from-tag requires --from")
+        if args.full and args.to_step:
+            raise FlowError("choose --full or --to, not both")
         if args.command == "run":
             run(args)
         else:

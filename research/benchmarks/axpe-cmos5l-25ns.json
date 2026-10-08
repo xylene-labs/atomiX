@@ -1,9 +1,9 @@
 {
   "schema": "org.atomix.axpe-cmos5l-25ns.v1",
-  "date": "2026-09-27",
-  "evidence_kind": "CMOS5L post-route extraction and STA, not silicon",
+  "date": "2026-10-08",
+  "evidence_kind": "CMOS5L place-and-route, antenna and STA evidence, not silicon",
   "source_commit": "e82bdafe543809c6d876ef05d310cb4e059b873c",
-  "source_state": "RTL at source_commit; the baseline and CTS-size-8 flow inputs are committed at 66964bb. The new CTS-size-4 and electrical-trial inputs and this updated result are uncommitted, with hashes below, pending maintainer review",
+  "source_state": "RTL at source_commit; baseline and CTS-size-8 flow inputs committed at 66964bb, later experiment profiles and locks committed through 224d88d; the post-GRT, no-antenna-repair, slew-margin and wire-length trial inputs, bounded-stop flow helper and this evidence update remain in the working tree pending maintainer review",
   "candidate": {
     "profile": "configs/tt-axpe-6x4-25ns.json",
     "profile_sha256": "ec5649fa1686e515fc81ffe1e640079ff991de5bb6b0e30d43f5e8651ef96b54",
@@ -17,6 +17,7 @@
     "input_delay_ns": 4,
     "output_delay_ns": 4,
     "io_contract": "Provisional LibreLane base.sdc delay using IO_DELAY_CONSTRAINT=16%; not an external pad contract",
+    "io_contract_status": "On 2026-10-08 the maintainer confirmed no CMOS5L-specific pad/carrier timing budget is available yet; retain the 4 ns input/output test delay as provisional.",
     "instruction_store": "64x32 inferred synchronous single-port array"
   },
   "flow": {
@@ -142,6 +143,355 @@
     "stop_point": "During OpenROAD detailed routing; no post-route metrics or GDS exist",
     "result": "The globally tightened fanout constraint is refuted for this CTS tree; post-route timing is unmeasured and no pass is claimed"
   },
+  "later_electrical_trials": {
+    "pre_route_checkpoint": "Nominal-corner STA immediately before detailed routing. The nominal_pre_route counts are not post-route or all-corner results; post_route objects below are separate measured continuations.",
+    "inputs_commit": "224d88d",
+    "closure": {
+      "profile": "configs/tt-axpe-6x4-25ns-closure.json",
+      "profile_sha256": "a03b8bf880945941b866d955c0b1fdae1658d104751e37af4c4e851b38cf82c6",
+      "flow_lock": "asic/axpe/flow-lock-25ns-closure.json",
+      "flow_lock_sha256": "315995dec899a605dab4cd4d09959aebbdb75d5bf987f0bc4159f52716995875",
+      "settings": {"cts_sink_clustering_size": 8, "max_fanout": 8, "max_transition_ps": 2000},
+      "openroad_threads": 6,
+      "run_dir": "build/asic/tt-axpe-25ns-closure/runs/pe10-25ns-closure",
+      "pre_route_checks_sha256": "40f0f8a61409667b1cd21624bef49d0cab115fee622213cf8357bd32fdbc72c0",
+      "nominal_pre_route": {"setup_worst_slack_ns": 13.4889, "hold_worst_slack_ns": 0.269306, "max_slew_violations": 0, "max_fanout_violations": 3},
+      "stop": "OpenROAD detailed routing returned an unexpected error during pin access; no post-route or signoff metrics exist"
+    },
+    "closure_two_thread_retry": {
+      "profile": "configs/tt-axpe-6x4-25ns-closure.json",
+      "flow_lock": "asic/axpe/flow-lock-25ns-closure.json",
+      "command": "python3 tools/tt_axpe_flow.py run --profile configs/tt-axpe-6x4-25ns-closure.json --flow-lock asic/axpe/flow-lock-25ns-closure.json --workdir build/asic/tt-axpe-25ns-closure --tag pe10-25ns-closure-t2 --threads 2",
+      "run_dir": "build/asic/tt-axpe-25ns-closure/runs/pe10-25ns-closure-t2",
+      "antenna_check_metrics_sha256": "3d4b227e662278a621fda0131aaefd786fd7ebe30a4d00f1bf707a88b019818d",
+      "antenna_violating_nets": 0,
+      "antenna_violating_pins": 0,
+      "nominal_pre_route_checks_sha256": "40f0f8a61409667b1cd21624bef49d0cab115fee622213cf8357bd32fdbc72c0",
+      "nominal_pre_route_fanout_violations": 3,
+      "state_at_capture": "Detailed routing was active after the completed antenna and pre-route STA checkpoints; no post-route or signoff result yet"
+    },
+    "abc_area": {
+      "profile": "configs/tt-axpe-6x4-25ns-abc-area.json",
+      "profile_sha256": "f3cf3a0eafebe7516365b2b7610cc7c5f2606df943c883bd836f5365f524aff1",
+      "flow_lock": "asic/axpe/flow-lock-25ns-abc-area.json",
+      "flow_lock_sha256": "83e66caa177cfc9b3ea6f7ea45926efd0a1e0a90d22dba8941248580c56cdc38",
+      "settings": {"cts_sink_clustering_size": 8, "max_fanout": 8, "max_transition_ps": 2000, "abc_buffering": true, "synth_strategy": "AREA 0"},
+      "openroad_threads": 2,
+      "run_dir": "build/asic/tt-axpe-25ns-abc-area/runs/pe10-25ns-abc-area",
+      "pre_route_checks_sha256": "f007b8b2d61af35a58b1a6a35e94cb00b0fad3309cac2a2ea2cd1a0a9837000e",
+      "nominal_pre_route": {"setup_worst_slack_ns": 14.0893, "hold_worst_slack_ns": 0.278244, "max_slew_violations": 0, "max_fanout_violations": 42},
+      "post_route_metrics_sha256": "98653a6e10cfcfbea854107a86a37bdd6bcf9c8fb94d98e40339f9e33fdcc118",
+      "post_route_slow_checks_sha256": "57cc6e15c7eaa05aa2ac5326f6f5fde9b4a329f321c5a678249dc73f2192e891",
+      "post_route_summary_sha256": "7f99ec2bd7d5678e296bb2f61085769f13cd37deae8dcb9361f211614cfcbcc8",
+      "post_route_netlist_sha256": "d4e0ca767bb8796ef6752b865ce1baba17d11981234b16140bc56e3f2145befd",
+      "post_route": {
+        "standard_cells": 16994,
+        "standard_cell_area_um2": 294586,
+        "routing_drc_errors": 0,
+        "antenna_net_violations": 0,
+        "antenna_pin_violations": 0,
+        "corners": {
+          "nom_fast_1p32V_m40C": {"setup_worst_slack_ns": 14.604783, "hold_worst_slack_ns": 0.111802, "setup_violations": 0, "hold_violations": 0, "max_slew_violations": 0, "max_fanout_violations": 111, "max_cap_violations": 37},
+          "nom_typ_1p20V_25C": {"setup_worst_slack_ns": 11.343122, "hold_worst_slack_ns": 0.291995, "setup_violations": 0, "hold_violations": 0, "max_slew_violations": 6, "max_fanout_violations": 111, "max_cap_violations": 32},
+          "nom_slow_1p08V_125C": {"setup_worst_slack_ns": 5.326005, "hold_worst_slack_ns": 0.615342, "setup_violations": 0, "hold_violations": 0, "max_slew_violations": 273, "max_fanout_violations": 111, "max_cap_violations": 32}
+        }
+      },
+      "fanout_diagnosis": "Joining the 111 slow-corner fanout violator instance names in checks.rpt to the final mapped netlist identifies 110 sg13cmos5l_buf_1 cells and one sg13cmos5l_inv_1 cell. The weak buffers inserted by this strategy dominate the violation set.",
+      "result": "Rejected for electrical closure: ABC area buffering increased post-route fanout and slow-corner slew violations from the CTS-size-8 trial's six each to 111 and 273; GDS/DRC/LVS was not run"
+    },
+    "abc_delay": {
+      "profile": "configs/tt-axpe-6x4-25ns-abc-delay.json",
+      "profile_sha256": "161d19354b65eec57c0e3981dd43657d1af40adb3f83e0fa756b31cab7568e19",
+      "flow_lock": "asic/axpe/flow-lock-25ns-abc-delay.json",
+      "flow_lock_sha256": "5cb4caed41375beef0153a1ddcefe053574f67d695b7b9e9c4ebf7174db68ae1",
+      "settings": {"cts_sink_clustering_size": 8, "max_fanout": 8, "max_transition_ps": 2000, "abc_buffering": true, "synth_strategy": "DELAY 0"},
+      "openroad_threads": 2,
+      "run_dir": "build/asic/tt-axpe-25ns-abc-delay/runs/pe10-25ns-abc-delay",
+      "pre_route_checks_sha256": "e698fa004bc77c2eeec389cca58838dd29f894e3aceef1b1b1dc9f701202cc9c",
+      "nominal_pre_route": {"setup_worst_slack_ns": 13.3364, "hold_worst_slack_ns": 0.2551, "max_slew_violations": 0, "max_fanout_violations": 51},
+      "post_route_metrics_sha256": "1f208e72f127a02384568117ec3aaa9b83613b8a2de0b68e0bae76dacc094e1d",
+      "post_route_summary_sha256": "a78885345b824782e3e7a9f7efae2f3af61b21637bf64d6c8448932521d82f59",
+      "post_route_slow_checks_sha256": "82a41957ff6326285a2546a42e5d35f23b54c05c3ca2875e98ff75837042344a",
+      "post_route_netlist_sha256": "89e5a951545c76e590ccb53c0d981ee9953f5e3275e6267f893fc32d3fa9227b",
+      "post_route": {
+        "standard_cells": 17815,
+        "standard_cell_area_um2": 308361,
+        "routing_drc_errors": 0,
+        "antenna_net_violations": 0,
+        "antenna_pin_violations": 0,
+        "corners": {
+          "nom_fast_1p32V_m40C": {"setup_worst_slack_ns": 13.974331, "hold_worst_slack_ns": 0.115171, "setup_violations": 0, "hold_violations": 0, "max_slew_violations": 0, "max_fanout_violations": 102, "max_cap_violations": 79},
+          "nom_typ_1p20V_25C": {"setup_worst_slack_ns": 10.121094, "hold_worst_slack_ns": 0.328501, "setup_violations": 0, "hold_violations": 0, "max_slew_violations": 31, "max_fanout_violations": 102, "max_cap_violations": 75},
+          "nom_slow_1p08V_125C": {"setup_worst_slack_ns": 2.130994, "hold_worst_slack_ns": 0.672731, "setup_violations": 0, "hold_violations": 0, "max_slew_violations": 829, "max_fanout_violations": 102, "max_cap_violations": 73}
+        }
+      },
+      "fanout_diagnosis": "Joining the 102 slow-corner fanout violator instance names in checks.rpt to the final mapped netlist identifies 101 sg13cmos5l_buf_1 cells and one sg13cmos5l_o21ai_1 cell.",
+      "result": "Rejected for electrical closure: ABC delay buffering produced 102 fanout, 829 slow-corner slew and up to 79 max-cap violations; GDS/DRC/LVS was not run"
+    },
+    "antenna_jumpers": {
+      "profile": "configs/tt-axpe-6x4-25ns-jumpers.json",
+      "profile_sha256": "601e511c1871aa94e3ce950f485315cc92f6bfc6db4a00b8f1c033c207fe5851",
+      "flow_lock": "asic/axpe/flow-lock-25ns-jumpers.json",
+      "flow_lock_sha256": "7d016dc8e7a4e8dd9460786ecc234b4514103babdc3a678ee258224972cebf91",
+      "settings": {"antenna_jumper_only": true},
+      "openroad_threads": 6,
+      "parent": "closure trial's completed global-routing state",
+      "run_dir": "build/asic/tt-axpe-25ns-jumpers/runs/pe10-25ns-jumpers",
+      "pre_route_checks_sha256": "04fec78ebe47d1715b041f6de4b9aa08397aa51acea42c0e596482fba2dcfb9b",
+      "nominal_pre_route": {"max_slew_violations": 0, "max_fanout_violations": 0},
+      "stop": "OpenROAD detailed routing returned an unexpected error during pin access; no post-route or signoff metrics exist"
+    },
+    "antenna_jumpers_two_thread_retry": {
+      "profile": "configs/tt-axpe-6x4-25ns-jumpers.json",
+      "flow_lock": "asic/axpe/flow-lock-25ns-jumpers.json",
+      "command": "python3 tools/tt_axpe_flow.py run --profile configs/tt-axpe-6x4-25ns-jumpers.json --flow-lock asic/axpe/flow-lock-25ns-jumpers.json --workdir build/asic/tt-axpe-25ns-jumpers --tag pe10-25ns-jumpers-t2 --initial-state build/asic/tt-axpe-25ns-closure/runs/pe10-25ns-closure/39-openroad-globalrouting/state_out.json --from OpenROAD.RepairAntennas --threads 2",
+      "run_dir": "build/asic/tt-axpe-25ns-jumpers/runs/pe10-25ns-jumpers-t2",
+      "check_stage": "01-openroad-repairantennas/2-openroad-checkantennas",
+      "check_report_sha256": "16e57a2216d7c806666cf71b38afb047a447f436dce774f3152e02b803c421de",
+      "check_metrics_sha256": "bbdc0a855088507f4323f69b81669ddee33aa00aae36bcaa0f032939c7b11876",
+      "antenna_violating_nets": 27,
+      "antenna_violating_pins": 35,
+      "stop": "Stopped after the completed antenna check because jumper-only repair left violations; no detailed-route, post-route timing or GDS result is claimed"
+    },
+    "antenna_margin_zero": {
+      "profile": "configs/tt-axpe-6x4-25ns-margin0.json",
+      "profile_sha256": "1a710118f27110277e402454fa861a0238a998ee4b0165bcd434c07af8664542",
+      "flow_lock": "asic/axpe/flow-lock-25ns-margin0.json",
+      "flow_lock_sha256": "7ed575f1d1c549fc1f5ef78f1484ec3a95cc7bd8ede1b77e69874d4b0e5db956",
+      "settings": {"antenna_repair_margin_pct": 0},
+      "openroad_threads": 6,
+      "parent": "CTS-size-8 trial's completed global-routing state",
+      "run_dir": "build/asic/tt-axpe-25ns-margin0/runs/pe10-25ns-margin0",
+      "pre_route_checks_sha256": "a242eed3d21277884fa74abd53a0188d54015417435886a119d5568e07d222e9",
+      "nominal_pre_route": {"max_slew_violations": 0, "max_fanout_violations": 2},
+      "stop": "OpenROAD detailed routing returned an unexpected error during pin access; no post-route or signoff metrics exist"
+    }
+  },
+  "cts8_resizer_probe": {
+    "kind": "exploratory OpenROAD in-memory repair, not a routed candidate",
+    "script": "asic/axpe/experiments/cts8-repair-probe.tcl",
+    "script_sha256": "084f1e57a478d424b76de5c40bc1c85c9bba0226ebba5ae1ab7c3a3fda869e23",
+    "command": "NP_LOCATION=$PWD/build/asic/nix-portable-state build/asic/nix-portable nix-shell build/asic/librelane-src/shell.nix --option extra-substituters https://nix-cache.fossi-foundation.org --option extra-trusted-public-keys 'nix-cache.fossi-foundation.org:3+K59iFwXqKsL7BNu6Guy0v+uTlwsxYQxjspXzqLYQs=' --run 'openroad -exit -no_splash asic/axpe/experiments/cts8-repair-probe.tcl > build/asic/cts8-repair-probe.log 2>&1'",
+    "log_sha256": "c0b87f616653c267668274093e89f1b907f0ac8140fa8c9d939052862fe8b687",
+    "routed_input_replay": "slow-corner extracted parasitics reproduce six max-slew pins and six max-fanout drivers from the completed CTS-size-8 run",
+    "placement_repair": "With Metal2 wire RC and placement-estimated parasitics, repair_design inserts seven buffers across the six fanout nets and its placement report has no fanout violators",
+    "limit": "Placement estimates replace routed parasitics and remove the observed slew violations even before repair. No post-repair routing, RC extraction, all-corner STA, antenna, DRC or LVS was run; this is a candidate repair mechanism only"
+  },
+  "post_grt_design_repair_trial": {
+    "profile": "configs/tt-axpe-6x4-25ns-postgrt.json",
+    "profile_sha256": "b9bae7092c227374bab14fd3c8ac2a1346f9f1594e77176355b693ca03a66b07",
+    "flow_lock": "asic/axpe/flow-lock-25ns-postgrt.json",
+    "flow_lock_sha256": "7022c8766ae1daba601051f8e275f828d13ea5ef7026766fc1f082cc90c62b04",
+    "export_manifest_sha256": "177e1703a0eb5a07b82b3aee54e2925fb7b0a14cd65eb6af79c11e4442a1a719",
+    "merged_config_sha256": "30393ec6ece4535ab94d087d5b17f5fe5450a8371b3f476835af2d841555bea8",
+    "parent_state": "build/asic/tt-axpe-25ns-cts8/runs/pe10-25ns-cts8/05-openroad-globalrouting/state_out.json",
+    "flow_switch": "RUN_POST_GRT_DESIGN_REPAIR=true; LibreLane's built-in step runs GRT, repair_design and GRT again before antenna repair",
+    "setting_verification": "make config-check-all and tt_axpe.py check pass; exported and merged configs contain RUN_POST_GRT_DESIGN_REPAIR=true; a lock with the same profile but false is rejected; the LibreLane step actually ran",
+    "command": "python3 tools/tt_axpe_flow.py run --profile configs/tt-axpe-6x4-25ns-postgrt.json --flow-lock asic/axpe/flow-lock-25ns-postgrt.json --workdir build/asic/tt-axpe-25ns-postgrt --tag pe10-25ns-postgrt --initial-state build/asic/tt-axpe-25ns-cts8/runs/pe10-25ns-cts8/05-openroad-globalrouting/state_out.json --from OpenROAD.RepairDesignPostGRT --threads 2",
+    "post_grt_step_log_sha256": "84f9c344d506e194b978c562e8d36a81a452299bdb5cb407aca0c067b27b1969",
+    "post_grt_output_netlist_sha256": "13ac3ee8e9add819e8eebfd4b12a383cd6750705eefc9feeccb68e6ed2c70e7e",
+    "parent_netlist_sha256": "13ac3ee8e9add819e8eebfd4b12a383cd6750705eefc9feeccb68e6ed2c70e7e",
+    "repair_step_result": "LibreLane invoked repair_design with 10% slew/cap margins; it found one global-route slew violation, resized zero cells and inserted zero buffers. The output netlist is identical to the parent.",
+    "antenna_check_metrics_sha256": "3d4b227e662278a621fda0131aaefd786fd7ebe30a4d00f1bf707a88b019818d",
+    "antenna_violating_nets": 0,
+    "antenna_violating_pins": 0,
+    "nominal_pre_route_checks_sha256": "994d2404ceeffd8d402888409ecfd8373290cfd55accfb717ec7464381193c7e",
+    "nominal_pre_route_fanout_violations": 3,
+    "stop": "Stopped after the completed antenna and pre-route checks because this enabled step made no cell or netlist repair; post-route STA, GDS/DRC/LVS and electrical closure were not measured"
+  },
+  "post_grt_after_antenna_sequence": {
+    "date": "2026-10-07",
+    "profile": "configs/tt-axpe-6x4-25ns-postgrt.json",
+    "flow_lock": "asic/axpe/flow-lock-25ns-postgrt.json",
+    "flow_helper_at_run_sha256": "1b8bf51fdc9540efe5f7b3c846093bf78dfed553659e94287001cf4b32dacdb5",
+    "flow_helper_with_report_guard_sha256": "ea4cd1b8242420ed451497a1665816e69504935852e8852d87093a3c4746ec4e",
+    "root_state": "build/asic/tt-axpe-25ns-postgrt/runs/pe10-25ns-postgrt/03-openroad-repairantennas/state_out.json",
+    "bounded_command": "python3 tools/tt_axpe_flow.py run --profile configs/tt-axpe-6x4-25ns-postgrt.json --flow-lock asic/axpe/flow-lock-25ns-postgrt.json --workdir build/asic/tt-axpe-25ns-postgrt --tag pe10-25ns-postgrt-after-antenna-N --initial-state build/asic/tt-axpe-25ns-postgrt/runs/pe10-25ns-postgrt-after-antenna-PREV/04-openroad-stamidpnr-3/state_out.json --from OpenROAD.RepairDesignPostGRT --to OpenROAD.STAMidPNR-3 --threads 2",
+    "command_substitution": "For N=3,4,5, PREV=2,3,4 respectively. The first two local runs used the same locked profile and post-antenna input chain but continued toward detailed routing; only their completed pre-route checks are used here.",
+    "checkpoint_scope": "Nominal-corner pre-detailed-route STA after each repair and antenna pass; no all-corner post-route STA or GDS/DRC/LVS result",
+    "rounds": [
+      {"round": 1, "tag": "pe10-25ns-postgrt-after-antenna", "buffers_inserted": 5, "antenna_nets": 0, "pre_route_fanout": 2, "checks_sha256": "38a084d4a866323cafd997017cc3e033259cf6340cf4309438d1d6783e4c8fcb"},
+      {"round": 2, "tag": "pe10-25ns-postgrt-after-antenna-2", "buffers_inserted": 2, "antenna_nets": 0, "pre_route_fanout": 2, "checks_sha256": "2623ff22ebff09fe5fff3a4cbef5915406d7dd630343d958bf7eee02af8a932e"},
+      {"round": 3, "tag": "pe10-25ns-postgrt-after-antenna-3", "parent_state_sha256": "634543b54a2b26819a4792112f2bae7e327728f0f994e53fa5b0bedcfe115148", "buffers_inserted": 3, "antenna_nets": 0, "pre_route_fanout": 1, "pre_route_slew": 0, "pre_route_cap": 0, "checks_sha256": "d21e96a2a41599e911c847255ead83cc7aef3f01a2f37bd10d48614038d7ba8a", "metrics_sha256": "521815dce2ae7f5af62052265d25a25b89233922f63b4b51a2212c1c8cb58454"},
+      {"round": 4, "tag": "pe10-25ns-postgrt-after-antenna-4", "parent_state_sha256": "a9fc0061dfc63b099508199a556b967d4b50496e3f1621069e9d6f29a97beda3", "buffers_inserted": 1, "antenna_nets": 0, "pre_route_fanout": 1, "pre_route_slew": 0, "pre_route_cap": 0, "checks_sha256": "561077578a0e745be4aa9502b6c223a09eaf7890a9a196e1d69571612b278e7c", "metrics_sha256": "335f32d7af324d801160d60e72d80afe34e38071a58063fa379c23e585cf7cf0"},
+      {"round": 5, "tag": "pe10-25ns-postgrt-after-antenna-5", "parent_state_sha256": "a41df11751a5f08e9cd4e6d114a87b2ef974e6a668bd7e7e3858884abda632e6", "buffers_inserted": 3, "antenna_nets": 0, "pre_route_fanout": 2, "pre_route_slew": 0, "pre_route_cap": 0, "checks_sha256": "8091b10130e7ce514fd353f5dfff907dd744f5c613891247a928f368563ee2b8", "metrics_sha256": "c898092bbd016290c458ab8cde0470e2776e85f9641c2047ec670bb7c603b779"}
+    ],
+    "result": "Repair and antenna insertion interact: each repair fixes its input fanout drivers, but antenna work leaves new violators. The nominal pre-route count moves 2,2,1,1,2 and does not converge to zero. This does not measure the remaining routed slow-corner slew or establish electrical closure.",
+    "report_guard": "The bounded run carries final/metrics.json from its parent; the flow helper now requires a completed post-route STA or signoff step before status advertises a final report or summarize accepts one. The round-five summary is rejected; completed CTS-size-eight route and baseline signoff summaries pass."
+  },
+  "post_grt_no_antenna_repair_trial": {
+    "date": "2026-10-07",
+    "profile": "configs/tt-axpe-6x4-25ns-postgrt-noant.json",
+    "profile_sha256": "650d3246f55102ca57d9f18b0da48b1be954b3ab2080b6ea91aabfcc04e0a75c",
+    "flow_lock": "asic/axpe/flow-lock-25ns-postgrt-noant.json",
+    "flow_lock_sha256": "5bc01234fdcc39a2eef6d13274d39040d7a318993758dbc28467d08253ad8505",
+    "export_manifest_sha256": "d0905c0caa2ec5e5006620cd4312d8a51dee6eb6be749b1c8819628af8febf4e",
+    "merged_config_sha256": "dc1e25da6d5c080e9c25b68f91ed0f31e401936452710c532c65ff913c475e92",
+    "settings": {"post_grt_design_repair": true, "antenna_repair_enabled": false, "cts_sink_clustering_size": 8},
+    "constraint_note": "This profile does not export MAX_FANOUT_CONSTRAINT or MAX_TRANSITION_CONSTRAINT. The completed route reports a fanout limit of eight and a slow-corner library slew limit of 2.5074 ns; neither is a profile-owned 2 ns transition setting for this variant.",
+    "setting_verification": "Profile and flow lock match; exported config sets RUN_POST_GRT_DESIGN_REPAIR=true and RUN_ANTENNA_REPAIR=false; a lock with antenna repair true is rejected; make config-check-all passes.",
+    "parent_state": "build/asic/tt-axpe-25ns-postgrt/runs/pe10-25ns-postgrt-after-antenna-3/04-openroad-stamidpnr-3/state_out.json",
+    "bounded_command": "python3 tools/tt_axpe_flow.py run --profile configs/tt-axpe-6x4-25ns-postgrt-noant.json --flow-lock asic/axpe/flow-lock-25ns-postgrt-noant.json --workdir build/asic/tt-axpe-25ns-postgrt-noant --tag pe10-25ns-postgrt-noant-from3 --initial-state build/asic/tt-axpe-25ns-postgrt/runs/pe10-25ns-postgrt-after-antenna-3/04-openroad-stamidpnr-3/state_out.json --from OpenROAD.RepairDesignPostGRT --to OpenROAD.STAMidPNR-3 --threads 2",
+    "bounded_nominal_checks_sha256": "fc17d6d09421c1a3eff86b84197413d53822dc34e9302be298586bfb26d340d6",
+    "bounded_nominal_violations": {"max_fanout": 0, "max_slew": 0, "max_cap": 0},
+    "separate_antenna_check_metrics_sha256": "18612287f8e958ae039f040658384fa19219c4f76c8308bc2dda2b4326826e21",
+    "separate_antenna_check": {"violating_nets": 15, "violating_pins": 16},
+    "zero_margin_antenna_retry": "Global-route antenna repair with zero margin clears antenna but leaves one nominal fanout violation (checks SHA256 561077578a0e745be4aa9502b6c223a09eaf7890a9a196e1d69571612b278e7c).",
+    "route_command": "python3 tools/tt_axpe_flow.py run --profile configs/tt-axpe-6x4-25ns-postgrt-noant.json --flow-lock asic/axpe/flow-lock-25ns-postgrt-noant.json --workdir build/asic/tt-axpe-25ns-postgrt-noant --tag pe10-25ns-postgrt-noant-route --initial-state build/asic/tt-axpe-25ns-postgrt-noant/runs/pe10-25ns-postgrt-noant-from3/03-openroad-stamidpnr-3/state_out.json --from OpenROAD.DetailedRouting --threads 2",
+    "run_dir": "build/asic/tt-axpe-25ns-postgrt-noant/runs/pe10-25ns-postgrt-noant-route",
+    "route_console_sha256": "147f0c2b6f846f4ed03c6d20ac5ab73934d6de4c05cef739786e67f0b87bba2b",
+    "post_route_metrics_sha256": "bdac570869e76a2ddadf26f139823e0a77c61a651f6b78df087c06e6a9844084",
+    "post_route_summary_sha256": "65f23c14cf44fd2781e7fd52c78e8fcdc51cfc0c89bef55ec17267f5c5593c94",
+    "post_route_netlist_sha256": "c59000399152d1031f2e1ca1fec7a968b662bcd7707b23f8b9cb0688d763d6d4",
+    "post_route_slow_checks_sha256": "9d22634d13592981a29e86c2a472bc40c5f2e3b33acc42474f62c9159e61de12",
+    "post_route": {
+      "standard_cells": 16887,
+      "standard_cell_area_um2": 292416,
+      "core_area_um2": 902417,
+      "routing_drc_errors": 0,
+      "antenna_net_violations": 0,
+      "antenna_pin_violations": 0,
+      "corners": {
+        "nom_fast_1p32V_m40C": {"setup_worst_slack_ns": 13.761927, "hold_worst_slack_ns": 0.075142, "setup_violations": 0, "hold_violations": 0, "max_slew_violations": 0, "max_fanout_violations": 1, "max_cap_violations": 0},
+        "nom_typ_1p20V_25C": {"setup_worst_slack_ns": 9.891658, "hold_worst_slack_ns": 0.291145, "setup_violations": 0, "hold_violations": 0, "max_slew_violations": 0, "max_fanout_violations": 1, "max_cap_violations": 0},
+        "nom_slow_1p08V_125C": {"setup_worst_slack_ns": 3.099405, "hold_worst_slack_ns": 0.634888, "setup_violations": 0, "hold_violations": 0, "max_slew_violations": 19, "max_fanout_violations": 1, "max_cap_violations": 0}
+      }
+    },
+    "diagnosis": "Detailed routing's antenna iterations clear the 15-net pre-route antenna gap, but its output retains fanout377/X at 12 sinks against limit 8 and 19 slow-corner slew pins (worst 3.229 ns versus 2.507 ns). This improves routed fanout from the CTS-size-eight result's six to one, but worsens slow slew from six to 19.",
+    "scope": "Completed detailed route and extracted all-corner STA only; no GDS, Magic DRC, LVS or external pad-delay validation for this variant. Electrical closure fails."
+  },
+  "no_antenna_route_resizer_probe": {
+    "kind": "exploratory in-memory OpenROAD repair, not a routed candidate",
+    "script": "asic/axpe/experiments/noant-route-repair-probe.tcl",
+    "script_sha256": "3557af15b65ddfd64db4c3e644c3b1d774dd4f19339cccecf17d8b2e1d43674a",
+    "command": "NP_LOCATION=$PWD/build/asic/nix-portable-state build/asic/nix-portable nix-shell build/asic/librelane-src/shell.nix --option extra-substituters https://nix-cache.fossi-foundation.org --option extra-trusted-public-keys 'nix-cache.fossi-foundation.org:3+K59iFwXqKsL7BNu6Guy0v+uTlwsxYQxjspXzqLYQs=' --run 'openroad -exit -no_splash asic/axpe/experiments/noant-route-repair-probe.tcl > build/asic/noant-route-repair-probe.log 2>&1'",
+    "log_sha256": "66762ac99715ba35b257289edb25cea15f67206252895a96ef6e2f756af45902",
+    "input": "Completed no-antenna-repair route ODB, SDC, slow-corner liberty and extracted SPEF",
+    "result": "Before repair, the report reproduces 19 slow-corner slew pins and one fanout driver. repair_design resizes two instances and inserts three buffers; its immediate after-report still lists 16 slew pins and no fanout driver.",
+    "limit": "OpenROAD warns that repair_design has no estimated parasitics and uses wire-load models. The changed in-memory design is neither rerouted nor re-extracted, so its after-report cannot support a timing, antenna, DRC or LVS claim."
+  },
+  "post_grt_slew_margin_35_bounded_trial": {
+    "profile": "configs/tt-axpe-6x4-25ns-postgrt-noant-slew35.json",
+    "profile_sha256": "6e6d237da8143d3db74c388fffe7c8848d3af6e87cd7c1286af825322aba6b6a",
+    "flow_lock": "asic/axpe/flow-lock-25ns-postgrt-noant-slew35.json",
+    "flow_lock_sha256": "f7322b754824716d2d025a27babeb1a049e0882d092bcb9f227b5d8c8647d9d5",
+    "merged_config_sha256": "37ac9c028f5e70aa6ea1968abac79dd43b1c17229cd74ab996ac2bcb106c2d8e",
+    "setting": "asic_post_grt_slew_margin_pct=35 exports as GRT_DESIGN_REPAIR_MAX_SLEW_PCT=35; the pinned flow default is 10",
+    "parent_state": "build/asic/tt-axpe-25ns-postgrt/runs/pe10-25ns-postgrt-after-antenna-3/04-openroad-stamidpnr-3/state_out.json",
+    "command": "python3 tools/tt_axpe_flow.py run --profile configs/tt-axpe-6x4-25ns-postgrt-noant-slew35.json --flow-lock asic/axpe/flow-lock-25ns-postgrt-noant-slew35.json --workdir build/asic/tt-axpe-25ns-postgrt-noant-slew35 --tag pe10-25ns-postgrt-noant-slew35-from3 --initial-state build/asic/tt-axpe-25ns-postgrt/runs/pe10-25ns-postgrt-after-antenna-3/04-openroad-stamidpnr-3/state_out.json --from OpenROAD.RepairDesignPostGRT --to OpenROAD.STAMidPNR-3 --threads 2",
+    "repair_step_log_sha256": "c991782f69b73903ca33dc80acf3d7e10eb1cbf68b92124190cd5db13bd7069e",
+    "nominal_checks_sha256": "fc17d6d09421c1a3eff86b84197413d53822dc34e9302be298586bfb26d340d6",
+    "result": "The tighter margin finds three global-route slew targets and one fanout target but inserts only the same one buffer as the default-margin no-antenna trial. The repaired netlist and nominal STA checks are byte-identical to that trial. No detailed route was run for this variant.",
+    "limit": "The prior routed slow-corner slew violations cannot be inferred away from a nominal pre-route report."
+  },
+  "post_grt_max_wire_400_bounded_trial": {
+    "profile": "configs/tt-axpe-6x4-25ns-postgrt-noant-wire400.json",
+    "profile_sha256": "08bc0a91b9035e2dafbc304f5531c024a261b61f94da0627b3c99e6ae54dde9f",
+    "flow_lock": "asic/axpe/flow-lock-25ns-postgrt-noant-wire400.json",
+    "flow_lock_sha256": "7b4a61975149ce06b34dc588158daba6f69bcea2b5ac5ef259c74452e82819d5",
+    "merged_config_sha256": "ceb8ae84d759b5df4184581f4599b4b79efbf9e8f6ad84d26ecb1c2be422745f",
+    "setting": "asic_post_grt_max_wire_length_um=400 exports as GRT_DESIGN_REPAIR_MAX_WIRE_LENGTH=400; the pinned flow default is 0",
+    "parent_state": "build/asic/tt-axpe-25ns-postgrt/runs/pe10-25ns-postgrt-after-antenna-3/04-openroad-stamidpnr-3/state_out.json",
+    "command": "python3 tools/tt_axpe_flow.py run --profile configs/tt-axpe-6x4-25ns-postgrt-noant-wire400.json --flow-lock asic/axpe/flow-lock-25ns-postgrt-noant-wire400.json --workdir build/asic/tt-axpe-25ns-postgrt-noant-wire400 --tag pe10-25ns-postgrt-noant-wire400-from3 --initial-state build/asic/tt-axpe-25ns-postgrt/runs/pe10-25ns-postgrt-after-antenna-3/04-openroad-stamidpnr-3/state_out.json --from OpenROAD.RepairDesignPostGRT --to OpenROAD.STAMidPNR-3 --threads 2",
+    "repair_step_log_sha256": "3b374af141cb2434936994c9ce5e5715378921d5c711fc516d0b1e80f07a9249",
+    "nominal_checks_sha256": "6e27c6fcbd54ed0f78baa7dc71074e7ad759f21b4734762e8bcbf36d1da2f287",
+    "result": "The repair detects 210 long wires and one fanout target and inserts 272 buffers in 211 nets, increasing reported area by 1.2%. Nominal pre-route fanout, slew and cap checks remain zero. It inserts a buffer chain between _16157_ and _16160_, a previously routed slow-slew connection whose placed endpoints are at least 746 um apart horizontally.",
+    "warning": "The post-repair global-route parasitic estimator emits more than 1000 missing-route-to-pin warnings; nominal pre-route STA is not sufficient to resolve their impact.",
+    "scope": "This bounded checkpoint alone is pre-route evidence; the separate route-retry2 record below provides the completed routed comparison."
+  },
+  "post_grt_max_wire_400_route_attempts": [
+    {
+      "tag": "pe10-25ns-postgrt-noant-wire400-route",
+      "command": "python3 tools/tt_axpe_flow.py run --profile configs/tt-axpe-6x4-25ns-postgrt-noant-wire400.json --flow-lock asic/axpe/flow-lock-25ns-postgrt-noant-wire400.json --workdir build/asic/tt-axpe-25ns-postgrt-noant-wire400 --tag pe10-25ns-postgrt-noant-wire400-route --initial-state build/asic/tt-axpe-25ns-postgrt-noant-wire400/runs/pe10-25ns-postgrt-noant-wire400-from3/03-openroad-stamidpnr-3/state_out.json --from OpenROAD.DetailedRouting --threads 2",
+      "console_sha256": "19bf18902690bc3371d4749ad1e32429de8ca94a879605652dc710f178c490a5",
+      "openroad_log_sha256": "23345fa5e54a30204e5291d5311017d76442b1386c5ae70a755348600b5da282",
+      "stop": "The foreground process disappeared when its turn was interrupted during detailed-routing optimization pass two, after 80% of that pass. The detailed-routing step has no state_out.json; no route, STA or signoff result is claimed."
+    },
+    {
+      "tag": "pe10-25ns-postgrt-noant-wire400-route-retry",
+      "stop": "Detached launch attempts left an empty run directory, then the supervised launch refused to replace it. No LibreLane step or timing result exists under this tag."
+    },
+    {
+      "tag": "pe10-25ns-postgrt-noant-wire400-route-retry2",
+      "command": "python3 tools/tt_axpe_flow.py run --profile configs/tt-axpe-6x4-25ns-postgrt-noant-wire400.json --flow-lock asic/axpe/flow-lock-25ns-postgrt-noant-wire400.json --workdir build/asic/tt-axpe-25ns-postgrt-noant-wire400 --tag pe10-25ns-postgrt-noant-wire400-route-retry2 --initial-state build/asic/tt-axpe-25ns-postgrt-noant-wire400/runs/pe10-25ns-postgrt-noant-wire400-from3/03-openroad-stamidpnr-3/state_out.json --from OpenROAD.DetailedRouting --threads 2",
+      "supervision": "systemd-run --user --unit=axpe-wire400-route2 --working-directory=/home/shubhgau/dev/atomiX; service exited successfully after the helper wrote its own summary",
+      "console_sha256": "f897ff5a4216715659cc2bb3302c48d245001a2f9fbdd36a0ad1da3a203a8472",
+      "metrics_sha256": "84e5aefcec3b0de8ebe338e4193cbcfdc0bc3c33f17eadfb38abbc15499c95a9",
+      "summary_sha256": "894f46cae58dd464ab53049a12a841cf31ba810408fded6a24ffd885147b6525",
+      "slow_checks_sha256": "50c5d3466a208c6b308fc8f57a87e605e505777ad3500a07845f2f4d044c8491",
+      "netlist_sha256": "311c36af0f19ed7564ed443342ee33b36be0b005fa5ea323c0b965920a96b878",
+      "post_route": {
+        "standard_cells": 17139,
+        "standard_cell_area_um2": 295807,
+        "core_area_um2": 902417,
+        "routing_drc_errors": 0,
+        "antenna_net_violations": 0,
+        "antenna_pin_violations": 0,
+        "corners": {
+          "nom_fast_1p32V_m40C": {"setup_worst_slack_ns": 15.269312, "hold_worst_slack_ns": 0.007099, "setup_violations": 0, "hold_violations": 0, "max_slew_violations": 0, "max_fanout_violations": 0, "max_cap_violations": 0},
+          "nom_typ_1p20V_25C": {"setup_worst_slack_ns": 12.267953, "hold_worst_slack_ns": 0.168001, "setup_violations": 0, "hold_violations": 0, "max_slew_violations": 0, "max_fanout_violations": 0, "max_cap_violations": 0},
+          "nom_slow_1p08V_125C": {"setup_worst_slack_ns": 7.100106, "hold_worst_slack_ns": 0.452312, "setup_violations": 0, "hold_violations": 0, "max_slew_violations": 6, "max_fanout_violations": 0, "max_cap_violations": 0}
+        }
+      },
+      "route_detail": "The first detailed route reached zero DRC; detailed-router antenna repair inserted eight diodes and the reroute again reached zero DRC. Final antenna check has zero violating nets and pins.",
+      "electrical_diagnosis": "Compared with the no-antenna route without a wire-length cap, fanout improves from one to zero and slow-corner slew from 19 to six. The six pins are on two nets driven by _15347_/Y and _15549_/Y, both sg13cmos5l_nor4_1, each feeding an a22oi_1 input and an antenna diode. The pinned liberty also has nor4_2. Fast-corner hold passes by only 0.007099 ns, so subsequent ECOs need an explicit hold check.",
+      "scope": "Completed detailed route and RC-extracted all-corner STA; electrical closure still fails on six slow-slew pins. No GDS, Magic DRC, LVS or validated external I/O delay for this variant."
+    }
+  ],
+  "post_grt_max_wire_200_trial": {
+    "profile": "configs/tt-axpe-6x4-25ns-postgrt-noant-wire200.json",
+    "profile_sha256": "43ce355532abdcaba6b1f77835c3c0cf50b081f3253ef170b10adb4c193b9fc8",
+    "flow_lock": "asic/axpe/flow-lock-25ns-postgrt-noant-wire200.json",
+    "flow_lock_sha256": "dfecdb733d3f574399c4770b941c279f6be1e79d5b288b4df389a5a65546e45c",
+    "merged_config_sha256": "ae458fd9d717aef2b78b23b303ee1390675fb6be971ee0e1c9de909d876fba9d",
+    "setting": "asic_post_grt_max_wire_length_um=200 exports as GRT_DESIGN_REPAIR_MAX_WIRE_LENGTH=200",
+    "parent_state": "build/asic/tt-axpe-25ns-postgrt/runs/pe10-25ns-postgrt-after-antenna-3/04-openroad-stamidpnr-3/state_out.json",
+    "bounded_command": "python3 tools/tt_axpe_flow.py run --profile configs/tt-axpe-6x4-25ns-postgrt-noant-wire200.json --flow-lock asic/axpe/flow-lock-25ns-postgrt-noant-wire200.json --workdir build/asic/tt-axpe-25ns-postgrt-noant-wire200 --tag pe10-25ns-postgrt-noant-wire200-from3 --initial-state build/asic/tt-axpe-25ns-postgrt/runs/pe10-25ns-postgrt-after-antenna-3/04-openroad-stamidpnr-3/state_out.json --from OpenROAD.RepairDesignPostGRT --to OpenROAD.STAMidPNR-3 --threads 2",
+    "repair_step_log_sha256": "d087e725de656fdb1c8b02a2ce1f0fad11189720fce1b1f21d6e4d31c434bee0",
+    "nominal_checks_sha256": "c835c1e0f21a98695331e8e1d74d7a6432a7affc30cbf48ff54b9770fdf4cd1c",
+    "bounded_netlist_sha256": "886761b6ab321e5b0c171dfc519141550abf38de7f02aeb84576905f28e735c2",
+    "bounded_result": "Repair finds 749 long wires and one fanout target, inserts 1246 buffers in 750 nets, and reports +4.0% area. Nominal pre-route fanout, slew and cap checks are zero. The repaired netlist inserts wire6426 directly after _15347_/Y and wire6486 directly after _15549_/Y, the two drivers remaining in the 400 um routed slow-slew report.",
+    "route_command": "python3 tools/tt_axpe_flow.py run --profile configs/tt-axpe-6x4-25ns-postgrt-noant-wire200.json --flow-lock asic/axpe/flow-lock-25ns-postgrt-noant-wire200.json --workdir build/asic/tt-axpe-25ns-postgrt-noant-wire200 --tag pe10-25ns-postgrt-noant-wire200-route --initial-state build/asic/tt-axpe-25ns-postgrt-noant-wire200/runs/pe10-25ns-postgrt-noant-wire200-from3/03-openroad-stamidpnr-3/state_out.json --from OpenROAD.DetailedRouting --threads 2",
+    "route_supervision": "systemd-run --user --unit=axpe-wire200-route --working-directory=/home/shubhgau/dev/atomiX --collect",
+    "route_console_sha256": "617c2520d5b49c8b06dcf8cde91ad501cde2c5e3a7f276d7e626c8744331250c",
+    "route_summary_sha256": "dea279de43834029fca3fb37a25b9139284b375795f869fddb5540182467f6e1",
+    "route_metrics_sha256": "6141234283e8f1a16d627488a47e7e19255929763ad8125b7c9d2c430901b1e9",
+    "slow_checks_sha256": "bd47c5ce92f3c177b8b1a553828abb46dec2de772c76a37dd962f0715bc17b6d",
+    "final_netlist_sha256": "74418df34bac7419cdf4634dcdb4a1ff1640e95bb8f0a503beaf3ce6e9389be0",
+    "post_route": {
+      "standard_cells": 18110,
+      "standard_cell_area_um2": 304093,
+      "core_area_um2": 902417,
+      "routing_drc_errors": 0,
+      "antenna_net_violations": 0,
+      "antenna_pin_violations": 0,
+      "corners": {
+        "nom_fast_1p32V_m40C": {"setup_worst_slack_ns": 15.526210, "hold_worst_slack_ns": 0.012071, "setup_violations": 0, "hold_violations": 0, "max_slew_violations": 0, "max_fanout_violations": 1, "max_cap_violations": 0},
+        "nom_typ_1p20V_25C": {"setup_worst_slack_ns": 12.751077, "hold_worst_slack_ns": 0.171397, "setup_violations": 0, "hold_violations": 0, "max_slew_violations": 0, "max_fanout_violations": 1, "max_cap_violations": 0},
+        "nom_slow_1p08V_125C": {"setup_worst_slack_ns": 7.878493, "hold_worst_slack_ns": 0.456889, "setup_violations": 0, "hold_violations": 0, "max_slew_violations": 0, "max_fanout_violations": 1, "max_cap_violations": 0}
+      }
+    },
+    "route_detail": "Initial detailed routing and the antenna-diode reroute both finish with zero DRC. The router finds one antenna-violating net and inserts five diodes; final antenna checks pass.",
+    "electrical_diagnosis": "The tighter cap removes all six slow-corner slew violations from the 400 um route. One max-fanout violation remains at all corners: input4/X drives net4 with four functional sinks and five inserted antenna diodes, fanout nine against limit eight. Fast-corner hold margin remains narrow at 0.012071 ns.",
+    "scope": "Completed detailed route and RC-extracted all-corner STA, but electrical closure fails on one fanout violation. No GDS, Magic DRC, LVS, or validated external I/O delay for this variant."
+  },
+  "post_grt_max_wire_200_antenna_margin_zero_trial": {
+    "profile": "configs/tt-axpe-6x4-25ns-postgrt-noant-wire200-am0.json",
+    "profile_sha256": "4e128edf03be4e479844f4f046d95dc650cefee335e32ba785c688991518aa8d",
+    "flow_lock": "asic/axpe/flow-lock-25ns-postgrt-noant-wire200-am0.json",
+    "flow_lock_sha256": "7b1c89a41bf9a15e3ca731f4729d7fd1b8f932a46dab4aee385d28f455a26756",
+    "merged_config_sha256": "e939c20c112f797c748f89ac51816c53ea04d1ac01a8003a1bbebb578edfcfa0",
+    "setting": "asic_antenna_repair_margin_pct=0 exports as GRT_ANTENNA_REPAIR_MARGIN=0 and DRT_ANTENNA_REPAIR_MARGIN=0; design repair and 200 um max wire cap stay locked",
+    "parent_state": "build/asic/tt-axpe-25ns-postgrt-noant-wire200/runs/pe10-25ns-postgrt-noant-wire200-from3/03-openroad-stamidpnr-3/state_out.json",
+    "command": "python3 tools/tt_axpe_flow.py run --profile configs/tt-axpe-6x4-25ns-postgrt-noant-wire200-am0.json --flow-lock asic/axpe/flow-lock-25ns-postgrt-noant-wire200-am0.json --workdir build/asic/tt-axpe-25ns-postgrt-noant-wire200-am0 --tag pe10-25ns-postgrt-noant-wire200-am0-route --initial-state build/asic/tt-axpe-25ns-postgrt-noant-wire200/runs/pe10-25ns-postgrt-noant-wire200-from3/03-openroad-stamidpnr-3/state_out.json --from OpenROAD.DetailedRouting --threads 2",
+    "supervision": "systemd-run --user --unit=axpe-wire200-am0-route --working-directory=/home/shubhgau/dev/atomiX --collect",
+    "scope": "This is a separate reroute in progress. A smaller diode count, route closure, antenna clearance, timing and signoff are not yet measured."
+  },
+  "stopped_continuations_2026_10_07": [
+    {"tag": "pe10-25ns-cts8-signoff", "stop": "Operator stopped during Magic full DRC because this CTS-size-eight candidate already has six post-route fanout and six slow-corner slew violations; no CTS-size-eight DRC/LVS result is claimed"},
+    {"tag": "pe10-25ns-closure-drt-retry", "stop": "Operator stopped during detailed routing after the better post-antenna repair checkpoint became available; no post-route result"},
+    {"tag": "pe10-25ns-postgrt-antenna2-drt-retry", "stop": "Operator stopped during detailed routing after the better third repair checkpoint became available; no post-route result"}
+  ],
   "verification": [
     {"command": "python3 tools/tt_axpe.py check --profile configs/tt-axpe-6x4-25ns.json --flow-lock asic/axpe/flow-lock-25ns.json --output build/asic/tt-axpe-25ns-export-check", "result": "pass"},
     {"command": "make config-check CONFIG=configs/tt-axpe-6x4-25ns.json", "result": "pass"},
@@ -151,7 +501,49 @@
     {"command": "make verification-check", "result": "pass"},
     {"command": "make verify-smoke", "result": "pass, 14/14 stages"}
   ],
-  "outcome": "The baseline 25 ns GDS continuation passes Magic DRC, LVS and antenna checks and keeps setup/hold clear. Electrical closure fails. CTS clustering at eight reduces fanout violations from 162 to six and slow-corner slew violations from 14 to six, with positive setup/hold slack.",
-  "next": "Repair the six remaining data-path fanout violations and six slow-corner slew violations with a selective net or cell strategy that does not tighten the CTS fanout limit, then repeat full GDS/DRC/LVS and timing on the final architecture and validate the I/O delay against an external pad contract.",
+  "verification_2026_09_30": {
+    "commands": ["python3 -m json.tool research/benchmarks/axpe-cmos5l-25ns.json", "python3 -m py_compile tools/tt_axpe_flow.py", "git diff --check", "make config-check-all", "make verification-check", "make registry-check", "make verify-smoke"],
+    "result": "pass; smoke 14/14 stages",
+    "smoke_summary_sha256": "7c4aae432db1840ef3c18af68276e05d628663311ba72c37780531eb312b1d25",
+    "flow_summary_tool_sha256": "a74ffce039f7d53893c3bb0f474036181db9c800d77e07289766b1b1915ce4e0",
+    "flow_export_tool_sha256": "a61c24aed34cabaea8e53e24fb30f2686b87ad12b559a414db5a5ee39eed75f2",
+    "configure_tool_sha256": "e38092c797162dd14c5b00cd0958dfe2a6813d7061ce10baff3b60cfdae5f3f2",
+    "flow_summary_checks": "baseline, CTS-size-8 and ABC-area real metrics accepted; a copied ABC-area metrics file missing the slow-corner max-cap field was rejected",
+    "evidence_level": "host verification; no ASIC routing or physical claim"
+  },
+  "verification_2026_10_07": {
+    "commands": ["python3 -m py_compile tools/tt_axpe_flow.py", "python3 -m json.tool research/benchmarks/axpe-cmos5l-25ns.json", "git diff --check", "make verification-check", "make registry-check", "make verify-smoke"],
+    "result": "pass; smoke 14/14 stages",
+    "smoke_summary_sha256": "17d7b69b6f24596db70ceaa84952d5b0f2915e80d36d700e4359e12393ee1c32",
+    "report_guard_checks": "round-five bounded run summary rejected despite inherited final/metrics.json; completed CTS-size-eight route and baseline signoff summaries accepted",
+    "flow_helper_sha256": "ea4cd1b8242420ed451497a1665816e69504935852e8852d87093a3c4746ec4e",
+    "evidence_level": "host verification and nominal pre-route STA checkpoints only; no repaired post-route or signoff claim"
+  },
+  "verification_2026_10_07_no_antenna_route": {
+    "commands": ["python3 -m json.tool research/benchmarks/axpe-cmos5l-25ns.json", "python3 -m py_compile tools/configure.py tools/tt_axpe.py tools/tt_axpe_flow.py", "git diff --check", "make config-check-all", "make verification-check", "make registry-check", "make verify-smoke"],
+    "result": "pass; smoke 14/14 stages",
+    "smoke_summary_sha256": "abd933d8ef1742ca3b7ff14db3dc0944b18048bd6b06799f98841f283253dffd",
+    "configure_tool_sha256": "2f6b509234dbed57b3cbecb51570679f5c434a12eca63828f93dbccc458a5745",
+    "flow_export_tool_sha256": "fcab8b8ff85f08224d8f18ea2c3583f936c1a4a130c2e7478a6c3e2b32ee0f7a",
+    "flow_helper_sha256": "3fa34917e2c008dbaf1fb98c5ba6c75691500c7cedaeadbc28c98b42e1ba2ea9",
+    "evidence_level": "host checks plus no-antenna-repair post-route STA; no final-architecture GDS/DRC/LVS, electrical signoff or silicon claim"
+  },
+  "verification_2026_10_08_wire_length": {
+    "commands": ["make config-check-all", "python3 tools/tt_axpe.py check --profile configs/tt-axpe-6x4-25ns-postgrt-noant-slew35.json --flow-lock asic/axpe/flow-lock-25ns-postgrt-noant-slew35.json --output build/asic/tt-axpe-25ns-postgrt-noant-slew35-export-check", "python3 tools/tt_axpe.py check --profile configs/tt-axpe-6x4-25ns-postgrt-noant-wire400.json --flow-lock asic/axpe/flow-lock-25ns-postgrt-noant-wire400.json --output build/asic/tt-axpe-25ns-postgrt-noant-wire400-export-check", "python3 -m py_compile tools/configure.py tools/tt_axpe.py tools/tt_axpe_flow.py", "python3 -m json.tool research/benchmarks/axpe-cmos5l-25ns.json", "git diff --check", "make verification-check", "make registry-check", "make verify-smoke"],
+    "result": "pass; smoke 14/14 stages; both non-default flow controls exported and exercised in bounded runs",
+    "smoke_summary_sha256": "42be6d334ab87c108f2df9329a3f325d67d79d323c4ff04a2e863f085606a52e",
+    "configure_tool_sha256": "ce21a260fd127fb9a82b012239bbcb76719ff089d5ca442db7b881fbdbfac77e",
+    "flow_export_tool_sha256": "29beb2f6c7f5493797123c63314bbb8a897625ae979f0d06c37d38f4302fcba6",
+    "flow_helper_sha256": "7d227c4aa93ee9da8aa23bb349993e30969e62809f2e66ee5e3c730d23488dab",
+    "evidence_level": "host verification and separate RC-extracted routed STA for the wire-length variant; no electrical or final-architecture signoff claim"
+  },
+  "verification_2026_10_08_wire_200": {
+    "commands": ["make config-check CONFIG=configs/tt-axpe-6x4-25ns-postgrt-noant-wire200.json", "python3 tools/tt_axpe.py check --profile configs/tt-axpe-6x4-25ns-postgrt-noant-wire200.json --flow-lock asic/axpe/flow-lock-25ns-postgrt-noant-wire200.json --output build/asic/tt-axpe-25ns-postgrt-noant-wire200-export-check", "make config-check-all", "python3 -m json.tool research/benchmarks/axpe-cmos5l-25ns.json", "git diff --check", "make verify-smoke"],
+    "result": "pass; smoke 14/14 stages",
+    "smoke_summary_sha256": "dc3e6a339006fa41299d7997b753f1fe5d08406479dc55620bf062fa467b3c96",
+    "evidence_level": "host verification plus separate RC-extracted routed STA for the 200 um variant; one fanout violation remains and no final-architecture signoff is claimed"
+  },
+  "outcome": "The baseline 25 ns GDS continuation passes Magic DRC, LVS and antenna checks and keeps setup/hold clear, but electrical closure fails. A locked 200 um wire-length cap removes all slow-corner slew violations on a separate detailed-route candidate while retaining zero route DRC/antenna errors and passing setup/hold. It has one fanout violation on input4/X after five antenna diodes raise net4 to fanout nine; fast-corner hold margin is only 12 ps. It does not establish electrical or final-architecture signoff.",
+  "next": "Measure the separately locked zero-antenna-margin reroute to see whether it uses fewer diodes on net4 while retaining antenna and all-corner timing closure. If it does not, repair net4 fanout selectively and reroute/re-extract. Then repeat full GDS/DRC/LVS and all-corner timing on the final architecture; keep the 4 ns I/O delay provisional until an external pad contract exists.",
   "not_claimed": ["electrical signoff", "final-architecture GDS/DRC/LVS", "gate-level firmware replay", "power from an activity model", "fabricated or measured silicon"]
 }

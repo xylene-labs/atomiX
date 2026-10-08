@@ -120,6 +120,23 @@ def validate_lock(lock: dict[str, Any]) -> None:
                                       not isinstance(transition_ps, int) or
                                       not 100 <= transition_ps <= 10000):
         raise ExportError("flow lock max_transition_ps must be 100..10000")
+    post_grt_repair = candidate.get("post_grt_design_repair")
+    if post_grt_repair is not None and not isinstance(post_grt_repair, bool):
+        raise ExportError("flow lock post_grt_design_repair must be true or false")
+    post_grt_slew_margin = candidate.get("post_grt_slew_margin_pct")
+    if post_grt_slew_margin is not None and (isinstance(post_grt_slew_margin, bool) or
+                                            not isinstance(post_grt_slew_margin, int) or
+                                            not 0 <= post_grt_slew_margin <= 99):
+        raise ExportError("flow lock post_grt_slew_margin_pct must be 0..99")
+    post_grt_max_wire_length = candidate.get("post_grt_max_wire_length_um")
+    if post_grt_max_wire_length is not None and (
+            isinstance(post_grt_max_wire_length, bool) or
+            not isinstance(post_grt_max_wire_length, int) or
+            not 0 <= post_grt_max_wire_length <= 2000):
+        raise ExportError("flow lock post_grt_max_wire_length_um must be 0..2000")
+    antenna_repair_enabled = candidate.get("antenna_repair_enabled")
+    if antenna_repair_enabled is not None and not isinstance(antenna_repair_enabled, bool):
+        raise ExportError("flow lock antenna_repair_enabled must be true or false")
     jumper_only = candidate.get("antenna_jumper_only")
     if jumper_only is not None and not isinstance(jumper_only, bool):
         raise ExportError("flow lock antenna_jumper_only must be true or false")
@@ -198,6 +215,35 @@ def populate(staging: Path, profile: Path, lock: dict[str, Any],
     if transition_ps is not None:
         configure.check_setting(profile, "asic_max_transition_ps", transition_ps)
         template_config["MAX_TRANSITION_CONSTRAINT"] = transition_ps / 1000
+    post_grt_repair = settings.get("asic_post_grt_design_repair")
+    if post_grt_repair != lock["candidate"].get("post_grt_design_repair"):
+        raise ExportError(f"{profile}: post-GRT design repair disagrees with flow lock")
+    if post_grt_repair is not None:
+        configure.check_setting(profile, "asic_post_grt_design_repair", post_grt_repair)
+        template_config["RUN_POST_GRT_DESIGN_REPAIR"] = post_grt_repair
+    post_grt_slew_margin = settings.get("asic_post_grt_slew_margin_pct")
+    if post_grt_slew_margin != lock["candidate"].get("post_grt_slew_margin_pct"):
+        raise ExportError(f"{profile}: post-GRT slew margin disagrees with flow lock")
+    if post_grt_slew_margin is not None:
+        if post_grt_repair is not True:
+            raise ExportError(f"{profile}: post-GRT slew margin requires design repair")
+        configure.check_setting(profile, "asic_post_grt_slew_margin_pct", post_grt_slew_margin)
+        template_config["GRT_DESIGN_REPAIR_MAX_SLEW_PCT"] = post_grt_slew_margin
+    post_grt_max_wire_length = settings.get("asic_post_grt_max_wire_length_um")
+    if post_grt_max_wire_length != lock["candidate"].get("post_grt_max_wire_length_um"):
+        raise ExportError(f"{profile}: post-GRT max wire length disagrees with flow lock")
+    if post_grt_max_wire_length is not None:
+        if post_grt_repair is not True:
+            raise ExportError(f"{profile}: post-GRT max wire length requires design repair")
+        configure.check_setting(profile, "asic_post_grt_max_wire_length_um",
+                                post_grt_max_wire_length)
+        template_config["GRT_DESIGN_REPAIR_MAX_WIRE_LENGTH"] = post_grt_max_wire_length
+    antenna_repair_enabled = settings.get("asic_antenna_repair_enabled")
+    if antenna_repair_enabled != lock["candidate"].get("antenna_repair_enabled"):
+        raise ExportError(f"{profile}: antenna repair enable disagrees with flow lock")
+    if antenna_repair_enabled is not None:
+        configure.check_setting(profile, "asic_antenna_repair_enabled", antenna_repair_enabled)
+        template_config["RUN_ANTENNA_REPAIR"] = antenna_repair_enabled
     jumper_only = settings.get("asic_antenna_jumper_only")
     if jumper_only != lock["candidate"].get("antenna_jumper_only"):
         raise ExportError(f"{profile}: antenna jumper-only setting disagrees with flow lock")
@@ -276,6 +322,10 @@ def populate(staging: Path, profile: Path, lock: dict[str, Any],
         "cts_sink_clustering_size": cts_size,
         "max_fanout": fanout,
         "max_transition_ps": transition_ps,
+        "post_grt_design_repair": post_grt_repair,
+        "post_grt_slew_margin_pct": post_grt_slew_margin,
+        "post_grt_max_wire_length_um": post_grt_max_wire_length,
+        "antenna_repair_enabled": antenna_repair_enabled,
         "antenna_jumper_only": jumper_only,
         "antenna_repair_margin_pct": antenna_margin,
         "abc_buffering": abc_buffering,

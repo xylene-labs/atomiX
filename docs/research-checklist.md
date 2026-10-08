@@ -149,10 +149,49 @@ unless the caller states that the test was re-run.
   fanout limit of six both worsened comparable pre-route fanout checks; those
   trials stopped during detailed routing without post-route claims. The 4 ns
   I/O delay is a provisional test contract, not an externally verified pad
-  constraint. See
-  `research/benchmarks/axpe-cmos5l-25ns.json`. RX-09 remains open for electrical
-  repair, final-architecture signoff and pad-contract validation; no silicon
-  claim follows.
+  constraint. Later locked trials first gave nominal-corner pre-route checks:
+  closure settings leave three fanout violations, ABC area/delay variants have
+  42/51, antenna jumpers alone clear that checkpoint, and zero antenna margin
+  leaves two. The ABC area variant later completed post-route STA with 111
+  fanout and 273 slow-corner slew violations despite passing setup, hold and
+  routing DRC; it is rejected for electrical closure. The ABC delay variant
+  also passes setup, hold and route DRC but has 102 fanout and 829 slow-corner
+  slew violations. The closure, jumper and zero-margin runs ended with an
+  unexpected detailed-routing error during pin access. A two-thread
+  jumper-only retry was stopped after its antenna check found 27 violating
+  nets and 35 violating pins. Those runs have no post-route result. A separate
+  in-memory resizer probe
+  reproduces the six CTS-size-eight fanout violations from extracted parasitics
+  and inserts seven buffers for them under placement estimates, which discard
+  the routed slew evidence; no repaired route is claimed.
+  The built-in post-GRT design repair is now enabled in a separate locked trial
+  with a non-default profile setting, but it changes no cells, inserts no
+  buffers and leaves three nominal pre-route fanout violations. It was stopped
+  before detailed routing, with no all-corner result. Resuming repair after
+  antenna insertion does add buffers, but five bounded repair/antenna passes
+  leave nominal pre-route fanout counts of 2, 2, 1, 1 and 2. Antenna checks
+  pass; the new fanout violations do not converge away. A separate locked
+  post-antenna route omits global-route antenna repair after design repair.
+  Its nominal pre-route electrical checks are clear, but a separate antenna
+  check finds 15 violating nets. Detailed routing clears antenna and route DRC;
+  all-corner setup/hold pass, but one routed fanout violation remains at every
+  corner and the slow corner has 19 slew violations. A direct in-memory repair
+  probe uses wire-load estimates after changing the design and cannot claim
+  routed improvement. This variant has no GDS/DRC/LVS result. A 35% post-GRT
+  slew-margin trial detects three pre-route slew targets but leaves its netlist
+  byte-identical to the default-margin variant. A 400 µm wire-length cap
+  instead adds 272 buffers on 211 nets and keeps nominal checks clear. Its
+  first detailed-route attempt was interrupted, but a supervised retry
+  completed: route DRC and antenna errors are zero, setup/hold/fanout/cap
+  pass at all corners, and six slow-corner slew violations remain on two
+  `nor4_1`-driven nets. Fast-corner hold margin is just +0.007 ns. See
+  `research/benchmarks/axpe-cmos5l-25ns.json`. A separately locked 200 µm cap
+  removes all six slow-slew violations in a completed route; DRC, antenna,
+  setup, hold and cap checks pass, but `input4/X` has fanout nine against eight
+  after five antenna diodes are added. Fast hold slack is only +0.012 ns. A
+  zero-antenna-margin reroute is being measured to test that diode count.
+  RX-09 remains open for electrical repair, final-architecture signoff and
+  pad-contract validation; no silicon claim follows.
 
 ## R1 — Partial reconfiguration of an FPGA
 
