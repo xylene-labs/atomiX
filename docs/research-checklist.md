@@ -108,8 +108,12 @@ unless the caller states that the test was re-run.
   generated configuration. The exact pinned CMOS5L PDK has no compatible SRAM
   macro views, so the bounded experiment proceeds with a 64×32 inferred,
   synchronous-read store. The shared chip suite passes through the wrapper.
-  Decision: proceed to RX-09 with this standard-cell candidate and defer SRAM
-  binding until compatible CMOS5L views exist. The audit awaits maintainer
+  Decision: proceed to RX-09 with this standard-cell candidate. The
+  [organizer follow-up](notes/jane-street-follow-up-2026-10-10.md) explicitly
+  permits IHP SRAM macros and provides an integration walkthrough; investigate
+  it only as a separately pinned optional replacement with its own power,
+  physical and Tiny Tapeout precheck evidence. The original missing-view
+  finding remains scoped to the inspected installation. The audit awaits maintainer
   review; physical feasibility belongs to RX-09.
 
 <a id="rx-09"></a>
@@ -189,9 +193,72 @@ unless the caller states that the test was re-run.
   removes all six slow-slew violations in a completed route; DRC, antenna,
   setup, hold and cap checks pass, but `input4/X` has fanout nine against eight
   after five antenna diodes are added. Fast hold slack is only +0.012 ns. A
-  zero-antenna-margin reroute is being measured to test that diode count.
-  RX-09 remains open for electrical repair, final-architecture signoff and
-  pad-contract validation; no silicon claim follows.
+  zero-antenna-margin reroute completes with identical netlist, metrics and
+  slow-corner checks, retaining that fanout violation. A pinned single-buffer
+  physical ECO moves two adjacent mux loads off `net4`; complete cell and
+  connectivity comparisons verify exactly that delta. Placement, global route
+  and nominal pre-route STA pass, but global-route antenna estimation reports
+  four violating nets. The supervised route now clears route DRC, antenna and
+  all-corner setup/hold/slew/fanout/cap checks; fast hold margin is +25 ps.
+  The candidate now passes Magic full DRC and Netgen LVS; its final signoff
+  netlist hash matches the passing three-seed mapped protocol replay. The
+  provisional external I/O budget and maintainer review remain open.
+  Mapped functional replay now passes on the completed zero-margin route and
+  the prepared one-buffer ECO: the shared chip suite loads two programs and
+  checks UART/SPI/I2C and two autobaud rates at three randomized startup seeds.
+  Cell logic is generated from the pinned Liberty files, with identical models
+  at all corners and missing models/inputs rejected. This is two-state,
+  zero-delay simulation, not SDF or timing evidence; see
+  `research/benchmarks/axpe-netlist.json`. The completed ECO route also passes
+  at three seeds; its final signoff retains the replayed netlist hash.
+  An isolated timer induction proof now passes at the manifest default and
+  half-width, with real load/completion witnesses and two mutation
+  counterexamples. See `research/benchmarks/axpe-timing.json`. The formula is
+  generated from the ISA; that isolated result alone does not establish core
+  retirement, shift cost or `WAITE` timeout. It does not change the routed candidate.
+  Isolated shift occupancy also inducts under the documented caller contract,
+  with eight real covers and two mutation counterexamples; see
+  `research/benchmarks/axpe-shift-timing.json`. That isolated result alone does
+  not establish core operand holding or period selection. Old BR duration prose and immediate
+  level-high wait return/occupancy wording are clarified in the normative ISA;
+  generated C/SV headers stay byte-identical and model/isolated formal gates pass.
+  The selected-profile core also inducts for legal DELAY/WAITE streams,
+  including arbitrary changing next-word fields, return count on active waits,
+  final-sample timeout flags and following-instruction issue without a bubble.
+  Eleven covers and two mutant counterexamples pass; see
+  `research/benchmarks/axpe-wait-timing.json`. Other instructions, fetch and
+  immediate-level zero register return are outside this formal subset.
+  The complete legal-stream proof now covers all 31 opcode occupancies and
+  handoffs, with 46 witnesses and five mutation counterexamples; see
+  `research/benchmarks/axpe-core-timing.json`. The instruction source is abstract,
+  operands/stack/targets are legal, and memory/data correctness, invalid-program
+  fault policy and non-default architecture remain outside the timing claim.
+  PE-08 now has a profile-driven host capacity probe in the existing cosimulation
+  gate. The 64-word/seven-register/four-pin/two-stack profile passes; isolated
+  narrower widths, four registers and a one-entry stack retain failing
+  elaboration receipts. This is not a new physical candidate or a complete
+  area sweep; see `research/benchmarks/axpe-profiles.json`.
+  The fresh staged ECO continuation and full Magic/Netgen signoff reproduce
+  the selected candidate's routed ODB/DEF/netlist and all final metrics exactly;
+  GDS non-timestamp bytes match. RX-09 remains open for maintainer review
+  and measured physical evidence; checkpoint reproduction does not claim
+  source-to-parent synthesis or returned silicon. The email
+  confirms that characterized CMOS5L pad timing is unavailable; the 4 ns
+  external delay remains an assumption while organizer updates are tracked.
+  PE-12 submission readiness takes priority over further PE-08 repairs. No
+  silicon claim follows.
+  All nine unchanged pinned Tiny Tapeout checks pass on the selected GDS.
+  `research/benchmarks/axpe-precheck.json` records exact GDS/state/tool/report
+  identities and the retained setup failure. Candidate packaging binds the
+  passing receipt and raw reports. Source exports carry AI-use, clock/compliance
+  and ETR reference wiring documentation. Supplied 40 MHz runtime profiles
+  have protocol/waveform checks; the I2C audit records previously missed low-time
+  violations and corrected runtime cells/handoffs. Review and physical
+  carrier gaps remain explicit. Logical deselect/reset/reselect, warm reset and
+  full reload/readback now pass on exported RTL and the selected routed netlist
+  at three seeds; `research/benchmarks/axpe-lifecycle.json` records the exact
+  inputs and limits. This does not model physical power loss. Report and package refusal checks, registry
+  and all 14 smoke stages pass; no new RTL or physical-operation claim follows.
 
 ## R1 — Partial reconfiguration of an FPGA
 

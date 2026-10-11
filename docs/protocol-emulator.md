@@ -13,22 +13,30 @@ it marks what is still open. Nothing here is a silicon claim.
 
 ## 1. Fixed external constraints
 
+Current guidance includes the [organizer follow-up recorded 2026-10-10](notes/jane-street-follow-up-2026-10-10.md).
+The complete email and the requirement-to-card mapping live there. Its sent
+date was not supplied; expected releases in that message are not recorded as
+completed releases. PE-12 submission compliance now precedes further PE-08 work.
+
 | | |
 |---|---|
 | Deadline | 2027-01-18 |
 | Process | IHP 130nm CMOS5L, through Tiny Tapeout |
-| Area | 6×4 tiles. The announcement's nominal estimate is 200µm × 150µm per tile, or about 0.7 mm²; the pinned CMOS5L support tools define the actual 6×4 hardening rectangle as 1289.28µm × 710.64µm = 0.916 mm². An 8×4 option remains outside the current rules and is not assumed |
+| Area | 6×4 tiles. The announcement's nominal estimate is 200µm × 150µm per tile, or about 0.7 mm²; the pinned CMOS5L support tools define the actual 6×4 hardening rectangle as 1289.28µm × 710.64µm = 0.916 mm². The follow-up plans an 8×4 maximum but directs entrants to stay at 6×4 until that template is released; 8×4 is an optional upgrade |
 | Logic budget | ~1K logic cells per tile → ~24K cells. This is the competition announcement's estimate, not a measurement; PE-02 replaces it with one |
 | Pins | Tiny Tapeout harness: 8 input, 8 output, 8 bidirectional, plus `clk`, `rst_n`, `ena` |
-| Mandatory protocols | UART, SPI, I2C |
+| Project baseline protocols | UART, SPI, I2C; the follow-up says to start here and sets no fixed speed requirement |
 | Stretch | Low-speed USB, 10Mbit Ethernet. Also named as interesting: JTAG, SWD, PS/2, CAN |
-| Licence | Open source, required |
-| Judged on | Unique functionality, and novel design and verification methodology |
+| Licence / submission | Open source; public repository at submission, with RTL/tests, architecture/ISA, toolchain/examples, verification and AI-use write-up, passing Tiny Tapeout GDS/precheck |
+| Judged on | Flexibility to support new protocols is the main criterion; no fixed weights. Protocol demonstrations, unique functionality and design/verification methodology also count |
+| Clock / I/O | No mandated clock: select one that closes P&R and meets the protocols. Demo-board I/O is digital, 3.3 V; external parts belong on documented Pmods. CMOS5L pads are not yet characterized in the supplied update |
+| Lifecycle | Use `rst_n` to establish state. Deselection powers down the design and loses state: select/reset/reload before running again |
 
 ### 1.1 Official template baseline
 
-The competition page links Tiny Tapeout's `cmos5l` Verilog-template branch and
-requires `tiles: "6x4"`.  PE-01 pins that branch at
+The original competition baseline links Tiny Tapeout's `cmos5l` Verilog-template
+branch with `tiles: "6x4"`. The follow-up retains 6×4 until the planned 8×4
+template is released. PE-01 pins that branch at
 `b86a2a781484bcab7ba522dc5de540086695a430` (tree
 `5d72d5b9e04c0732d32c7f7d0f72cf950508e551`) and imports it byte-for-byte under
 [`asic/tt-axpe/`](../asic/tt-axpe).  Its top-level contract is a unique
@@ -38,10 +46,10 @@ bidirectional input/output/enable paths, `ena`, `clk`, and active-low `rst_n`.
 The template's `info.yaml` comment is older than the flow it invokes: it lists
 only `*x2` shapes.  The `ihp-sg13cmos5l` support-tools revision
 `d66cf179e7bc4d296362ab7e2e3b344dc3c4f665` explicitly carries `6x4` with the
-rectangle `0 0 1289.28 710.64`, so the competition rule is both unambiguous and
-accepted by the named technology data.  That revision also knows `8x4`, but
-tool support is not permission: Jane Street's current page still says 6×4 is
-the maximum and that a larger allocation would be announced separately.
+rectangle `0 0 1289.28 710.64`, so the selected baseline is accepted by the
+named technology data. That revision also knows `8x4`; the follow-up now
+clarifies that 8×4 is the planned maximum. We still require the announced
+template release and a separately pinned, verified profile before adopting it.
 
 The baseline is intentionally not customised yet.  In particular, its CI GDS
 workflow selects CMOS5L while the devcontainer still names SG13G2, and its
@@ -90,9 +98,14 @@ implementation result**. Inspection of the exact IHP-Open-PDK commit
 `2bbec755dc67ca3db0261c3d6163e15735d66710` installed by the pinned official
 GDS action found no SRAM LEF/GDS/liberty/Verilog views under
 `ihp-sg13cmos5l/libs.ref`; the table's macros exist only under
-`ihp-sg13g2/libs.ref/sg13g2_sram`. Importing one across technologies without an
-explicitly supported library contract would turn a useful footprint estimate
-into a false flow claim, so PE-02 rejects that candidate for now.
+`ihp-sg13g2/libs.ref/sg13g2_sram`. That was the reason the original PE-02
+experiment chose inferred storage; it is a finding about that installation,
+not a competition-wide SRAM prohibition. The organizer follow-up explicitly
+permits IHP macros and points to an integration walkthrough covering RTL,
+LibreLane, Metal4 power and sign-off. That route is now an optional research
+path. Pin its views, integration and power/physical checks, preserve the store
+contract and pass Tiny Tapeout precheck before making a macro claim. The
+selected candidate continues to use the measured 64-word inferred store.
 
 **But 256 words is a ceiling the ISA imposes, not a budget choice.** `BR` and
 `CALL` targets are eight bits, so nothing past word 255 can be jumped to
@@ -128,16 +141,17 @@ not at module names alone:
 | Boundary | Classification and exact dependency | Replacement / verification route |
 |---|---|---|
 | Core, decode, timing, shift and pad logic | Portable synthesizable SystemVerilog in `axpe*.sv`; no FPGA primitive, PLL, generated clock, initial block or vendor arithmetic | Use the same sources unchanged; cycle-for-cycle cosimulation and independent UART/SPI/I2C peers remain the functional gates |
-| Instruction store | `axpe_imem.sv` requires one synchronous-read/write address and no promised read-during-write value; it has no reset or initial contents | The host must load every program after reset. CMOS5L has no compatible SRAM views, so this run maps 64×32 to standard cells; any later macro or streamed window must preserve this contract and rerun the two-program chip suite |
+| Instruction store | `axpe_imem.sv` requires one synchronous-read/write address and no promised read-during-write value; it has no reset or initial contents | The host must reload after reset or power loss. The original pinned CMOS5L library installation lacked SRAM views, so this candidate maps 64×32 to standard cells; any later macro or streamed window must preserve this contract and rerun the two-program chip suite |
 | Clock and reset | One external `clk`; active-low asynchronous reset for state; `ena` and the loader's `running` state hold the core reset while leaving the host alive | The Tiny Tapeout wrapper connects these ports directly. No clock conversion is inferred; STA owns the external input/output assumptions |
 | Loader clock-domain boundary | Host SCLK, MOSI and CS are asynchronous pads sampled by `clk`; SCLK is synchronized and contractually limited to `clk/4` | `docs/pemu-host-protocol.md` is the adapter contract; wrapper simulation exercises it, while CDC signoff beyond the explicit synchronizer remains open |
 | Protocol I/O | `ui_in`, `uo_out` and `uio_*` are generic logic; open-drain behavior is expressed through `uio_oe`, not a device primitive | The `tt_um_*` wrapper is the only technology harness adapter. Independent protocol peers test behavior; post-route STA tests the declared pad-delay budget |
 | Configuration and ISA include | Component parameters become generated Verilog defines; `axpe_isa.svh` is generated from the normative ISA JSON | `tools/tt_axpe.py check` resolves a non-default 64-word profile, hashes every exported source and rejects template drift or nondeterministic output |
 
 The audit therefore proceeds with the standard-cell store for this bounded
-experiment. It rejects the SG13G2 SRAM as a cross-technology substitution and
-defers a memory-macro claim until CMOS5L supplies compatible LEF, GDS, liberty
-and simulation views. It does not require an FPGA-specific replacement.
+experiment. The organizer-permitted IHP macro route is a separate optional
+experiment requiring pinned LEF, GDS, Liberty and simulation views, appropriate
+power integration and passing physical/precheck evidence. No memory macro is
+part of the selected candidate. No FPGA-specific replacement is required.
 
 The same figures constrain the datapath. With a whole-chip ceiling near 7,680
 flip-flops and logic still to pay for, a wide register file is not affordable: a
@@ -279,9 +293,37 @@ Extracted STA clears all-corner setup, hold, slew and cap checks, but one
 max-fanout violation remains at every corner. The input buffer `input4/X`
 drives four functional sinks and five antenna diodes, producing fanout nine
 against the library limit of eight. Fast-corner hold slack is only +0.012 ns.
-The next locked trial reduces detailed-route antenna-repair margin to zero
-to test whether fewer diodes can clear fanout while preserving antenna and
-timing checks. No final-architecture GDS/DRC/LVS is claimed.
+The zero-margin antenna reroute completes with byte-identical netlist, metrics
+and slow-corner checks: it still adds five diodes and fails fanout. That control
+does not repair this candidate.
+
+A bounded physical ECO now inserts one `buf_1` between `net4` and its two
+adjacent mux loads. The recipe checks the parent ODB, netlist and constraints
+by hash, verifies every cell and connection against the expected one-buffer,
+two-load delta, and clears stale timing and physical views from its checkpoint.
+Placement and global routing complete; nominal estimated-parasitic STA clears
+setup, hold, fanout, slew and cap. Global-route antenna estimation still finds
+four violating nets. The supervised detailed route now clears route DRC,
+antenna and setup/hold/slew/fanout/cap at all three extracted corners. Only
+three antenna diodes are added, on other nets; net4/child fanout stays 3/2.
+Fast hold slack is +0.025081 ns. Full Magic DRC and Netgen LVS now pass with
+zero errors. The final signoff netlist is byte-identical to the routed netlist
+that passes the shared protocol suite at three seeds. KLayout DRC/XOR and
+Yosys EQY are skipped; the 4 ns external I/O budget remains provisional and
+the maintainer owes commit-pinned review.
+
+The [mapped functional replay](../research/benchmarks/axpe-netlist.json) now
+checks both the completed 200 µm zero-margin route and the prepared one-buffer
+ECO. `make pemu-netlist-check` runs the existing chip suite, C oracle, firmware
+and independent UART/SPI/I2C peers on each unchanged netlist at three randomized
+startup seeds. Yosys derives the cell logic from the pinned Liberty files;
+all three corners generate identical models. Missing models and disconnected
+inputs fail before compilation. The PDK's timing-check delayed signals are not
+driven by Verilator when it ignores the timing constructs, so that direct-model
+path was rejected and recorded. This is two-state, zero-delay functional
+evidence, with no SDF or extracted timing claim. The completed ECO route also
+passes all shared cases at three seeds. Final signoff must retain the replayed
+netlist hash before this can cover the final submission candidate.
 
 ## 3. Architecture direction
 
@@ -360,6 +402,16 @@ being discipline anyone can slip on and becomes a build step.
 
 ## 4. The verification claim
 
+`make tt-export` now bundles the same chip cases, C model, independent peers,
+assembler and firmware with the Tiny Tapeout source tree. The exported
+[demo](../asic/axpe/demo/README.md) needs no atomiX checkout and runs the
+runtime-loaded UART/SPI/I2C and autobaud tests at three startup seeds.
+`make pemu-asic-check` runs this standalone path. A fresh export relocated
+outside the repository also passes, with unchanged hardware source hashes.
+The manifest hashes verification inputs separately from hardware, and the
+evidence index records historical inputs, levels and unresolved work. This
+prepares PE-12; it does not supply final-candidate signoff or a silicon result.
+
 PE-04 has an executable [host model](../sw/pemu/model/README.md), checked by
 `make pemu-model-check`. UART now matches the platform waveform oracle,
 autobaud measures known pulses exactly, and clocked shifts cover all four SPI
@@ -386,6 +438,50 @@ declarations — 25 in the core, 18 in the shift engine — against the whole-ch
 ceiling near 7,680 in §2; no synthesis has run, so that is a count and not a
 mapped area. It is what the declared-retirement claim means in hardware rather
 than on paper, and PE-06 can now start.
+
+The [isolated timer proof](../formal/pemu/README.md) now establishes
+`max(D,1)` occupancy and `last` by induction at the component default delay
+width and half-width. The independent reference counts elapsed cycles upward,
+using a duration expression generated from the ISA. Real load/completion covers
+and two broken-timer counterexamples check that the property is not vacuous.
+[Recorded evidence](../research/benchmarks/axpe-timing.json) is limited to binary
+sampled-edge behavior of the timer; this isolated result alone does not establish
+core retirement, shift or `WAITE` behavior. Asynchronous reset recovery and
+physical timing are outside it.
+
+The [isolated shift proof](../research/benchmarks/axpe-shift-timing.json) now
+establishes cell duration, bit count and final-cycle `done` for arbitrary
+effective delay under the legal/stable caller contract. It decomposes the
+normative product into independent cell age and bit index; non-vacuity covers
+include all four SPI modes and back-to-back completion, and two mutated engines
+must fail. This isolated result alone does not establish core operand holding,
+register-period selection or instruction handoff. Two normative
+wording issues found in this review are now clarified: BR uses `max(D,1)`,
+and immediate level-high wait returns zero but occupies one cycle. Generated
+C/SV headers stay byte-identical, and model tests and both isolated proofs
+pass again; no hardware source identity changes.
+
+The [core wait proof](../research/benchmarks/axpe-wait-timing.json) now covers
+legal `DELAY`/`WAITE` streams at the selected profile. A downward reference
+budget proves the upward count and effective timeout, held operands across
+changing words, final-sample T and following-instruction issue without a bubble.
+Eleven reachable witnesses and two mutant counterexamples check the domain and
+properties. The word source is abstract; fetch, other instruction classes and
+the immediate-level zero register value remain outside this formal claim.
+
+The [complete legal-stream proof](../research/benchmarks/axpe-core-timing.json)
+now establishes occupancy and handoff for all 31 defined opcodes at the selected
+profile: fixed duration, encoded/register-selected shift cells, held operands,
+wait bounds and full HALT occupancy. The reference counts cell age upward,
+bit index forward and wait budget downward, and checks architectural timing
+controls against their source operand. No DUT ready/done/reject is assumed.
+All 31 opcode completions and 15 additional boundaries have witnesses; five
+broken core copies must yield base-case counterexamples. Legal operands,
+balanced stack and in-range branch/call targets define the domain; program
+memory/fetch data, arithmetic/data/pin effects, invalid-program fault policy,
+non-default architecture and physical reset recovery remain outside it.
+The core RTL and generated ISA headers are unchanged, preserving the routed
+candidate's source identity. PE-06 awaits maintainer commit-pinned review.
 
 PE-14's [chip gate](../research/benchmarks/axpe-chip.json) closes the other half
 of that, and it is the half the entry is invalid without. `axpe_chip` composes
@@ -462,6 +558,28 @@ The Tiny Tapeout submission repository is generated from this tree by
 `make tt-export`, so there is one source of truth and the competition entry
 cannot drift from the verified design.
 
+PE-12 now exports explicit [submission/clock](../asic/axpe/docs/submission-compliance.md),
+[AI-use](../asic/axpe/docs/ai-use.md) and [wiring/reload](../asic/axpe/docs/demo-wiring.md)
+drafts. The shipped firmware's 50 MHz constants imply different absolute rates
+at the selected 40 MHz target, and its logical pins need adapters for the
+recommended Pmod mappings; neither discrepancy is hidden by a simulation pass.
+`make pemu-precheck` records unchanged Tiny Tapeout checks against exact
+GDS/LEF/netlist bytes. All nine pinned checks pass on the selected GDS; the
+[precheck receipt](../research/benchmarks/axpe-precheck.json) retains tool/report
+hashes and the initial setup failure.
+Candidate packages can include a completed precheck via `--precheck`; the
+packager and portable validator bind it to the selected GDS and signoff state.
+Logical reset/selection/full-reload now passes on exported RTL and the selected
+routed netlist at three startup seeds; see
+[lifecycle evidence](../research/benchmarks/axpe-lifecycle.json).
+Three supplied 40 MHz runtime profiles now have waveform/rate checks; the I2C
+timing audit rejected earlier decoded-but-too-short SCL low intervals and
+corrected runtime handoffs and the fast cell. Physical power-loss/carrier
+validation and maintainer review remain open; the staged ECO continuation
+now passes with byte-identical routed inputs/metrics and matching GDS
+non-timestamp bytes. Maintainer review/publication remain owed. Earlier local
+archives remain historical.
+
 ## 6. The integration is the point
 
 A protocol emulator submitted as a standalone repository is a chip. Submitted
@@ -512,7 +630,15 @@ the schema refuses to let a report pretend otherwise.
 `reg_width`, `delay_bits`, `uio_pins` and `call_depth` as profile knobs, each
 with a default and a doc, following the project's own rule that a knob is only
 real once it is wired, bounded, and exercised at a non-default value. The
-experiment sweeps them.
+planned experiment sweeps them. The first PE-08 slice now resolves all six
+into the RTL build and a capacity harness through `make pemu-profile-check`.
+A 64-word, seven-register, four-pin, two-stack-entry profile passes boundary
+probes; register and delay widths remain 16. The all-non-default tiny profile
+is a failing experiment: its width/index assumptions still prevent strict
+elaboration. Four registers and a one-entry stack also fail elaboration when
+probed independently. These are functional capacity measurements, not an area
+sweep or full non-default ISA conformance. See
+[`axpe-profiles.json`](../research/benchmarks/axpe-profiles.json).
 
 So the question PE-02 opened — how big should the program memory be — stops
 being a judgement call and becomes a row in a table: three instruction-store
@@ -531,20 +657,26 @@ cannot silently disagree about how wide a register is.
 That the design is correct against an executable oracle shared with the rest of
 a platform; that its timing is proved rather than measured; that its instruction
 set exists in exactly one place and every derived artifact is generated from it;
-that its parameters were chosen by sweeping them; and that the premise of the
-competition itself was tested rather than assumed.
+that selected capacities have executable boundary checks; and that the premise
+of the competition itself was tested rather than assumed. Parameter selection
+by a complete area/timing sweep remains future work and is not a submission
+claim.
 
 ## 7. Open questions
 
-- PE-10: repair the single antenna-diode-induced fanout violation in the best
-  routed 25 ns candidate without losing its 12 ps fast-corner hold margin,
-  establish an external I/O pad contract, then pass full GDS/DRC/LVS on that
-  final architecture. The 64×32 inferred store routes in 6×4; changing memory
-  capacity is not indicated by these results.
+- PE-10: establish an external I/O pad contract and obtain maintainer review
+  of the accepted one-buffer ECO. Its completed extracted STA, GDS/DRC/LVS
+  and mapped replay pass; fast hold margin remains only 25 ps. The 64×32
+  inferred store routes in 6×4; changing memory capacity is not indicated by
+  these results.
 - PE-03: instruction width, register count and datapath width, under §2's ceiling.
 - Target clock frequency, and therefore the fastest protocol bit rate reachable.
-- Whether the 8×4 tile option becomes available, and what it would buy.
+- When the planned 8×4 template is released, and whether it or the permitted
+  IHP SRAM route improves flexibility enough to justify a new candidate.
 - Stretch protocols, evaluated in PE-07 and dropped without ceremony if the
   budget or the clock says no.
-- Team or solo entry. The competition strongly recommends teams; this changes
-  how much of PE-07 and PE-11 can be carried.
+- Submission closure: bind Tiny Tapeout precheck to the selected GDS, audit
+  the staged ECO against that flow, document actual-clock protocol rates and
+  select/reset/reload behavior, external hardware and AI use. The board owns
+  these PE-12 tasks and the maintainer review/publication gates. Solo or team
+  entry is permitted; team size is unlimited, with one entry per team.

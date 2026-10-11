@@ -1,0 +1,117 @@
+{
+  "schema": "org.atomix.axpe-lifecycle-evidence.v1",
+  "date": "2026-10-11",
+  "status": "passed",
+  "level": "host RTL and mapped selection/reset/reload simulation",
+  "startup_seeds": [
+    1,
+    17,
+    91
+  ],
+  "cases": [
+    "all shared payloads: full WRITE/READ comparison before RUN; refused writes abort",
+    "fresh simulator instance: reset silence and runtime UART load/independent decoding",
+    "ena deselection while TX is driven: outputs quiet; host running latch persists",
+    "external reset while deselected, reselection and full UART reload/decoding",
+    "warm external reset followed by full UART reload/decoding"
+  ],
+  "mapped_replay": {
+    "receipt": "build/asic/axpe-netlist-lifecycle-2026-10-11/evidence.json",
+    "receipt_sha256": "fe7b1b5bf951debd6e3faedaf21a772f45701234b1e43a2bfb0b84a21927ea8b",
+    "input_state": "/home/shubhgau/dev/atomiX/build/asic/tt-axpe-25ns-wire200-fanout-eco/runs/pe10-wire200-fanout-eco-signoff/17-misc-reportmanufacturability/state_out.json",
+    "input_state_sha256": "58f9fbed80792de2d8ce9d1f4cf78d33e8000182cf6ad2fd98383618f357899d",
+    "netlist_sha256": "959c159a7259e687f3ef3003d1522266b3dfd838b500b9cbeaedbd4be88c05e3",
+    "functional_model_sha256": "50243b8a0b6126cc4359892c13ee3a511536b572192b32ad27f4be6bc20c2231",
+    "input_sha256": {
+      "/home/shubhgau/dev/atomiX/build/asic/tt-axpe-25ns-wire200-fanout-eco/runs/pe10-wire200-fanout-eco-signoff/17-misc-reportmanufacturability/state_out.json": "58f9fbed80792de2d8ce9d1f4cf78d33e8000182cf6ad2fd98383618f357899d",
+      "/home/shubhgau/dev/atomiX/build/asic/tt-axpe-25ns-wire200-fanout-eco/runs/pe10-wire200-fanout-eco-route/09-openroad-fillinsertion/tt_um_shubhgau_atomix_axpe.nl.v": "959c159a7259e687f3ef3003d1522266b3dfd838b500b9cbeaedbd4be88c05e3",
+      "/home/shubhgau/dev/atomiX/asic/axpe/flow-lock-25ns-postgrt-noant-wire200-am0.json": "7b1c89a41bf9a15e3ca731f4729d7fd1b8f932a46dab4aee385d28f455a26756",
+      "/home/shubhgau/dev/atomiX/tools/tt_axpe_netlist.py": "2df44cc6ed14bd1209afc186b1aed3b09560eec15eedf93d8d273ad5d8618524",
+      "/home/shubhgau/dev/atomiX/tools/tt_axpe.py": "ffe3c0cdd28822069f1d26a53d8bc34703cd92f74d6e74ec49dda209ca01dc58",
+      "/home/shubhgau/dev/atomiX/tools/tt_axpe_flow.py": "7d227c4aa93ee9da8aa23bb349993e30969e62809f2e66ee5e3c730d23488dab",
+      "/home/shubhgau/dev/atomiX/tools/configure.py": "ce21a260fd127fb9a82b012239bbcb76719ff089d5ca442db7b881fbdbfac77e",
+      "/home/shubhgau/dev/atomiX/tools/axpe_isa.py": "ad1b049b841f48559ee4f0d3684c13303fd165eb82b2a7c133908eff27306f4b",
+      "/home/shubhgau/dev/atomiX/sim/pemu/axpe_tt_tb.cpp": "0ff86fc4d7d78b18e227c0c47a4b50f4cb23107322f4fe37c5c1325c18dc8ba9",
+      "/home/shubhgau/dev/atomiX/sim/pemu/axpe_device.h": "462005cc3d281f57d7c690a00b0ff3c338d57c4ec669e0f87b77ce2c8756f484",
+      "/home/shubhgau/dev/atomiX/sim/pemu/axpe_cases.h": "b8c03998d0afa8dbb12824ee5dd31ed1a970887bca1bb9b585593189c8a12620",
+      "/home/shubhgau/dev/atomiX/sim/pemu/axpe_peers.h": "43e6ce00aec7dffa1505ce0c887e9e25df4780e1d6b7e809bc91a6d0c6a0a377",
+      "/home/shubhgau/dev/atomiX/sim/pemu/axpe_trace.h": "edf30eabc8331b64177121e3a1394732d1b608953c0671241efda49003d84d5d",
+      "/home/shubhgau/dev/atomiX/sw/pemu/firmware/uart-demo.s": "dc6162723e66d4bf55c2003aab463a46ce5aa3cf964c4606ad86c88f6032b330",
+      "/home/shubhgau/dev/atomiX/sw/pemu/firmware/autobaud.s": "cf2c3914671b5e05e4a9304a8eb7ee5d1b7273f6b998450a402fb42b8459c458",
+      "/home/shubhgau/dev/atomiX/sw/pemu/firmware/i2c.s": "4b2f04f3d42b65582322f1608efad8886b9dfde3431020c008f241031affa3d2",
+      "/home/shubhgau/dev/atomiX/sw/pemu/firmware/spi.s": "7922bcbee6c73e64df56d9d08d8ce9957abf82c24f3c92d4ee4fe0df7ca872d4",
+      "/home/shubhgau/dev/atomiX/sw/pemu/firmware/autobaud-demo.s": "ab7e72b22979a778c7a84e9e3b8a4d84dc9934e87686771eccb02e86f4158fcc",
+      "/home/shubhgau/dev/atomiX/sw/pemu/firmware/uart.s": "85b60ebd94a640668d3bace20ea13f46b809d6f6b4e7c068224c220dd42a0077",
+      "/home/shubhgau/dev/atomiX/sw/pemu/firmware/spi-demo.s": "ce9e166b56f49b7cf55ae3ec4ecfe3bb053cd1d9b6e8dcd00c67f9c58e768208",
+      "/home/shubhgau/dev/atomiX/sw/pemu/firmware/i2c-demo.s": "bf33cf7d155b8282b5501f4f167550716868fb2f164ef374cd2560593e08c04f",
+      "/home/shubhgau/dev/atomiX/sw/pemu/model/axpe_model.c": "4339a1f1409653749e9d42848c4bde7344440416010af0f61b07a7b95c0bd921",
+      "/home/shubhgau/dev/atomiX/sw/pemu/model/axpe_model.h": "eee79ed2248714e2dc2436e6bdad2711379d285e1d1792769b76e94a1d6d7266",
+      "/home/shubhgau/dev/atomiX/sw/pemu/isa/axpe_isa.h": "9ad6612baea979bac8c7547a6ae9371e4244351b724135d2df2b3450097073b0",
+      "/home/shubhgau/dev/atomiX/sw/pemu/isa/axpe-isa.json": "6bc75b907b156f96805baa321a3a2f86447477a4a8457f332cdc62217d30face",
+      "/home/shubhgau/dev/atomiX/sw/pemu/as/axpe_as.py": "3a6c682336de5d2364c43fcece262b662d9772c4dea0ab3f72a40f12a1b10638",
+      "/home/shubhgau/dev/atomiX/build/asic/pdk-cmos5l/ihp-sg13cmos5l/libs.ref/sg13cmos5l_stdcell/lib/sg13cmos5l_stdcell_typ_1p20V_25C.lib": "34163f3e7de9f854afac57332ba06f1739b78e7ac35660a8a5ddd39c570124ad",
+      "/home/shubhgau/dev/atomiX/build/asic/pdk-cmos5l/ihp-sg13cmos5l/libs.ref/sg13cmos5l_stdcell/lib/sg13cmos5l_stdcell_fast_1p32V_m40C.lib": "af12d75a72d19648fa690027d29843fbae550aa91f4e40dd3339c7116d6e425d",
+      "/home/shubhgau/dev/atomiX/build/asic/pdk-cmos5l/ihp-sg13cmos5l/libs.ref/sg13cmos5l_stdcell/lib/sg13cmos5l_stdcell_slow_1p08V_125C.lib": "3ee222c580ba33acb2131ac2bf224ff8ee9700751835b73aaec72b670bb31d3c"
+    },
+    "firmware_sha256": {
+      "autobaud-demo.hex": "a96ef3fbffd4ca7c4b277c4616b41c800696cbc677035b5fa2a3de46a798e3f9",
+      "i2c-demo.hex": "b30b6747043e3aec21fb1e50b3cd83dfeb8cb673753f6e4b395418f07ad5f028",
+      "spi-demo.hex": "19503e8411d1f413a2ecdfb44cba34eb8ff7fd648b6d01c172580a6afcca0c2a",
+      "uart-demo.hex": "a63a1c173614eff060d2a5e293efbbf051181632bd89d2fa4b5c5c25ec84d29d"
+    },
+    "tools": {
+      "yosys": "Yosys 0.67+ (git sha1 45ea2b8d6, Release, GNU /usr/bin/c++ 11.4.0)",
+      "verilator": "Verilator 5.050 2026-07-01 rev v5.050-60-g3d2421f3b"
+    },
+    "suite_log_sha256": {
+      "suite-seed-1.log": "b577fb34f1c5b3143db9304621f2768434312831f8b04814b3861ff2b1a0e931",
+      "suite-seed-17.log": "b577fb34f1c5b3143db9304621f2768434312831f8b04814b3861ff2b1a0e931",
+      "suite-seed-91.log": "b577fb34f1c5b3143db9304621f2768434312831f8b04814b3861ff2b1a0e931"
+    }
+  },
+  "rtl": {
+    "command": "make pemu-chip-check",
+    "log": "build/asic/axpe-lifecycle-chip.log",
+    "log_sha256": "9cc92d8270cea0c739bd4deaaddcfd4e0109f83a6086c3e3d6021310fa3285e9",
+    "result": "passed; direct chip plus exported wrapper at three seeds"
+  },
+  "verification": {
+    "smoke": "passed: all 14 stages",
+    "smoke_summary_sha256": "3377ff4f81dee6a1d979a7b8e0cdb686d2fe67aeb52b330f93bba21c378fda02",
+    "smoke_log_sha256": "1c5105f06e01080901138d3d58595de1519c7332ab4734a913c68e048b57f20c",
+    "registry_and_coverage": "passed: three candidates/six records and 130 advertised commands",
+    "log_sha256": "89ab4035b2268799151b2b487848c022c51075aba6d557fc4030635d3afe77eb"
+  },
+  "limits": [
+    "two-state zero-delay semantics; no SDF or four-state startup proof",
+    "ena is a logical input; no power removal, board isolation or physical reload result",
+    "fixed-rate firmware/peers retain nominal 50 MHz constants; actual-clock retiming remains open",
+    "no RTL/ISA/firmware/GDS/netlist change; no new physical signoff claim"
+  ],
+  "portable_replay": {
+    "schema": "org.atomix.axpe-lifecycle-portable-replay.v1",
+    "status": "passed",
+    "package": "build/asic/axpe-submission-lifecycle-verified-2026-10-11",
+    "manifest_sha256": "901d895adc58e3f5058040fd0ea4a0cc1081a34a47c8e3c61bdaa566e6dde0d0",
+    "relocated_directory": "/tmp/axpe-lifecycle-review-761hzt23/candidate",
+    "commands": [
+      "python3 verification/check_package.py",
+      "make -C demo check mapped-check"
+    ],
+    "startup_seeds": [
+      1,
+      17,
+      91
+    ],
+    "cases": "same full chip/peer/readback/lifecycle suite on both RTL and mapped cells",
+    "log": "build/asic/axpe-lifecycle-relocated-demo.log",
+    "log_sha256": "db7692b008d265fc88ca20ac58601d4f654a656964d6e7a82a27a13ee0c1a954",
+    "limits": [
+      "two-state zero-delay simulation; no physical power removal or board result"
+    ]
+  },
+  "historical_archive_preserved": {
+    "path": "build/asic/axpe-submission-ready.tar.gz",
+    "sha256": "f981a923279e1669ba724e0faca8a0a4b4f2179387fd98b501d2fe0eab11a3b3"
+  }
+}

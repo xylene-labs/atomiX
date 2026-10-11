@@ -66,6 +66,85 @@ def copy_overlay_file(staging: Path, relative: str) -> None:
     shutil.copy2(source, destination)
 
 
+def populate_verification(staging: Path) -> dict[str, str]:
+    """Bundle the actual chip cases, firmware and peers independently of RTL.
+
+    These hashes are demonstration inputs, never bitstream/GDS identity.
+    Keep relative paths so the original harness and assembler work unchanged.
+    """
+    files = ["tools/axpe_isa.py", "tools/requirements.json",
+             "components/pemu/axpe/component.json", "docs/pemu-host-protocol.md"]
+    files += [f"sim/pemu/{name}" for name in
+              ("axpe_tt_tb.cpp", "axpe_cases.h", "axpe_device.h",
+               "axpe_peers.h", "axpe_trace.h")]
+    files += [f"sw/pemu/{name}" for name in
+              ("as/axpe_as.py", "model/axpe_model.c", "model/axpe_model.h",
+               "isa/axpe-isa.json", "isa/axpe-isa.md", "isa/axpe_isa.h",
+               "isa/axpe_isa.svh")]
+    files += [str(path.relative_to(ROOT)) for path in
+              sorted((ROOT / "sw/pemu/firmware").glob("*.s"))]
+    files += ["sw/pemu/firmware/build_demos.py", "sw/pemu/firmware/check_demos.py",
+              "sw/pemu/firmware/demo.json"]
+    files += [str(path.relative_to(ROOT)) for path in
+              sorted((ROOT / "sw/pemu/firmware/profiles").glob("*.json"))]
+    hashes = {}
+    for relative in files:
+        source = ROOT / relative
+        destination = staging / relative
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source, destination)
+        hashes[relative] = file_hash(destination)
+    for relative in ("demo/Makefile", "demo/README.md", "docs/verification.md", "docs/ai-use.md",
+                     "docs/physical-candidate.md", "docs/submission-compliance.md",
+                     "docs/demo-wiring.md"):
+        copy_overlay_file(staging, relative)
+        hashes[relative] = file_hash(staging / relative)
+    receipts = []
+    for name, level in (
+        ("model", "host C model"), ("cosim", "host RTL differential simulation"),
+        ("chip", "host RTL runtime-programming simulation"),
+        ("protocols", "host RTL independent protocol peers"),
+        ("period", "host RTL measured-period simulation"),
+        ("cmos5l-feasibility", "CMOS5L synthesis and place-and-route"),
+        ("cmos5l-25ns", "CMOS5L synthesis and place-and-route"),
+        ("netlist", "host mapped functional simulation"),
+        ("lifecycle", "host RTL and mapped selection/reset/reload simulation"),
+        ("clock", "host RTL and mapped actual-clock runtime protocol/rate simulation"),
+        ("wiring", "documentary ETR reference connector mapping; no physical evidence"),
+        ("flow-reproduction", "staged ECO flow reproduction; checkpoint scope and signoff limits"),
+        ("timing", "host formal verification of isolated timer"),
+        ("shift-timing", "host formal verification of isolated shift occupancy"),
+        ("wait-timing", "host formal verification of DELAY/WAITE core stream"),
+        ("core-timing", "host formal verification of complete legal instruction-stream timing"),
+        ("precheck", "local Tiny Tapeout CMOS5L precheck"),
+    ):
+        source = ROOT / f"research/benchmarks/axpe-{name}.json"
+        if not source.is_file():
+            continue
+        relative = f"verification/evidence/{source.name}"
+        destination = staging / relative
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source, destination)
+        hashes[relative] = file_hash(destination)
+        receipts.append({"path": relative, "sha256": hashes[relative], "level": level})
+    index = {
+        "schema": "org.atomix.axpe-evidence-index.v1",
+        "scope": "historical receipts bound to the inputs each names; not signoff for this export",
+        "hardware_identity": ".atomix-export.json sources",
+        "replay_command": "make -C demo check",
+        "receipts": receipts,
+        "unresolved": ["final candidate selection/reproduction and signoff/replay binding for this export",
+                       "external pad/carrier I/O budget (4 ns remains provisional)",
+                       "timing proof excludes program-memory/data correctness and non-default architecture",
+                       "maintainer commit-pinned reviews"],
+        "physical_evidence": "none: no FPGA or returned silicon result is included",
+    }
+    relative = "verification/evidence-index.json"
+    (staging / relative).write_text(json.dumps(index, indent=2) + "\n")
+    hashes[relative] = file_hash(staging / relative)
+    return dict(sorted(hashes.items()))
+
+
 def component_parameters(resolved: dict[str, Any], kind: str) -> dict[str, int]:
     component = resolved["components"][kind]
     given = resolved["parameters"].get(kind, {})
@@ -158,6 +237,10 @@ def validate_lock(lock: dict[str, Any]) -> None:
 def populate(staging: Path, profile: Path, lock: dict[str, Any],
              lock_path: Path) -> dict[str, Any]:
     shutil.copytree(TEMPLATE, staging)
+    # Preserve the pinned template's exclusions and add local demo/package
+    # paths so preparing a source repository cannot stage generated assets.
+    (staging / ".gitignore").write_text(
+        (TEMPLATE / ".gitignore").read_text() + "\n" + (OVERLAY / ".gitignore").read_text())
 
     resolved = configure.resolved_config(profile)
     if set(resolved["components"]) != {"pemu"}:
@@ -305,10 +388,13 @@ def populate(staging: Path, profile: Path, lock: dict[str, Any],
         "# Generated by tools/tt_axpe.py; do not edit.\n"
         + "PROFILE_DEFINES := "
         + " ".join(f"-D{item}" for item in defines)
+        + f"\nDEMO_IMEM_WORDS := {parameters['imem_words']}"
         + "\n")
 
     source_hashes["src/tt_um_shubhgau_atomix_axpe.sv"] = file_hash(
         staging / "src" / "tt_um_shubhgau_atomix_axpe.sv")
+    verification_hashes = populate_verification(staging)
+    verification_hashes[".gitignore"] = file_hash(staging / ".gitignore")
     manifest = {
         "schema": "org.atomix.tt-export.v1",
         "profile": str(profile.resolve().relative_to(ROOT)),
@@ -332,6 +418,7 @@ def populate(staging: Path, profile: Path, lock: dict[str, Any],
         "synth_strategy": synth_strategy,
         "template_canonical_sha256": canonical_tree_hash(TEMPLATE),
         "sources": dict(sorted(source_hashes.items())),
+        "verification_inputs": verification_hashes,
     }
     (staging / MARKER).write_text(json.dumps(manifest, indent=2) + "\n")
     return manifest

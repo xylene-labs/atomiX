@@ -13,6 +13,7 @@
 #include "axpe_trace.h"
 
 #include <cstdint>
+#include <limits>
 #include <cstdio>
 #include <fstream>
 #include <string>
@@ -48,6 +49,202 @@ inline std::vector<uint32_t> load_hex(const std::string &path)
             program.push_back(static_cast<uint32_t>(std::stoul(line, nullptr, 16)));
     return program;
 }
+
+struct DemoRates {
+    uint64_t clock_hz = 50000000, uart_baud = 115200;
+    uint64_t spi_hz = 1000000, i2c_hz = 100000, i2c_guard_ns = 0;
+
+    uint64_t timing_cycles(uint64_t ns) const
+    {
+        const __uint128_t count = (static_cast<__uint128_t>(clock_hz) * ns + 999999999) / 1000000000;
+        return count > std::numeric_limits<uint64_t>::max() ? std::numeric_limits<uint64_t>::max() : count;
+    }
+    uint64_t i2c_period() const
+    {
+        if (!i2c_hz || i2c_guard_ns > std::numeric_limits<uint64_t>::max() - 4700)
+            return std::numeric_limits<uint64_t>::max();
+        const uint64_t low = timing_cycles((i2c_hz <= 100000 ? 4700 : 1300) + i2c_guard_ns);
+        const uint64_t high = timing_cycles((i2c_hz <= 100000 ? 4000 : 600) + i2c_guard_ns);
+        __uint128_t period = clock_hz / i2c_hz + (clock_hz % i2c_hz != 0);
+        if (period < static_cast<__uint128_t>(low) * 2) period = static_cast<__uint128_t>(low) * 2;
+        if (period < static_cast<__uint128_t>(high) * 2) period = static_cast<__uint128_t>(high) * 2;
+        period = (period + 3) / 4 * 4;
+        return period > std::numeric_limits<uint64_t>::max() ? std::numeric_limits<uint64_t>::max() : period;
+    }
+
+    bool read(const std::string &fw)
+    {
+        const unsigned delay_max = AXPE_DELAY_MASK >> AXPE_DELAY_LO;
+        std::ifstream in(fw + "/clock-profile.txt");
+        if (!in) return true; // Legacy, unprofiled 50 MHz payloads.
+        std::string extra;
+        if (!(in >> clock_hz >> uart_baud >> spi_hz >> i2c_hz)) return false;
+        // Historical four-field receipts have no extra timing guard.
+        if (in >> extra) {
+            if (extra.empty() || extra.find_first_not_of("0123456789") != std::string::npos) return false;
+            try { i2c_guard_ns = std::stoull(extra); } catch (...) { return false; }
+            if (in >> extra) return false;
+        }
+        if (
+            !clock_hz || !uart_baud || !spi_hz || !i2c_hz ||
+            clock_hz / uart_baud < 2 || clock_hz / uart_baud > delay_max / 16 ||
+            clock_hz / spi_hz < 2 || clock_hz / spi_hz > delay_max ||
+            (clock_hz / spi_hz) % 2 || i2c_hz > 400000 ||
+            i2c_period() < 4 || i2c_period() > delay_max) {
+            std::fprintf(stderr, "invalid runtime clock/rate profile\n");
+            return false;
+        }
+        return true;
+    }
+
+    // A receiver rounds its independent requested bit period to the nearest
+    // cycle; it does not read the encoded transmitter delay.
+    unsigned uart_receiver_period() const
+    { return static_cast<unsigned>(clock_hz / uart_baud +
+                                  (clock_hz % uart_baud >= (uart_baud + 1) / 2)); }
+};
+
+struct UartRatePeer : Peer {
+    Peer &peer;
+    bool previous = true;
+    unsigned cycle = 0;
+    std::vector<unsigned> edges;
+
+    explicit UartRatePeer(Peer &receiver) : peer(receiver) {}
+    uint8_t step(uint8_t out, uint8_t oe) override
+    {
+        const uint8_t level = peer.step(out, oe);
+        const bool tx = level & 1u;
+        if (tx != previous) edges.push_back(cycle);
+        previous = tx;
+        ++cycle;
+        return level;
+    }
+    bool check_frame(uint8_t byte, unsigned period) const
+    {
+        std::vector<unsigned> expected;
+        bool previous_bit = true;
+        for (unsigned bit = 0; bit < 10; ++bit) {
+            const bool high = bit == 9 || (bit > 0 && ((byte >> (bit - 1)) & 1u));
+            if (high != previous_bit) expected.push_back(bit * period);
+            previous_bit = high;
+        }
+        if (edges.size() != expected.size()) {
+            std::fprintf(stderr, "UART: unexpected edge count %zu\n", edges.size());
+            return false;
+        }
+        for (size_t i = 0; i < edges.size(); ++i)
+            if (edges[i] - edges[0] != expected[i]) {
+                std::fprintf(stderr, "UART: edge %zu at %u cycles, expected %u\n",
+                             i, edges[i] - edges[0], expected[i]);
+                return false;
+            }
+        std::printf("axpe rate: UART 8N1 edges at exactly %u cycles per bit\n", period);
+        return true;
+    }
+};
+
+/* Observe clock edges alongside the protocol peer. Peer correctness and a
+ * requested clock rate are separate claims: decoding a byte alone tolerates
+ * an arbitrarily slow SPI/I2C clock. */
+/* UM10204 Rev.7 Table 11, observed at resolved digital bus levels.
+ * Analog rise/fall times and pad characteristics are outside this model. */
+struct I2cTimingPeer : Peer {
+    Peer &peer;
+    const DemoRates &rates;
+    uint64_t cycle = 0, clock_edge = 0, data_edge = 0, start = 0, stop = 0;
+    bool scl = true, sda = true, busy = false, first_fall = false;
+    unsigned starts = 0, stops = 0;
+    std::string error;
+
+    I2cTimingPeer(Peer &target, const DemoRates &r) : peer(target), rates(r) {}
+    void require(const char *name, uint64_t elapsed, uint64_t ns)
+    {
+        const uint64_t minimum = rates.timing_cycles(ns + rates.i2c_guard_ns);
+        if (elapsed < minimum && error.empty()) {
+            error = std::string(name) + ": " + std::to_string(elapsed) +
+                    " cycles, minimum " + std::to_string(minimum);
+            std::fprintf(stderr, "I2C timing: %s\n", error.c_str());
+        }
+    }
+    uint8_t step(uint8_t out, uint8_t oe) override
+    {
+        const uint8_t level = peer.step(out, oe);
+        const bool clock = level & 8u, data = level & 4u;
+        const bool standard = rates.i2c_hz <= 100000;
+        if (clock && scl && sda && !data) {
+            require("START setup", cycle - clock_edge, standard ? 4700 : 600);
+            if (!busy) require("bus free", cycle - stop, standard ? 4700 : 1300);
+            busy = true; first_fall = true; start = cycle; ++starts;
+        }
+        if (clock && scl && !sda && data) {
+            require("STOP setup", cycle - clock_edge, standard ? 4000 : 600);
+            busy = false; stop = cycle; ++stops;
+        }
+        if (busy && !scl && clock) {
+            require("SCL low", cycle - clock_edge, standard ? 4700 : 1300);
+            require("data setup", cycle - data_edge, standard ? 250 : 100);
+        }
+        if (busy && scl && !clock) {
+            require("SCL high", cycle - clock_edge, standard ? 4000 : 600);
+            if (first_fall) { require("START hold", cycle - start, standard ? 4000 : 600); first_fall = false; }
+        }
+        if (clock != scl) clock_edge = cycle;
+        if (data != sda) data_edge = cycle;
+        scl = clock; sda = data; ++cycle;
+        return level;
+    }
+    bool check() const
+    {
+        if (!error.empty() || starts < 2 || stops < 1) return false;
+        std::printf("axpe I2C timing: nominal low/high, START/STOP, bus-free and data setup PASS\n");
+        return true;
+    }
+};
+
+struct ClockRatePeer : Peer {
+    Peer &peer;
+    unsigned pin, cycle = 0;
+    int select_pin;
+    bool previous = true;
+    std::vector<unsigned> rises;
+
+    ClockRatePeer(Peer &target, unsigned clock_pin, int cs_pin = -1)
+        : peer(target), pin(clock_pin), select_pin(cs_pin) {}
+
+    uint8_t step(uint8_t out, uint8_t oe) override
+    {
+        const uint8_t level = peer.step(out, oe);
+        const bool high = (level >> pin) & 1u;
+        const bool selected = select_pin < 0 || !((level >> select_pin) & 1u);
+        if (selected && !previous && high) rises.push_back(cycle);
+        previous = high;
+        ++cycle;
+        return level;
+    }
+
+    bool check_cells(const char *name, unsigned period, bool spi) const
+    {
+        unsigned consecutive = 0, longest = 0;
+        for (size_t i = 1; i < rises.size(); ++i) {
+            const unsigned interval = rises[i] - rises[i - 1];
+            if (spi && interval != period) {
+                std::fprintf(stderr, "%s: rising-edge interval %u, expected %u\n",
+                             name, interval, period);
+                return false;
+            }
+            consecutive = interval == period ? consecutive + 1 : 0;
+            if (consecutive > longest) longest = consecutive;
+        }
+        if (longest < 7) {
+            std::fprintf(stderr, "%s: no complete eight-bit cell train at %u cycles\n",
+                         name, period);
+            return false;
+        }
+        std::printf("axpe rate: %s eight-bit clock train at %u cycles per cell\n", name, period);
+        return true;
+    }
+};
 
 /* The chip cannot say on a pin which cycle its core started, and inventing a
  * pin for the benefit of a testbench would be the testbench designing the
@@ -107,7 +304,7 @@ inline bool run_program(Chip &chip, const char *name,
 {
     const std::vector<Sample> expected = model_trace(name, program, input_idle);
     if (expected.empty()) return false;
-    chip.load(program);
+    if (!chip.load_verified(program)) return false;
     chip.trace.clear();
     chip.select();
     chip.xfer(0x03, 8);
@@ -131,7 +328,7 @@ inline bool run_firmware(Chip &chip, const char *name, const std::string &hex,
         return false;
     }
     chip.stop();
-    chip.load(program);
+    if (!chip.load_verified(program)) return false;
     chip.peer = &peer;
     chip.select();
     chip.xfer(0x03, 8);
@@ -218,6 +415,8 @@ inline bool check_quiet_after_reset(Chip &chip)
  * then the mandatory protocols, then the measured-rate reply. */
 inline int run_chip_suite(Chip &chip, const std::string &fw)
 {
+    DemoRates rates;
+    if (!rates.read(fw)) return 1;
     /* Two programs with nothing in common but the machine they run on: one
      * publishes a byte, the other bit-bangs one out of a pin. */
     const std::vector<uint32_t> beacon = {
@@ -289,10 +488,14 @@ inline int run_chip_suite(Chip &chip, const std::string &fw)
      * design, each judged by an implementation of its own specification. */
     uint16_t status = 0;
 
-    UartReceiver uart(0, 50000000u / 115200u);
-    if (!run_firmware(chip, "uart", fw + "/uart-demo.hex", uart, 60000, &status))
+    UartReceiver uart(0, rates.uart_receiver_period());
+    UartRatePeer uart_rate(uart);
+    if (!run_firmware(chip, "uart", fw + "/uart-demo.hex", uart_rate,
+                      static_cast<unsigned>(10 * (rates.clock_hz / rates.uart_baud) + 4096), &status))
         return 1;
     if (!complain("uart", uart.error)) return 1;
+    if (!uart_rate.check_frame(0x41, static_cast<unsigned>(rates.clock_hz / rates.uart_baud)))
+        return 1;
     if (uart.bytes.size() != 1 || uart.bytes[0] != 0x41u) {
         std::fprintf(stderr, "uart: peer decoded %zu bytes, first %02x, "
                              "expected one byte 41\n",
@@ -304,13 +507,19 @@ inline int run_chip_suite(Chip &chip, const std::string &fw)
                      status & 0xffu);
         return 1;
     }
-    std::puts("axpe chip: uart-demo transmitted 0x41, decoded by an independent "
-              "8N1 receiver at 115200");
+    std::printf("axpe chip: uart-demo transmitted 0x41, decoded by an independent "
+                "8N1 receiver targeting %llu baud at %llu Hz\n",
+                static_cast<unsigned long long>(rates.uart_baud),
+                static_cast<unsigned long long>(rates.clock_hz));
 
     SpiTarget spi(4, 5, 6, 7, 0x3c);
-    if (!run_firmware(chip, "spi", fw + "/spi-demo.hex", spi, 20000, &status))
+    ClockRatePeer spi_rate(spi, 4, 7);
+    if (!run_firmware(chip, "spi", fw + "/spi-demo.hex", spi_rate,
+                      static_cast<unsigned>(8 * (rates.clock_hz / rates.spi_hz) + 4096), &status))
         return 1;
     if (!complain("spi", spi.error)) return 1;
+    if (!spi_rate.check_cells("SPI", static_cast<unsigned>(rates.clock_hz / rates.spi_hz), true))
+        return 1;
     if (spi.frames != 1 || spi.received != 0xa5u) {
         std::fprintf(stderr, "spi: target saw %u frames, byte %02x, expected "
                              "one frame of a5\n", spi.frames, spi.received);
@@ -324,10 +533,18 @@ inline int run_chip_suite(Chip &chip, const std::string &fw)
     std::puts("axpe chip: spi-demo exchanged a5 for 3c in mode 0, full duplex, "
               "against an independent target");
 
+    // 36 shifted cells plus bus setup/handoffs fit below 44 cell periods;
+    // allow host polling/straight-line instruction overhead separately.
     I2cTarget i2c(2, 3, 0x50, 0x39);
-    if (!run_firmware(chip, "i2c", fw + "/i2c-demo.hex", i2c, 40000, &status))
+    I2cTimingPeer i2c_timing(i2c, rates);
+    ClockRatePeer i2c_rate(i2c_timing, 3);
+    if (!run_firmware(chip, "i2c", fw + "/i2c-demo.hex", i2c_rate,
+                      static_cast<unsigned>(44 * rates.i2c_period() + 4096), &status))
         return 1;
     if (!complain("i2c", i2c.error)) return 1;
+    if (!i2c_timing.check() ||
+        !i2c_rate.check_cells("I2C", static_cast<unsigned>(rates.i2c_period()), false))
+        return 1;
     if (!i2c.saw_start || !i2c.saw_repeated_start || !i2c.saw_stop) {
         std::fprintf(stderr, "i2c: start=%d repeated-start=%d stop=%d, "
                              "expected all three\n",

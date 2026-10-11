@@ -34,6 +34,9 @@ __pycache__/
 !configs/*.json
 # The protocol ISA is a source input shared by assembler, model and decoder.
 !sw/pemu/isa/axpe-isa.json
+# Runtime demo parameters and supplied clock profiles are source inputs.
+!sw/pemu/firmware/demo.json
+!sw/pemu/firmware/profiles/*.json
 # The tool-version requirement: source of truth for make doctor,
 # make requirements-check, and the generated tables in docs/dependencies.md.
 !tools/requirements.json

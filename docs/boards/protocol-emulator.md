@@ -11,10 +11,22 @@ area budget, and an external deadline those two cards were missing.
 
 The pull order follows the competition's own challenge statement: build an
 open-source, general-purpose protocol emulator that remains programmable after
-fabrication; start with UART, SPI and I2C; use the official CMOS5L template at
-6x4; and run synthesis and place-and-route early. Unique functionality and
-verification methodology strengthen a complete chip, but cannot substitute
-for those baseline capabilities. See the [official announcement](https://blog.janestreet.com/protocol-emulator-asic-competition/).
+fabrication; start with UART, SPI and I2C; keep the official CMOS5L 6×4
+baseline until the planned 8×4 template is released; and use the Tiny Tapeout
+flow with a passing GDS/precheck. The [organizer follow-up recorded 2026-10-10](../notes/jane-street-follow-up-2026-10-10.md)
+clarifies that **flexibility is the main judging criterion**, with no fixed
+weights. Protocol demonstrations, unique functionality and verification support
+that claim. The tiers below are our delivery policy, not official judging weights.
+
+**PE-12 local compliance work is complete; maintainer review and publication
+remain owed.** The exact selected GDS passes all nine Tiny Tapeout checks.
+Three supplied-clock runtime profiles pass waveform/rate checks, including the
+corrected I2C timing and period-derived case budgets. Fresh ECO continuation
+and full Magic/Netgen signoff reproduce the routed ODB/DEF/netlist and all
+metrics exactly; GDS non-timestamp bytes match. The final source/review
+archives are local deliverables. PE-08 remains Ready behind the submission
+gate, with its known width/model gaps retained. Physical operation is untested.
+
 
 ## What winning means here
 
@@ -23,8 +35,8 @@ serves no tier does not belong on this board.
 
 | Tier | Meaning | Contents |
 |---|---|---|
-| **T1 — Valid entry** | Without every one of these we are not competing at all, however good the rest is | Official 6x4 template; programmable after fabrication; UART, SPI and I2C working; the design passes the CMOS5L flow |
-| **T2 — Competitive** | What distinguishes a complete chip from other complete chips | Measured time that firmware can actually *use*; the timing-determinism proof; generated-from-one-source artifacts and shared oracles |
+| **T1 — Valid entry** | Without every one of these we are not competing at all, however good the rest is | Official CMOS5L template (6×4 baseline); programmable after fabrication; UART/SPI/I2C as our baseline; public repository with toolchain/examples, verification and AI-use write-up; passing Tiny Tapeout GDS/precheck |
+| **T2 — Competitive** | What distinguishes a complete chip from other complete chips | Flexibility to support new protocols; measured time firmware can use; timing proof; generated artifacts and shared oracles |
 | **T3 — Stretch** | Taken only from genuine surplus schedule | Further protocols; the fixed-logic comparison; extra platform evidence |
 
 The ordering is not a preference. A T2 result cannot repair a missing T1
@@ -39,11 +51,28 @@ One list, checkable by someone who did not build it:
 2. Two different protocol programs load into **one unchanged hardened design**
    after reset, and both run. This is the programmability test; a preinitialised
    memory image does not pass it.
-3. UART, SPI and I2C each pass an independent reference peer.
-4. A CMOS5L place-and-route report exists with actual area and timing, and every
-   violation is recorded rather than omitted.
-5. The write-up states what was *not* proved, and at which evidence level each
-   claim sits.
+3. UART, SPI and I2C each pass an independent reference peer. Name the supplied
+   clock and firmware-derived rates. Common baud rates, SPI modes 0–3 and I2C
+   100/400 kHz are recommended targets; there is no organizer-imposed speed minimum.
+4. The exact selected GDS has passing **Tiny Tapeout flow and precheck** evidence,
+   with versions, commands and hashes. Magic DRC/LVS and all-corner STA remain
+   necessary local evidence, but do not establish that Tiny Tapeout precheck ran.
+   Document/reproduce the staged ECO within the required flow, locally if needed.
+5. The public submission repository contains RTL, tests, architecture/ISA,
+   assembler/toolchain, runtime loader instructions, example programs and the
+   verification write-up, including limits and how AI tools were used.
+6. Document board/Pmod wiring and external parts, 3.3 V digital I/O, host timing,
+   and select/reset/load/readback/run after power loss or deselection. Verify
+   fresh-state loading without assuming retained program memory.
+7. Maintainer commit-pinned reviews remain required. Prepare the repository/link
+   and submit via the announced form by 2027-01-18; publishing and submission
+   require explicit maintainer authorization. The internal target stays 2027-01-14.
+
+The organizer confirms that CMOS5L pad characterization is unavailable. Retain
+and label the provisional I/O budget while tracking updates; neither surrogate
+SG13G2 data nor the absence of silicon turns that assumption into a guarantee.
+FPGA lab evidence and a video remain optional. Registration is confirmed by
+receipt of the email; it is not a completed submission.
 
 ### Descope order
 
@@ -67,23 +96,86 @@ card instead of taking time from the submission. All owners are unassigned.
 
 | Card / outcome | Tier | Priority | State | Depends on / blocker | First reviewable slice |
 |---|---|---|---|---|---|
-| PE-01: competition entry and official template baseline | T1 | P0 | Review | Baseline imported 2026-09-25; maintainer review owed | Done: registration is recorded; the linked `cmos5l` template is pinned at `b86a2a7` and imported unchanged under [`asic/tt-axpe/`](../../asic/tt-axpe); the official 6x4 rule is reconciled with support-tools rectangle `1289.28 × 710.64µm`, and stale upstream comments remain visible rather than silently repaired |
+| PE-01: competition entry and official template baseline | T1 | P0 | Review | Baseline imported 2026-09-25; maintainer review owed | Done: registration is recorded; the linked `cmos5l` template is pinned at `b86a2a7` and imported unchanged under [`asic/tt-axpe/`](../../asic/tt-axpe); the selected 6×4 baseline is reconciled with support-tools rectangle `1289.28 × 710.64µm`, and stale upstream comments remain visible rather than silently repaired |
 | PE-14: post-fabrication programming and host contract | T1 | P0 | Review | Maintainer review owed | Done: [`docs/pemu-host-protocol.md`](../pemu-host-protocol.md) freezes the pins and framing; `make pemu-chip-check` loads two unrelated programs into one elaborated design and runs both cycle-exact; PE-02 also binds it behind the pinned template's unique `tt_um_*` top |
 | PE-02: instruction-memory and early-flow feasibility gate | T1 | P0 | Review | Measured 20 ns refutation; maintainer review owed | The pinned 64×32 inferred-store candidate passes wrapper simulation, fits 6×4 at 31.9% core utilization and routes with zero OpenROAD DRC/antenna errors. Post-route slow-corner STA has one −0.903 ns setup violation; electrical violations remain. The result and interrupted earlier attempt are recorded in [`axpe-cmos5l-feasibility.json`](../../research/benchmarks/axpe-cmos5l-feasibility.json). Decision: retain this store; PE-10 tests a separately locked 25 ns target and I/O contract |
 | PE-03: `axpe` ISA specification | T1 | P0 | Review | PE-02 budget | Done: `axpe-isa.json` is the single source, `axpe-isa.md` is generated from it, and `WAITE` returns its elapsed cycle count |
 | PE-04: golden model and assembler | T1 | P0 | Review | PE-03 timing decisions | Model, assembler, UART/autobaud and four-mode clocked shifts pass via `make pemu-model-check`; close only after effect/reset/fault conventions receive commit-pinned review |
-| PE-05: RTL and cycle-for-cycle cosimulation | T1 | P0 | Review | PE-04 | Done: `make pemu-cosim-check` compares every cycle with no tolerated deviation across 112 randomized programs and twelve directed cases, and the handoff gap is closed. Close only after commit-pinned review of the retirement and forwarding path |
-| PE-07: mandatory UART, SPI and I2C firmware | T1 | P0 | Review | PE-05, PE-14 both done | Done in simulation: all three load into one unchanged chip image and pass peers written from each protocol, with I2C covering ACK/NACK, repeated start, STOP and bus release. Remaining for closure: hardware peers, which is PE-09 |
-| PE-10: staged CMOS5L synthesis and place-and-route | T1 | P0 | Active | Baseline GDS/DRC/LVS pass; electrical checks fail | The 25 ns baseline passes setup/hold at all corners, Magic DRC, LVS and antenna checks. Its provisional 4 ns I/O delay is not a pad contract. CTS clusters of eight reduce post-route fanout/slew violations to six each. ABC buffering worsens both classes; jumper-only repair leaves antenna violations. Five bounded repair/antenna passes do not converge. A locked post-antenna route has one fanout and 19 slow-corner slew violations; a 400 µm wire cap clears fanout but leaves six slow slews. A 200 µm cap clears slew, route DRC and antenna, but leaves one fanout violation from five antenna diodes and only 12 ps fast-corner hold margin. A zero-antenna-margin reroute is in progress. None of these variants has final GDS/DRC/LVS. Repair fanout, then repeat full signoff on the final architecture. See [`axpe-cmos5l-25ns.json`](../../research/benchmarks/axpe-cmos5l-25ns.json) |
+| PE-05: RTL and cycle-for-cycle cosimulation | T1 | P0 | Review | PE-04 | Done: `make pemu-cosim-check` compares every cycle with no tolerated deviation across 112 randomized programs and seventeen directed cases, and the handoff gap is closed. Close only after commit-pinned review of the retirement and forwarding path |
+| PE-07: baseline UART, SPI and I2C firmware | T1 | P0 | Review | PE-05, PE-14 both done | Done in simulation: all three load into one unchanged chip image and pass peers written from each protocol, with I2C covering ACK/NACK, repeated start, STOP and bus release. The default and all three 40 MHz runtime profiles now pass waveform/rate checks on RTL and the mapped netlist; the I2C low-time failures and corrected runtime handoffs are recorded. Remaining: maintainer review. Physical peers are optional PE-09 evidence, not a prerequisite for submission |
+| PE-10: staged CMOS5L synthesis and place-and-route | T1 | P0 | Review | Selected-GDS precheck passes; fresh ECO continuation passes; maintainer review owed; I/O budget provisional | The 25 ns baseline passes setup/hold at all corners, Magic DRC, LVS and antenna checks. Its provisional 4 ns I/O delay is not a pad contract. CTS clusters of eight reduce post-route fanout/slew violations to six each. ABC buffering worsens both classes; jumper-only repair leaves antenna violations. Five bounded repair/antenna passes do not converge. A locked post-antenna route has one fanout and 19 slow-corner slew violations; a 400 µm wire cap clears fanout but leaves six slow slews. A 200 µm cap clears slew, route DRC and antenna, but leaves one fanout violation from five antenna diodes and only 12 ps fast-corner hold margin. The zero-antenna-margin reroute is identical and does not repair fanout. A pinned one-buffer ECO now clears route DRC, antenna and all-corner setup/hold/slew/fanout/cap, with +25 ps fast hold margin. Its final GDS/Magic DRC/Netgen LVS pass, and the final netlist hash matches its passing three-seed functional replay. Earlier variants still fail electrical checks. The maintainer owes commit-pinned review; the external I/O budget remains provisional. See [`axpe-cmos5l-25ns.json`](../../research/benchmarks/axpe-cmos5l-25ns.json) |
 | PE-15: a measured period firmware can use | T2 | P0 | Review | PE-03, PE-05 both satisfied | Done in simulation: `SHPER` (opcode `0E`) writes a period register and one bit of the shift shape's unused `b` field selects it, so `SHOUT`/`SHIN`/`SHIO` take their bit period from architectural state. `autobaud-demo.s` measures an unconfigured peer and answers at its rate, checked at two different rates through one unchanged chip image. Close only after commit-pinned review of the exact-but-not-static timing split and the reserved-bit rule |
-| PE-06: timing-determinism proof | T2 | P0 | Ready | PE-05 (unblocked 2026-09-18) | Every instruction proved to retire in its declared cycle count, `WAITE` bounded by its timeout |
-| PE-08: profile knobs exercised | T2 | P1 | Next | PE-05 | `configs/sim-axpe-tiny.json` runs every declared knob at a non-default value with limits derived from the build's own defines. **Known broken before the card is pulled**: `reg_width` and `delay_bits` do not elaborate away from 16 -- see the 2026-09-18 decision below, which has the diagnostics |
+| PE-06: timing-determinism proof | T2 | P0 | Review | Maintainer commit-pinned review owed | Complete legal instruction-stream occupancy and handoff induct for all 31 opcodes, including register-period selection, held operands, bounded waits and HALT. All 46 witnesses and five mutation counterexamples pass. The word source is abstract; memory/data correctness, invalid-program faults and non-default architecture remain outside the timing claim |
+| PE-08: profile knobs exercised | T2 | P1 | Ready | After PE-12 email compliance work; PE-05; width repair and assembler/model profile integration remain | `make pemu-profile-check` wires all six resolved parameters into a fresh Verilator build and its capacity probes. The capacity profile exercises a 64-word store, seven registers, four pins and two stack entries. `configs/sim-axpe-tiny.json` is an explicit failing experiment, not a supported profile: narrower register/delay widths still fail strict elaboration. No RTL repair or full non-default ISA conformance is claimed |
 | PE-09: Tang Primer bring-up | T3 | P1 | Next | PE-05, PE-14; Dock access; a `.cst` exposing a PMOD header; peer hardware arriving | Load firmware at runtime into one unchanged FPGA image, then run UART against CP2102, SPI against a Pi Pico 2 target, and I2C against an AT24C256. Add a capture-clock divider so the 24 MS/s analyzer can witness edge placement in `axpe` cycles |
-| PE-11: gate-level firmware simulation | T3 | P1 | Next | PE-10 | The same three firmware images pass post-P&R netlist simulation. Prepared 2026-09-18: the bench is split so the oracle, the cases and the peers know nothing about what simulates the part, leaving a `Device` binding of six methods. A Verilator run over a synthesised netlist reuses them directly; an event-driven run carrying SDF needs its own driver, and the cases still port |
+| PE-11: gate-level firmware simulation | T3 | P1 | Review | Maintainer review owed; PE-10 candidate bound by hash | All mandatory protocols, two runtime-loaded programs and two autobaud rates pass the unchanged routed netlist at three startup seeds. Final signoff retains that netlist hash. A relocated standalone package repeats these cases with Liberty-derived cell functions. Two-state, zero-delay evidence; no SDF claim |
 | PE-13: firmware-vs-fixed-logic experiment | T3 | P2 | Descoped | Cut 2026-09-25 when PE-01 missed its 2026-09-22 phase date | The comparison remains a useful future platform experiment, but it is outside the competition lane; its time now belongs to PE-02 and the first PE-10 hardening run |
-| PE-12: submission package | T1 | P0 | Next | PE-01, PE-06, PE-07, PE-10; PE-14 demonstrated | `make tt-export` produces the Tiny Tapeout repository, evidence index and a reproducible demo that loads multiple protocol images into one unchanged hardened design |
+| PE-12: submission package | T1 | P0 | Review | All local compliance gates pass; maintainer commit-pinned review, publication and submission owed | `make tt-export` now includes the shared standalone RTL protocol demo and a hash/level evidence index. Fresh relocation outside atomiX passes all chip cases at three seeds. The routed ECO now passes signoff and replay. A hash-bound package includes its GDS, reports, cell functions and standalone mapped demo; relocated RTL/mapped protocol suites pass at three seeds and five rejection checks pass. The complete legal-stream timing proof also passes. The relocated package repeats induction, all 46 witnesses and five mutation counterexamples. Its exact pre-ECO checkpoint restores into a fresh location with pinned input hashes. Preserve that archive as historical evidence. Current: all nine selected-GDS Tiny Tapeout prechecks pass; all three 40 MHz profiles pass nominal waveform/rate checks, with two earlier I2C timing failures retained and corrected; logical reload, pinned ETR reference mapping and AI-use disclosure are included. The updated candidate passes 24 RTL/mapped suites after fresh relocation and deeper XML/rate-asset refusal probes. Fresh ECO preparation/routing/full signoff pass and match the selected routed assets and all metrics exactly; GDS differs only in timestamps. Remaining: maintainer commit-pinned reviews, public-repository publication and submission. External I/O assumptions and maintainer review remain explicit |
 
 ## Schedule
+
+### PE-12 compliance tooling and drafts — 2026-10-11 (historical checkpoint)
+
+`make pemu-precheck` now runs unchanged pinned Tiny Tapeout checks against the
+exact selected GDS, LEF and powered netlist in a fresh directory. Input hashes,
+versions, commands, raw reports and individual failures are retained. Exported
+CI also pins the precheck's support-tools revision. The selected GDS
+`a5877dd7626f05d7462ce6e629e84e1b507a606f7c6a75e083e22c09af772134`
+has entered that check: pin-label overlap passes, while full CMOS5L DRC is
+still extracting connectivity. All remaining outcomes are unknown. The
+[progress snapshot](../../research/benchmarks/axpe-precheck.json) explicitly
+does not claim a precheck pass. Read its named final runtime receipt when the
+existing process exits before starting another run or updating this status.
+
+Candidate packaging accepts `--precheck` only for a completed passing receipt
+bound to the selected GDS/state/lock/tools, and includes raw reports for the
+portable validator. Six report refusal cases and nine package binding refusal
+cases pass; the latter use synthetic host metadata, not a physical result.
+The existing no-precheck package path also passes its portable validator.
+An initial runner setup failure mistook tracked `reports/.gitignore` for a
+stale report; its failed receipt remains recorded, and copying only tracked
+upstream inputs fixes that mistake. No GDS check ran in that first attempt.
+
+Exports now include [AI-use](../../asic/axpe/docs/ai-use.md),
+[compliance/clock](../../asic/axpe/docs/submission-compliance.md) and
+[wiring/reload](../../asic/axpe/docs/demo-wiring.md) drafts. The clock audit
+states the unchanged payloads' rates at 40 MHz: about 92,166 baud UART,
+800 kHz SPI and 80 kHz I2C. The wiring draft identifies the SPI CS/SCK and
+I2C SDA/SCL adapters needed for recommended Pmod mappings, and does not claim
+plug-in or EEPROM compatibility. Retimed common-rate payload checks,
+selection/cold-reload coverage, final connector/electrical validation, the
+ECO flow audit and maintainer reviews remain open. No RTL, ISA encoding,
+selected GDS or existing historical archive changed.
+
+Validation: report/binding refusals, `make verification-check`, registry and
+all 14 smoke stages pass. The full Tiny Tapeout physical precheck remains
+in progress, so PE-12 stays Ready and RX-09 remains open.
+
+### PE-12 logical reload verification — 2026-10-11
+
+Every shared-suite program is now read back in full before RUN; a refusal or
+mismatch aborts loading. The Tiny Tapeout binding creates a fresh instance,
+runs UART, deselects a driven TX pin, checks quiet outputs, resets/reselects
+and fully reloads UART. Warm external reset followed by full reload is covered
+too. The host's running latch survives `ena=0`; the documented reset step is
+required before reselecting. Exported RTL and the unchanged selected routed
+netlist pass the expanded suite at seeds 1, 17 and 91. See
+[`axpe-lifecycle.json`](../../research/benchmarks/axpe-lifecycle.json).
+
+This clears the logical lifecycle gap in the earlier checkpoint. It does not
+model actual power removal, four-state startup or the carrier's isolation.
+Physical reload, actual-clock payload retiming, full precheck completion,
+staged ECO flow reproduction and maintainer review remain open. No RTL, ISA,
+GDS, netlist or firmware changed; historical archives are preserved. PE-12
+stays Ready and RX-09 stays open.
+
+Validation: `make pemu-chip-check`, the exact routed-netlist replay and all 14
+smoke stages pass. Registry and the 130-command verification coverage map pass.
+The fresh `build/asic/axpe-submission-lifecycle-verified-2026-10-11` package
+passes its portable validator and relocated RTL/mapped suites at all three
+seeds. Hardware, GDS, netlist and firmware identities match the historical
+candidate, whose original review archive checksum is unchanged. Its manifest
+has no precheck pass: the separate full-layout run remains in progress.
 
 ### PE-04 checkpoint — 2026-09-17
 
@@ -456,8 +548,95 @@ A tighter locked 200 µm wire cap clears all six slow-slew violations in a
 completed detailed route. Route DRC, antenna, setup, hold and cap checks pass,
 but `input4/X` reaches fanout nine against eight after five antenna diodes are
 inserted on `net4`. Fast-corner hold slack is only +0.012071 ns. A separate
-zero-margin antenna-repair reroute is in progress to test that diode count.
-The 200 µm variant has no final GDS/DRC/LVS result and does not close PE-10.
+zero-margin antenna-repair reroute completes with identical netlist, metrics
+and slow-corner checks, retaining fanout nine. The 200 µm variants have no final
+GDS/DRC/LVS result and do not close PE-10.
+
+### PE-10 single-buffer fanout experiment — 2026-10-09
+
+The zero-margin result rules out that repair control. The next bounded trial
+inserts one `buf_1` for the two adjacent mux loads on `net4`, reducing the input
+buffer's functional fanout from four to three and leaving room for antenna
+diodes. The [recipe](../../asic/axpe/experiments/wire200-fanout-eco.py) pins the
+parent inputs, checks every cell and connection for exactly one buffer and two
+load moves, refuses overwrite, and drops stale timing/physical views and metrics.
+
+The prepared ECO passes placement and global routing. Nominal estimated-parasitic
+STA has zero setup, hold, fanout, slew and cap violations. Global-route antenna
+estimation finds four violating nets and pins. Two preparation attempts failed
+closed while establishing OpenROAD's suffixed buffer/net naming. A separate
+bounded continuation executes another design-repair pass and adds 380 buffers;
+it is recorded but not selected for routing, which keeps the isolated one-buffer
+change. Commands, source/output hashes and failures are in
+[`axpe-cmos5l-25ns.json`](../../research/benchmarks/axpe-cmos5l-25ns.json).
+
+The supervised detailed route now completes with zero route DRC and antenna
+errors. Setup, hold, slew, fanout and cap checks pass at all three extracted
+corners. Only three antenna diodes are added, on other nets; `net4` has three
+functional loads and its child two, with no diode on either. Fast hold slack
+is +0.025081 ns, still narrow. The full GDS/DRC/LVS continuation is supervised
+by `axpe-wire200-fanout-eco-signoff.service` and finishes successfully. Magic
+full DRC and Netgen LVS report zero errors; the final signoff netlist hash
+matches the routed replay that passes all shared chip cases at three startup
+seeds. KLayout DRC/XOR and Yosys EQY were skipped by the locked flow; unset
+supply locations prevent a package-level IR-drop claim. PE-10 moves to Review
+with maintainer commit-pinned review owed and the 4 ns I/O delay provisional.
+
+Validation: the input/overwrite and pre-route summary guards, verification
+contract, registry checks and all 14 smoke stages pass. Changes await maintainer
+review; no commit or completed card is claimed.
+
+The same slice now has mapped functional verification through
+`make pemu-netlist-check`. Both the completed zero-margin routed netlist and
+the prepared single-buffer ECO pass all shared chip cases at three randomized
+startup seeds, including runtime reprogramming, UART/SPI/I2C and two autobaud
+rates. Cell models are generated from the pinned Liberty files and identical
+across the three corners. The direct PDK Verilog-model attempt was rejected
+because ignored timing constructs leave a delayed reset signal undriven.
+Commands, hashes, failures and limitations are in
+[`axpe-netlist.json`](../../research/benchmarks/axpe-netlist.json).
+The binding rejection checks run through the existing `pemu-chip` CI stage.
+This prepares PE-11 without closing it: the evidence is two-state, zero-delay
+simulation. The completed ECO route passes these same cases at three seeds;
+final signoff retains the replayed netlist hash, as checked in the signoff receipt.
+
+The isolated timer now has an [inductive proof](../../formal/pemu/README.md)
+at the manifest default and half-width. Its upward elapsed-cycle reference is
+generated from the normative ISA formula, covers establish actual loads and
+completions for D=0/1/7, and two changed timer copies must produce counterexamples.
+[`axpe-timing.json`](../../research/benchmarks/axpe-timing.json) records the
+commands, hashes and initial harness failures. This is preparatory evidence for
+PE-06, which remains Ready: core retirement, core-level shift occupancy and `WAITE` timeout
+are still unproved. It changes neither the RTL nor the active physical candidate.
+
+The isolated shift engine now also proves occupancy under its caller contract:
+independent cell age and bit index establish exactly the declared number of
+cells and `done` on the final cycle. Eight covers reach zero-delay completion,
+maximum count, maximum period at load, back-to-back completion and all four SPI
+modes; two changed engine copies produce counterexamples. See
+[`axpe-shift-timing.json`](../../research/benchmarks/axpe-shift-timing.json).
+Core enforcement of those assumptions and instruction handoff remain unproved.
+The same review found old BR `1+D` wording and incorrect equality of immediate
+level-high wait return and occupancy. Both are clarified in the normative ISA
+and derived document; generated C/SV headers stay byte-identical. Model tests
+and both isolated proofs pass again. No RTL change or second Active card is introduced.
+
+The original core now also inducts for an abstract stream of legal `DELAY` and
+`WAITE` words at the selected 64-word profile. A downward reference budget
+checks the upward wait count, sampled event and timeout, held operands despite
+changing prefetched fields, final-sample T and same-edge issue of the following
+instruction. Eleven covers and two changed core copies pass their expected
+outcomes; see [`axpe-wait-timing.json`](../../research/benchmarks/axpe-wait-timing.json).
+This subset excludes other instruction classes and program memory/fetch; PE-06
+remains Ready for the complete retirement proof.
+
+The standalone export now bundles that same protocol suite and its source
+inputs. `make pemu-asic-check` runs it from the export, and a fresh export
+relocated outside atomiX passes at three seeds with identical hardware hashes.
+The manifest separates verification inputs from hardware; the evidence index
+retains failures, levels and unresolved work. See
+[`axpe-package.json`](../../research/benchmarks/axpe-package.json). PE-12 remains
+Next while final-candidate signoff and maintainer reviews are outstanding.
 
 | Phase | Cards | By |
 |---|---|---|
@@ -670,3 +849,158 @@ claim or trigger re-synthesis.
   size was never the constraint; the storage primitive was. PE-02 stays Ready
   because area affordability is not flow acceptance: the macro has to go through
   the Tiny Tapeout 6×4 flow before PE-03 may assume it.
+
+
+### PE-12 candidate package checkpoint — 2026-10-09
+
+`make pemu-package` creates a fresh local review artifact from the completed
+signoff and accepted mapped replay. It verifies the selected state and GDS,
+zero physical/all-corner electrical errors, source-profile/lock identity,
+unchanged functional inputs, cell bindings and the final netlist/replay hash
+match. Its standalone export includes the final GDS, mapped netlist and cell
+functions, compact reports/receipts, exact ECO recipe and runtime payloads.
+Firmware hashes remain separate from hardware identity.
+
+A fresh relocation outside atomiX passes both the RTL and mapped protocol
+suites at seeds 1, 17 and 91. The package checker also compares freshly
+assembled payload hashes to the accepted replay. Five checks reject an
+existing output, incomplete signoff, changed GDS, mismatched netlist binding
+and changed payload. The selected 25 ns profile/lock are exercised through
+`make pemu-asic-check`, with `TT_AXPE_FLOW_LOCK` reaching export and check.
+See [`axpe-package.json`](../../research/benchmarks/axpe-package.json).
+
+The package documents the expensive staged regeneration procedure and its
+pinned parent requirements; its source GDS workflow alone does not reproduce
+the ECO. Fresh physical regeneration was not repeated for this packaging
+check. PE-12 stays Active: the complete instruction-retirement proof, external
+I/O contract and maintainer reviews remain open. No commit, publication or
+external challenge submission is made.
+
+
+### PE-06 full-stream proof — 2026-10-10
+
+PE-12's validated local package is Ready while the sole Active slice moves to
+its remaining PE-06 dependency. The full legal instruction-stream timing
+reference now inducts against unchanged core RTL, including scalar occupancy,
+shift cells, period selection, held operands, waits, instruction handoff and
+HALT. The final gate passes all 31 opcode completions, 15 additional witnesses
+and five broken-core counterexamples. The register-period witness compares P
+with the encoded delay of that same instruction, not only its next word. PE-06
+moves to Review; the maintainer owes commit-pinned review. PE-12 resumes as the
+sole Active slice to finish the portable proof and archive. Branch/call
+targets are in range, stack operations are balanced, and the instruction word
+source is abstract. Program-memory data correctness, arithmetic/data effects,
+non-default architecture and physical reset recovery remain outside this proof.
+
+
+### Local submission deliverables ready for review — 2026-10-10
+
+The candidate package now carries the complete accepted legal-stream timing
+proof. From a fresh location outside atomiX, all 52 SAT jobs pass their expected
+outcomes: induction, 46 witnesses and five mutation counterexamples. Both the
+RTL and mapped protocol suites pass at three startup seeds, and all 14 smoke
+stages pass. Changed proof harnesses and mismatched formal/profile parameters
+are rejected before a package can be accepted.
+
+The exact pre-ECO ODB, netlist, constraints and interface headers are bundled.
+Their restoration helper preserves the pinned input hashes, writes local paths
+with empty inherited metrics, and refuses an existing checkpoint without
+changing it. This supplies the actual input to the documented staged ECO
+reproduction, rather than depending on the original workstation's build tree.
+It is checkpoint restoration evidence, not a new physical-flow run.
+
+PE-06, PE-11 and PE-12 are in Review. The maintainer owes the required
+commit-pinned reviews; no card is silently closed. The 4 ns external I/O budget
+and 25 ps fast hold margin remain explicit limits, and no physical-operation,
+commit, publication or external submission claim is made. The remaining
+PE-08 knob sweep and PE-09 lab work remain optional future board work; their
+known gaps are preserved. Evidence is in `axpe-core-timing.json` and
+`axpe-package.json` under `research/benchmarks/`.
+
+
+### PE-08 capacity verification — 2026-10-10
+
+PE-08 is the sole Active slice following the local submission package.
+`make pemu-profile-check` now resolves every declared component parameter into
+both Verilator's top-module arguments and independent capacity expectations.
+The existing cosimulation stage runs it in smoke, quick CI and nightly. Each
+attempt has fresh output, exact commands, input/log hashes and a status receipt;
+invalid profiles fail before compiling and existing output cannot be replaced.
+
+The default architecture and `configs/sim-axpe-capacity.json` pass. The latter
+uses 64 instruction addresses, seven registers, four bidirectional pins and two
+stack entries. Probes exercise the highest register/address, register wrap,
+pad mask/open-drain release, maximum delay/wait, full stack unwind, overflow,
+underflow and an out-of-range branch where its encoding exists. The synchronous
+word-source stand-in does not establish instruction-memory or loader behavior
+at these settings. This is capacity evidence, not full non-default model
+conformance or physical implementation.
+
+The all-non-default `configs/sim-axpe-tiny.json` is now present as a reproducible
+**failing** experiment. Isolated probes retain the 12-bit delay warnings, the
+register-width/SHCFG errors, and the coupled 12-bit failures. They additionally
+expose four-register index-width warnings and a one-entry stack's invalid index
+width. Warnings remain fatal; these attempts are recorded as failures.
+
+No RTL, ISA, component defaults or frozen submission artifact changes in this
+slice. Width/index repairs, profile-aware assembler/model conformance and the
+physical area sweep remain PE-08 work. See
+[`axpe-profiles.json`](../../research/benchmarks/axpe-profiles.json).
+
+Validation: all 14 smoke stages pass with the capacity gate included. Removing
+each of the four non-default RTL parameter arguments causes the intended
+probe failure; malformed profiles stop before compilation, and overwriting an
+existing receipt is rejected. The registry and 129-command verification map
+pass. The frozen review archive still matches its original SHA-256.
+
+
+### Organizer follow-up alignment — recorded 2026-10-10
+
+The [complete supplied email and decision map](../notes/jane-street-follow-up-2026-10-10.md)
+are stored in the repository; its sent date was not provided. This checkpoint
+supersedes earlier statements that 8×4 was outside the planned rules, that an
+IHP SRAM integration was categorically unavailable, and that the local archive
+alone satisfied submission readiness. Historical measurements remain valid
+only for their named inputs.
+
+PE-12 returns to Ready and is the next pull. PE-08 returns to Ready behind it;
+its passing capacity probes and recorded failures are retained. No card is
+closed and no maintainer review is waived. Keep 6×4 and the inferred store as
+the selected candidate; evaluate 8×4/SRAM only as optional, separately verified
+upgrades. Do not change pinned flow versions just because a newer action exists.
+The email's lack of characterized pads explains the unresolved external I/O
+contract and does not supply a replacement number. Further protocols, dual
+roles and concurrency must earn their schedule after the submission baseline.
+
+Validation: the stored email body matches the supplied text after CRLF-to-LF
+normalization, its original checksum is recorded, and local reference links
+resolve. `make verification-check` and all 14 `make verify-smoke` stages pass.
+No implementation, flow lock or frozen review archive changed in this alignment.
+
+
+### PE-12 completed local audit — 2026-10-11
+
+All nine selected-GDS Tiny Tapeout checks pass. The unchanged selected netlist
+passes the default and standard/fast/slow 40 MHz profiles at three seeds
+(12 suite invocations); a fresh relocation repeats all 24 RTL/mapped runs.
+All 14 final smoke stages pass. The I2C audit retains its two previously
+decoded low-time violations and corrected runtime cell/handoff words. Valid
+slow profiles retain their earlier fixed-timeout failures; case budgets now
+scale with periods. Legacy assembly rejects a 16-word limit and accepts the
+selected 64-word limit with byte-identical words. Deeper portable XML/rate-asset
+refusal probes pass.
+
+Fresh pinned ECO preparation, global route, nominal STA, detailed route and
+full Magic/Netgen signoff pass. Routed ODB/DEF/netlist and every final metric
+match the selected candidate exactly. All GDS bytes outside library/structure
+timestamps match; this is neither a new geometric XOR nor a new precheck on
+the timestamp variant. The original selected GDS remains the packaged image.
+The transient three-net antenna finding and configured repair remain recorded.
+
+The final source and review archives, ETR reference wiring, AI-use disclosure
+and [maintainer review note](../notes/axpe-submission-review-2026-10-11.md) are
+prepared locally. PE-12 is in Review, with the maintainer owing commit-pinned
+approval and publication/submission. No card closes itself. The 4 ns I/O
+budget, 25 ps fast hold margin, checkpoint-only reproduction boundary and
+unmeasured physical operation remain explicit. PE-08 repairs and PE-09 lab
+work remain future work; no existing record or frozen archive is invalidated.

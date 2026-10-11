@@ -20,7 +20,9 @@
 
 ; A clocked cell splits at its half point, so the period must be even and
 ; non-zero. 50 cycles at 50 MHz is 1 MHz SCK.
-.equ SPI_PERIOD, 50
+.equ CLK_HZ,     50000000
+.equ SPI_HZ,     1000000
+.equ SPI_PERIOD, CLK_HZ / SPI_HZ
 
 ; SHCFG = {cpha, cpol, ord, din[3:0], dout[3:0], clk[3:0]}
 ; Mode 0 is cpol=0, cpha=0; ord=1 selects MSB-first, as SPI expects.

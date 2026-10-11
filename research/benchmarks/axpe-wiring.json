@@ -1,0 +1,42 @@
+{
+  "schema": "org.atomix.axpe-wiring-reference.v1",
+  "date": "2026-10-11",
+  "level": "published reference-carrier schematic review; no physical hardware result",
+  "status": "documented",
+  "schematic_repository": "https://github.com/TinyTapeout/tt-demo-pcb",
+  "commit": "bbf3dd1f771d5aed249b07ddf130b3ddc8261d60",
+  "schematic": "doc/tt-etr-dbv3.pdf",
+  "schematic_sha256": "9de6581e8519c9ce4670a85f6fba5c7691c72464fe31407877b166ca9b8d050e",
+  "reference": "ETR v3, revision 3.2, dated 2025-11-12",
+  "pages_reviewed": [
+    1
+  ],
+  "connector_mapping": {
+    "loader_sclk": "J11.1",
+    "loader_mosi": "J11.2",
+    "loader_cs": "J11.3",
+    "loader_miso": "J13.1",
+    "uart_tx": "J12.1",
+    "uart_rx": "J12.2",
+    "i2c_sda": "J12.3",
+    "i2c_scl": "J12.4",
+    "spi_sck": "J12.7",
+    "spi_mosi": "J12.8",
+    "spi_miso": "J12.9",
+    "spi_cs": "J12.10",
+    "pmod_ground": [
+      5,
+      11
+    ],
+    "pmod_3v3": [
+      6,
+      12
+    ]
+  },
+  "limits": [
+    "delivered competition board revision is unknown; verify it before physical use",
+    "no physical carrier/peer/connector, oscillator, current or rise-time validation",
+    "RP2350 bidirectional drivers must be released; only one loader host may drive inputs",
+    "no characterization is inferred from surrogate pads or reference schematic"
+  ]
+}

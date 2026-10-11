@@ -1,0 +1,111 @@
+{
+  "schema": "org.atomix.axpe-timing-proof.v1",
+  "date": "2026-10-09",
+  "level": "host formal verification of isolated timer; binary sampled-edge semantics",
+  "command": "python3 formal/pemu/check_timing.py --output build/formal/pemu/timing-recorded",
+  "make_target": "make pemu-timing-check",
+  "receipt": "build/formal/pemu/timing-recorded/evidence.json",
+  "receipt_sha256": "afa926e7dab4830a212bdfe18ca49b925e68eeff92a6f72dfbd4335f0f14c5dd",
+  "status": "passed",
+  "inputs_sha256": {
+    "sw/pemu/isa/axpe-isa.json": "d60e77699decd1c03b55fc9788fcdae9d5119b64892a8b20a1ca8a42fe086903",
+    "components/pemu/axpe/component.json": "6c69e11ba3948432838540b5698036ec3cee387a72d4f03e0793f77bc0a88486",
+    "components/pemu/axpe/axpe_timing.sv": "f027badac4187026c884a000019660684fc40f3707ff9647b91494757faf189a",
+    "formal/pemu/timing.sv.in": "a0917fada9ea135757ba1d8d92b7f66587680ae420716ca6f74b3e87c9ae8134",
+    "formal/pemu/check_timing.py": "70386a8095d47120e3d2d95c18a5e376dc59a010943bce90b8e11e24fbe87373"
+  },
+  "formula": "max(D,1)",
+  "scope": "isolated cell timer at clock edges; arbitrary binary delay, load and reset",
+  "not_proved": [
+    "core retirement/handoff",
+    "shift-engine total cost",
+    "WAITE timeout",
+    "asynchronous reset recovery timing"
+  ],
+  "proofs": [
+    {
+      "width": 16,
+      "result": "inductive pass",
+      "formula": "max(D,1)",
+      "proof_log_sha256": "8870ce78cac0dae35b92e52f879d89694a9936f7e11fd0b8bf2ad8b23a824056",
+      "proof_script_sha256": "267f2521c66d9cb38d1b00fd2c23a9a35fd7d1904d7a0cff374723f5c937186f",
+      "harness_sha256": "4303bbcafd713cc0785998c2ca9d42ac4b46d352f6db6544111329744ac7bd02",
+      "cover_log_sha256": {
+        "seen_zero": "48b67503a027745e2cf86f40c0e006d9ce3cf5bd1cd1972c0870eb823edbb869",
+        "seen_one": "36798e3094cb626b80d67c6d34a40a4d48e0862effa3ec0618cb863d881b72bc",
+        "seen_long": "a3bb29bc3eae89ea8322b5d2c4df357de42020d107a5e3b6e04fe80c90e4bd99"
+      }
+    },
+    {
+      "width": 8,
+      "result": "inductive pass",
+      "formula": "max(D,1)",
+      "proof_log_sha256": "956b32bbb0da80157dca18aacd1da84dda70e58a239a89d34c10ebfd3585609b",
+      "proof_script_sha256": "7e8cb08caf3d43b066a7a29db6099b0567d6e67c78ec41a4ac48c4414079bf25",
+      "harness_sha256": "aa4d7e1a19c92504c83fbf0c0cad9a394ffbf9b8efe90f95dd0ab65076d7f0e9",
+      "cover_log_sha256": {
+        "seen_zero": "1ff1cd7f6ae1b09e841106cff831739f7fe4f46d5901ff87f9efe393dc4b7ce4",
+        "seen_one": "ca65de6afc2a16af29d6e9b5860228222be6773bb8f9a12cc70c1792b92ea17b",
+        "seen_long": "083460a652175f432bbe849d6732d6e7e7a304f963c47eed197ccf3ebbdc4b2e"
+      }
+    }
+  ],
+  "mutations": {
+    "decrement-two": {
+      "width": 16,
+      "result": "expected counterexample",
+      "proof_log_sha256": "d656b71d677abec467c117f62e4a3e51bfd339f48794c76f3c6de10b1ea3c76e",
+      "timer_sha256": "137e242fa210abeecbae776a03e1a3aefd0ff234ae56991678f828776dbfca4e"
+    },
+    "extra-load-cycle": {
+      "width": 16,
+      "result": "expected counterexample",
+      "proof_log_sha256": "59dc979bf7d3922588c75159e9881d7876e8109920877295487d8b99320598b2",
+      "timer_sha256": "83200674b960ec361f1ed04de04de7767c704ca753b9d3b3c41c7d019221c6bc"
+    }
+  },
+  "yosys": "Yosys 0.67+ (git sha1 45ea2b8d6, Release, GNU /usr/bin/c++ 11.4.0)",
+  "method": "Generate the independent upward elapsed-cycle reference from the normative ISA duration expression. Expose the original timer remaining register without changing RTL; prove the downward/upward counter invariant and last by induction. First sampled edge resets; subsequent delay/load/reset are arbitrary. Covers require real D=0/1/7 loads and completions, and two mutated copies must produce base-case counterexamples.",
+  "development_failures": [
+    {
+      "result": "Harness elaboration failed when a parameter override rederived the original timer AST and removed the exposed observation port. Resolve the parameter before expose and instantiate that resolved timer."
+    },
+    {
+      "result": "An unguarded sampled-reference invariant produced a counterexample while asynchronous DUT reset was asserted. Compare when reset is released; explicitly exclude asynchronous reset recovery timing from the claim."
+    }
+  ],
+  "coverage": "Manual formal-tier gate. The pemu-cosim CI stage checks complete core timing cycle for cycle; it does not run or substitute for this induction proof.",
+  "validation": {
+    "root_make_target": "pass: widths 16/8, three covers each and two expected mutation counterexamples",
+    "verification_contract": "pass: 123 advertised commands",
+    "smoke": "pass: all 14 stages before the later standalone-export changes; timer induction remains a separate manual gate",
+    "root_make_log_sha256": "59d710a327ae97955dd46f5f7378506070c88d2e88c0c36fc8142475e41c5bcd",
+    "smoke_summary_sha256": "068d56e29308e53151e93134e94de375a9c050e0b324907798d6552b4a9ccc99",
+    "latest_smoke": "pass: 14/14 stages; manual formal gates pass separately",
+    "latest_smoke_summary_sha256": "f6231d491cca65e65e3973e7daea0ab2017321400eed6b45cb39840ba2581f57"
+  },
+  "limits": [
+    "No complete core instruction retirement proof",
+    "No shift-engine total occupancy proof",
+    "No WAITE timeout proof",
+    "Non-default timer width proof does not establish whole-core composition (PE-08 remains open)",
+    "No physical timing or silicon evidence"
+  ],
+  "spec_wording_clarification": {
+    "date": "2026-10-09",
+    "receipt": "build/formal/pemu/timing-spec-clarified/evidence.json",
+    "receipt_sha256": "f809224f4aa70c0d8b0f9a4144312c1d620a2dae7c270e7a6fe0e17662e23aa3",
+    "result": "pass after prose-only BR/WAITE clarification",
+    "inputs_sha256": {
+      "sw/pemu/isa/axpe-isa.json": "6bc75b907b156f96805baa321a3a2f86447477a4a8457f332cdc62217d30face",
+      "components/pemu/axpe/component.json": "6c69e11ba3948432838540b5698036ec3cee387a72d4f03e0793f77bc0a88486",
+      "components/pemu/axpe/axpe_timing.sv": "f027badac4187026c884a000019660684fc40f3707ff9647b91494757faf189a",
+      "formal/pemu/timing.sv.in": "a0917fada9ea135757ba1d8d92b7f66587680ae420716ca6f74b3e87c9ae8134",
+      "formal/pemu/check_timing.py": "70386a8095d47120e3d2d95c18a5e376dc59a010943bce90b8e11e24fbe87373"
+    },
+    "generated_sv_header_sha256": "a3a64fe4ef9b858f658b41c3ffb0634dbc7ee092d8b2c43d2546172550a4950f",
+    "generated_c_header_sha256": "9ad6612baea979bac8c7547a6ae9371e4244351b724135d2df2b3450097073b0",
+    "generated_headers_unchanged": true,
+    "model_check_log_sha256": "5a34d2ba03d5a5a16b6536af25e5e3c012ab2dd3d90556bbe5855bcdb614389c"
+  }
+}

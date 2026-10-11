@@ -1,0 +1,51 @@
+// Generated reference duration comes from axpe-isa.json, not a second ISA table.
+// Yosys exposes the original timer's remaining register as an observation-only
+// output before reading this harness. The synthesized source is unchanged.
+module axpe_timer_formal(input clk,
+    output wire seen_zero, output wire seen_one, output wire seen_long);
+    localparam W = @WIDTH@;
+    (* anyseq *) reg rst_n;
+    (* anyseq *) reg load;
+    (* anyseq *) reg [W-1:0] delay;
+    wire last;
+    wire [W-1:0] remaining;
+    // The timer parameter is resolved before expose; a parameter override here
+    // would rederive the original AST and discard the observation port.
+    axpe_timing dut(.clk(clk), .rst_n(rst_n), .load(load), .delay(delay),
+                    .last(last), .remaining(remaining));
+    reg past_valid = 0;
+    reg seen_load = 0;
+    reg [W-1:0] duration, age, encoded_delay;
+    always @(posedge clk) begin
+        past_valid <= 1;
+        if (!past_valid) assume(!rst_n);
+        if (!rst_n) begin
+            duration <= 1;
+            age <= 0;
+            seen_load <= 0;
+            encoded_delay <= 0;
+        end else if (load) begin
+            duration <= @DURATION@;
+            age <= 0;
+            seen_load <= 1;
+            encoded_delay <= delay;
+        end else if (age < duration - 1) begin
+            age <= age + 1;
+        end
+        // Reset acts asynchronously on the DUT, whereas the reference is
+        // sampled at clock edges. Compare while reset is released; a reset
+        // interrupts occupancy rather than constituting a completed cell.
+        if (past_valid && rst_n) begin
+            assert(duration > 0);
+            assert(age < duration);
+            assert({1'b0, age} + {1'b0, remaining} == {1'b0, duration});
+            assert(last == (age == duration - 1));
+        end
+    end
+    assign seen_zero = past_valid && rst_n && seen_load && encoded_delay == 0
+                       && last && age == 0;
+    assign seen_one = past_valid && rst_n && seen_load && encoded_delay == 1
+                      && last && age == 0;
+    assign seen_long = past_valid && rst_n && seen_load && encoded_delay == 7
+                       && last && age == 6;
+endmodule

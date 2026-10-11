@@ -508,6 +508,54 @@
     ".:tt-export": {
       "kind": "via",
       "aggregate": "pemu-chip-check"
+    },
+    ".:pemu-netlist-contract-check": {
+      "kind": "via",
+      "aggregate": "pemu-chip-check"
+    },
+    ".:pemu-netlist-check": {
+      "kind": "manual",
+      "prerequisite": "a mapped CMOS5L state_out.json, its pinned PDK checkout, Yosys, Verilator, and a new replay output directory",
+      "surfaces": "the pemu-chip stage runs the mapped-replay binding rejection cases via pemu-netlist-contract-check and the same chip suite, firmware and peers on RTL; the selected mapped netlist remains a manual ASIC-flow input and its actual results are recorded separately"
+    },
+    ".:pemu-precheck": {
+      "kind": "manual",
+      "prerequisite": "selected CMOS5L GDS/LEF/powered netlist state, matching source export/flow lock, pinned support-tools/PDK, nix-portable and the upstream precheck Python requirements in a venv",
+      "surfaces": "the pemu-chip stage runs precheck report rejection cases via pemu-netlist-contract-check; actual Tiny Tapeout physical precheck results and limits are retained in fresh build/asic receipts and research/benchmarks/axpe-precheck.json"
+    },
+    ".:pemu-timing-check": {
+      "kind": "manual",
+      "prerequisite": "Yosys from the formal tier; this isolated timer proof and its two mutation counterexamples are recorded in research/benchmarks/axpe-timing.json",
+      "surfaces": "the pemu-cosim stage exercises complete RTL timing cycle for cycle against the model; the formal-only induction gate runs manually until the formal CI flow includes axpe"
+    },
+    ".:pemu-shift-timing-check": {
+      "kind": "manual",
+      "prerequisite": "Yosys from the formal tier; isolated shift induction, eight covers and two mutation counterexamples are recorded in research/benchmarks/axpe-shift-timing.json",
+      "surfaces": "the pemu-cosim stage exercises shift occupancy and core handoff cycle for cycle against the model; the manual induction proof covers the isolated engine under its documented caller assumptions"
+    },
+    ".:pemu-wait-timing-check": {
+      "kind": "manual",
+      "prerequisite": "Yosys from the formal tier; core DELAY/WAITE induction, eleven covers and two mutation counterexamples are recorded in research/benchmarks/axpe-wait-timing.json",
+      "surfaces": "the pemu-cosim stage checks complete instruction timing and wait handoff against the model; this manual proof restricts the abstract word source to legal DELAY/WAITE streams at the selected profile parameters"
+    },
+    ".:pemu-package": {
+      "kind": "manual",
+      "prerequisite": "completed selected ECO signoff, accepted mapped replay, explicit profile/flow lock, and fresh output under build/asic",
+      "surfaces": "packages physical reports and GDS bound to the replayed netlist; relocated mapped and RTL protocol suites and rejection checks are recorded in research/benchmarks/axpe-package.json"
+    },
+    "build/asic/axpe-submission-review/demo:mapped-check": {
+      "kind": "manual",
+      "prerequisite": "a fresh hash-bound review package produced by pemu-package; Verilator and C/C++ build tools",
+      "surfaces": "relocated standalone mapped protocol checks are recorded in research/benchmarks/axpe-package.json; packaged input validation rejects altered assets before compilation"
+    },
+    ".:pemu-core-timing-check": {
+      "kind": "manual",
+      "prerequisite": "Yosys from the formal tier; default register/delay/pin architecture and a selected pemu profile",
+      "surfaces": "the pemu-cosim stage checks complete instruction streams and protocol handoff in simulation; this manual gate proves all legal opcode occupancy under explicit operand/stack assumptions with completion witnesses and mutation counterexamples"
+    },
+    ".:pemu-profile-check": {
+      "kind": "via",
+      "aggregate": "pemu-cosim-check"
     }
   }
 }

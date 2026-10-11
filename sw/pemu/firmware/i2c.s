@@ -1,4 +1,4 @@
-; axpe I2C master, standard mode.
+; axpe I2C master, Standard/Fast-mode nominal timing.
 ;
 ; I2C is the protocol that cannot be expressed without the open-drain pad path:
 ; a master never drives SDA or SCL high, it releases them and lets the bus
@@ -60,11 +60,13 @@ i2c_start:
     PINCLR SCL_MASK,                  D=QUARTER  ; SCL low, ready for the first cell
     RET                               D=0
 
+; The final shift cell leaves SCL low. Hold it for a full HALF before
+; raising it for either repeated START or STOP; a quarter cell violates tLOW.
 ; --- repeated START: release SDA while SCL is low, then start again ----------
 ; The bus is not given up in between, which is the whole point: an addressed
 ; peer stays addressed across the turnaround from write to read.
 i2c_restart:
-    PINSET SDA_MASK,                  D=QUARTER
+    PINSET SDA_MASK,                  D=HALF
     PINSET SCL_MASK,                  D=HALF
     PINCLR SDA_MASK,                  D=HALF
     PINCLR SCL_MASK,                  D=QUARTER
@@ -72,7 +74,7 @@ i2c_restart:
 
 ; --- STOP: SDA rises while SCL is high, then the bus is released -------------
 i2c_stop:
-    PINCLR SDA_MASK,                  D=QUARTER
+    PINCLR SDA_MASK,                  D=HALF
     PINSET SCL_MASK,                  D=HALF
     PINSET SDA_MASK,                  D=HALF
     RET                               D=0

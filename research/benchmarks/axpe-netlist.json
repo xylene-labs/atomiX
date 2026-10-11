@@ -1,0 +1,371 @@
+{
+  "schema": "org.atomix.axpe-netlist-evidence.v1",
+  "date": "2026-10-09",
+  "level": "host mapped functional simulation, two-state and zero-delay",
+  "command": "make pemu-netlist-check PEMU_NETLIST_STATE=<state_out.json> PEMU_NETLIST_OUTPUT=<new build/asic directory> PEMU_NETLIST_ARGS=\"--flow-lock asic/axpe/flow-lock-25ns-postgrt-noant-wire200-am0.json\"",
+  "recipe": "tools/tt_axpe_netlist.py",
+  "recipe_sha256": "2df44cc6ed14bd1209afc186b1aed3b09560eec15eedf93d8d273ad5d8618524",
+  "helper_sha256": {
+    "tools/tt_axpe.py": "29beb2f6c7f5493797123c63314bbb8a897625ae979f0d06c37d38f4302fcba6",
+    "tools/tt_axpe_flow.py": "7d227c4aa93ee9da8aa23bb349993e30969e62809f2e66ee5e3c730d23488dab",
+    "tools/configure.py": "ce21a260fd127fb9a82b012239bbcb76719ff089d5ca442db7b881fbdbfac77e"
+  },
+  "method": "Yosys reads the pinned PDK Liberty at all three corners and writes identical functional cell models. Every mapped instance must have a generated model and every input must be connected. The unchanged tt_um chip harness, runtime-loaded firmware, C model and independent peers run on the unmodified selected netlist at three randomized startup seeds.",
+  "mandatory_cases": [
+    "reset silence",
+    "two unrelated runtime-loaded programs, cycle-exact against golden model",
+    "write refusal while running and status",
+    "UART 8N1 independent receiver",
+    "SPI mode 0 full duplex independent target",
+    "I2C ACK/NACK, repeated START, read, STOP and release",
+    "autobaud at 37 and 53 cycles/bit"
+  ],
+  "candidates": [
+    {
+      "output": "build/asic/axpe-netlist-eco-functional",
+      "receipt_sha256": "c7a89bef049bcdcccac4b2750b06e51835767955adf2ad56c353cdc8b7b267d5",
+      "netlist": "/home/shubhgau/dev/atomiX/build/asic/wire200-fanout-eco-v2/tt_um_shubhgau_atomix_axpe.nl.v",
+      "netlist_sha256": "bff78005136b0e1f67c777c48f858ef0af5fe838eff17fc2f4ae6c11963b5f28",
+      "input_state_sha256": "7d0609a7e4a6043011ec713142c798646887907cb09ce241e806f8af7f6cf990",
+      "functional_model_sha256": "50243b8a0b6126cc4359892c13ee3a511536b572192b32ad27f4be6bc20c2231",
+      "cell_counts": {
+        "sg13cmos5l_a21o_1": 114,
+        "sg13cmos5l_a21oi_1": 542,
+        "sg13cmos5l_a221oi_1": 252,
+        "sg13cmos5l_a22oi_1": 1116,
+        "sg13cmos5l_and2_1": 122,
+        "sg13cmos5l_and3_1": 23,
+        "sg13cmos5l_and4_1": 23,
+        "sg13cmos5l_antennanp": 144,
+        "sg13cmos5l_buf_1": 1966,
+        "sg13cmos5l_buf_2": 790,
+        "sg13cmos5l_buf_4": 183,
+        "sg13cmos5l_buf_8": 395,
+        "sg13cmos5l_dfrbpq_1": 2497,
+        "sg13cmos5l_dlygate4sd3_1": 2610,
+        "sg13cmos5l_inv_1": 165,
+        "sg13cmos5l_mux2_1": 2180,
+        "sg13cmos5l_mux4_1": 8,
+        "sg13cmos5l_nand2_1": 601,
+        "sg13cmos5l_nand2b_1": 112,
+        "sg13cmos5l_nand3_1": 212,
+        "sg13cmos5l_nand3b_1": 8,
+        "sg13cmos5l_nand4_1": 162,
+        "sg13cmos5l_nor2_1": 590,
+        "sg13cmos5l_nor2b_1": 65,
+        "sg13cmos5l_nor3_1": 103,
+        "sg13cmos5l_nor4_1": 67,
+        "sg13cmos5l_o21ai_1": 771,
+        "sg13cmos5l_or2_1": 53,
+        "sg13cmos5l_or3_1": 17,
+        "sg13cmos5l_or4_1": 7,
+        "sg13cmos5l_tiehi": 2104,
+        "sg13cmos5l_xnor2_1": 66,
+        "sg13cmos5l_xor2_1": 38
+      },
+      "startup_seeds": [
+        1,
+        17,
+        91
+      ],
+      "suite_log_sha256": {
+        "suite-seed-1.log": "618b38793b96b129ce40899f4ac6fbaf8b13110141d4f316c0b9bcb72f3175c0",
+        "suite-seed-17.log": "618b38793b96b129ce40899f4ac6fbaf8b13110141d4f316c0b9bcb72f3175c0",
+        "suite-seed-91.log": "618b38793b96b129ce40899f4ac6fbaf8b13110141d4f316c0b9bcb72f3175c0"
+      },
+      "firmware_sha256": {
+        "autobaud-demo.hex": "a96ef3fbffd4ca7c4b277c4616b41c800696cbc677035b5fa2a3de46a798e3f9",
+        "i2c-demo.hex": "b30b6747043e3aec21fb1e50b3cd83dfeb8cb673753f6e4b395418f07ad5f028",
+        "spi-demo.hex": "19503e8411d1f413a2ecdfb44cba34eb8ff7fd648b6d01c172580a6afcca0c2a",
+        "uart-demo.hex": "a63a1c173614eff060d2a5e293efbbf051181632bd89d2fa4b5c5c25ec84d29d"
+      },
+      "tools": {
+        "yosys": "Yosys 0.67+ (git sha1 45ea2b8d6, Release, GNU /usr/bin/c++ 11.4.0)",
+        "verilator": "Verilator 5.050 2026-07-01 rev v5.050-60-g3d2421f3b"
+      },
+      "scope": "legalized pre-route ECO functional replay",
+      "recipe_sha256": "2de9c8c581cf1fa2f79cdd520f7adcec351d7a826546ae2497f7816327bf613c"
+    },
+    {
+      "output": "build/asic/axpe-netlist-wire200-am0-functional",
+      "receipt_sha256": "32b7555118c1fdb67b4150737c414e23ba281d28b8425dcc9650dc687294f37c",
+      "netlist": "/home/shubhgau/dev/atomiX/build/asic/tt-axpe-25ns-postgrt-noant-wire200-am0/runs/pe10-25ns-postgrt-noant-wire200-am0-route/09-openroad-fillinsertion/tt_um_shubhgau_atomix_axpe.nl.v",
+      "netlist_sha256": "74418df34bac7419cdf4634dcdb4a1ff1640e95bb8f0a503beaf3ce6e9389be0",
+      "input_state_sha256": "3afc81c26027c9b5e127bddf9873e41b96a78db4af91ddc3d83c6c56514f158a",
+      "functional_model_sha256": "50243b8a0b6126cc4359892c13ee3a511536b572192b32ad27f4be6bc20c2231",
+      "cell_counts": {
+        "sg13cmos5l_a21o_1": 114,
+        "sg13cmos5l_a21oi_1": 542,
+        "sg13cmos5l_a221oi_1": 252,
+        "sg13cmos5l_a22oi_1": 1116,
+        "sg13cmos5l_and2_1": 122,
+        "sg13cmos5l_and3_1": 23,
+        "sg13cmos5l_and4_1": 23,
+        "sg13cmos5l_antennanp": 149,
+        "sg13cmos5l_buf_1": 1965,
+        "sg13cmos5l_buf_2": 790,
+        "sg13cmos5l_buf_4": 183,
+        "sg13cmos5l_buf_8": 395,
+        "sg13cmos5l_decap_4": 2841,
+        "sg13cmos5l_decap_8": 43624,
+        "sg13cmos5l_dfrbpq_1": 2497,
+        "sg13cmos5l_dlygate4sd3_1": 2610,
+        "sg13cmos5l_fill_1": 4672,
+        "sg13cmos5l_fill_2": 4180,
+        "sg13cmos5l_inv_1": 165,
+        "sg13cmos5l_mux2_1": 2180,
+        "sg13cmos5l_mux4_1": 8,
+        "sg13cmos5l_nand2_1": 601,
+        "sg13cmos5l_nand2b_1": 112,
+        "sg13cmos5l_nand3_1": 212,
+        "sg13cmos5l_nand3b_1": 8,
+        "sg13cmos5l_nand4_1": 162,
+        "sg13cmos5l_nor2_1": 590,
+        "sg13cmos5l_nor2b_1": 65,
+        "sg13cmos5l_nor3_1": 103,
+        "sg13cmos5l_nor4_1": 67,
+        "sg13cmos5l_o21ai_1": 771,
+        "sg13cmos5l_or2_1": 53,
+        "sg13cmos5l_or3_1": 17,
+        "sg13cmos5l_or4_1": 7,
+        "sg13cmos5l_tiehi": 2104,
+        "sg13cmos5l_xnor2_1": 66,
+        "sg13cmos5l_xor2_1": 38
+      },
+      "startup_seeds": [
+        1,
+        17,
+        91
+      ],
+      "suite_log_sha256": {
+        "suite-seed-1.log": "618b38793b96b129ce40899f4ac6fbaf8b13110141d4f316c0b9bcb72f3175c0",
+        "suite-seed-17.log": "618b38793b96b129ce40899f4ac6fbaf8b13110141d4f316c0b9bcb72f3175c0",
+        "suite-seed-91.log": "618b38793b96b129ce40899f4ac6fbaf8b13110141d4f316c0b9bcb72f3175c0"
+      },
+      "firmware_sha256": {
+        "autobaud-demo.hex": "a96ef3fbffd4ca7c4b277c4616b41c800696cbc677035b5fa2a3de46a798e3f9",
+        "i2c-demo.hex": "b30b6747043e3aec21fb1e50b3cd83dfeb8cb673753f6e4b395418f07ad5f028",
+        "spi-demo.hex": "19503e8411d1f413a2ecdfb44cba34eb8ff7fd648b6d01c172580a6afcca0c2a",
+        "uart-demo.hex": "a63a1c173614eff060d2a5e293efbbf051181632bd89d2fa4b5c5c25ec84d29d"
+      },
+      "tools": {
+        "yosys": "Yosys 0.67+ (git sha1 45ea2b8d6, Release, GNU /usr/bin/c++ 11.4.0)",
+        "verilator": "Verilator 5.050 2026-07-01 rev v5.050-60-g3d2421f3b"
+      },
+      "scope": "completed wire200-am0 post-route netlist functional replay; electrical fanout still fails",
+      "recipe_sha256": "2de9c8c581cf1fa2f79cdd520f7adcec351d7a826546ae2497f7816327bf613c"
+    },
+    {
+      "output": "build/asic/axpe-netlist-eco-routed-functional",
+      "receipt_sha256": "d1ff942d75c5b105e894af17e3ef7b5c9dd8cf69e97688ec5370d011400c5f0c",
+      "netlist": "/home/shubhgau/dev/atomiX/build/asic/tt-axpe-25ns-wire200-fanout-eco/runs/pe10-wire200-fanout-eco-route/09-openroad-fillinsertion/tt_um_shubhgau_atomix_axpe.nl.v",
+      "netlist_sha256": "959c159a7259e687f3ef3003d1522266b3dfd838b500b9cbeaedbd4be88c05e3",
+      "input_state_sha256": "bae9d21f7104ae53a39808ba9e0abcea8b066cd483321d8a1d405dcb201d5b44",
+      "functional_model_sha256": "50243b8a0b6126cc4359892c13ee3a511536b572192b32ad27f4be6bc20c2231",
+      "cell_counts": {
+        "sg13cmos5l_a21o_1": 114,
+        "sg13cmos5l_a21oi_1": 542,
+        "sg13cmos5l_a221oi_1": 252,
+        "sg13cmos5l_a22oi_1": 1116,
+        "sg13cmos5l_and2_1": 122,
+        "sg13cmos5l_and3_1": 23,
+        "sg13cmos5l_and4_1": 23,
+        "sg13cmos5l_antennanp": 147,
+        "sg13cmos5l_buf_1": 1966,
+        "sg13cmos5l_buf_2": 790,
+        "sg13cmos5l_buf_4": 183,
+        "sg13cmos5l_buf_8": 395,
+        "sg13cmos5l_decap_4": 2845,
+        "sg13cmos5l_decap_8": 43622,
+        "sg13cmos5l_dfrbpq_1": 2497,
+        "sg13cmos5l_dlygate4sd3_1": 2610,
+        "sg13cmos5l_fill_1": 4672,
+        "sg13cmos5l_fill_2": 4180,
+        "sg13cmos5l_inv_1": 165,
+        "sg13cmos5l_mux2_1": 2180,
+        "sg13cmos5l_mux4_1": 8,
+        "sg13cmos5l_nand2_1": 601,
+        "sg13cmos5l_nand2b_1": 112,
+        "sg13cmos5l_nand3_1": 212,
+        "sg13cmos5l_nand3b_1": 8,
+        "sg13cmos5l_nand4_1": 162,
+        "sg13cmos5l_nor2_1": 590,
+        "sg13cmos5l_nor2b_1": 65,
+        "sg13cmos5l_nor3_1": 103,
+        "sg13cmos5l_nor4_1": 67,
+        "sg13cmos5l_o21ai_1": 771,
+        "sg13cmos5l_or2_1": 53,
+        "sg13cmos5l_or3_1": 17,
+        "sg13cmos5l_or4_1": 7,
+        "sg13cmos5l_tiehi": 2104,
+        "sg13cmos5l_xnor2_1": 66,
+        "sg13cmos5l_xor2_1": 38
+      },
+      "startup_seeds": [
+        1,
+        17,
+        91
+      ],
+      "suite_log_sha256": {
+        "suite-seed-1.log": "618b38793b96b129ce40899f4ac6fbaf8b13110141d4f316c0b9bcb72f3175c0",
+        "suite-seed-17.log": "618b38793b96b129ce40899f4ac6fbaf8b13110141d4f316c0b9bcb72f3175c0",
+        "suite-seed-91.log": "618b38793b96b129ce40899f4ac6fbaf8b13110141d4f316c0b9bcb72f3175c0"
+      },
+      "firmware_sha256": {
+        "autobaud-demo.hex": "a96ef3fbffd4ca7c4b277c4616b41c800696cbc677035b5fa2a3de46a798e3f9",
+        "i2c-demo.hex": "b30b6747043e3aec21fb1e50b3cd83dfeb8cb673753f6e4b395418f07ad5f028",
+        "spi-demo.hex": "19503e8411d1f413a2ecdfb44cba34eb8ff7fd648b6d01c172580a6afcca0c2a",
+        "uart-demo.hex": "a63a1c173614eff060d2a5e293efbbf051181632bd89d2fa4b5c5c25ec84d29d"
+      },
+      "tools": {
+        "yosys": "Yosys 0.67+ (git sha1 45ea2b8d6, Release, GNU /usr/bin/c++ 11.4.0)",
+        "verilator": "Verilator 5.050 2026-07-01 rev v5.050-60-g3d2421f3b"
+      },
+      "helper_sha256": {
+        "tools/tt_axpe.py": "cda10563c571be1a4f695be37a7d80a3e2259aa391efd88b6bc359a5cb734e74",
+        "tools/tt_axpe_flow.py": "7d227c4aa93ee9da8aa23bb349993e30969e62809f2e66ee5e3c730d23488dab",
+        "tools/configure.py": "ce21a260fd127fb9a82b012239bbcb76719ff089d5ca442db7b881fbdbfac77e"
+      },
+      "scope": "completed ECO post-route netlist functional replay; extracted electrical checks separately pass; GDS/DRC/LVS in progress",
+      "recipe_sha256": "2de9c8c581cf1fa2f79cdd520f7adcec351d7a826546ae2497f7816327bf613c"
+    },
+    {
+      "output": "build/asic/axpe-netlist-eco-final-functional",
+      "receipt_sha256": "ad624998f6e0b4dc153e2ad363c8a7887850c7dde3ad848e965cd29258e11b92",
+      "netlist": "/home/shubhgau/dev/atomiX/build/asic/tt-axpe-25ns-wire200-fanout-eco/runs/pe10-wire200-fanout-eco-route/09-openroad-fillinsertion/tt_um_shubhgau_atomix_axpe.nl.v",
+      "netlist_sha256": "959c159a7259e687f3ef3003d1522266b3dfd838b500b9cbeaedbd4be88c05e3",
+      "input_state_sha256": "bae9d21f7104ae53a39808ba9e0abcea8b066cd483321d8a1d405dcb201d5b44",
+      "recipe_sha256": "2df44cc6ed14bd1209afc186b1aed3b09560eec15eedf93d8d273ad5d8618524",
+      "functional_model_sha256": "50243b8a0b6126cc4359892c13ee3a511536b572192b32ad27f4be6bc20c2231",
+      "cell_counts": {
+        "sg13cmos5l_a21o_1": 114,
+        "sg13cmos5l_a21oi_1": 542,
+        "sg13cmos5l_a221oi_1": 252,
+        "sg13cmos5l_a22oi_1": 1116,
+        "sg13cmos5l_and2_1": 122,
+        "sg13cmos5l_and3_1": 23,
+        "sg13cmos5l_and4_1": 23,
+        "sg13cmos5l_antennanp": 147,
+        "sg13cmos5l_buf_1": 1966,
+        "sg13cmos5l_buf_2": 790,
+        "sg13cmos5l_buf_4": 183,
+        "sg13cmos5l_buf_8": 395,
+        "sg13cmos5l_decap_4": 2845,
+        "sg13cmos5l_decap_8": 43622,
+        "sg13cmos5l_dfrbpq_1": 2497,
+        "sg13cmos5l_dlygate4sd3_1": 2610,
+        "sg13cmos5l_fill_1": 4672,
+        "sg13cmos5l_fill_2": 4180,
+        "sg13cmos5l_inv_1": 165,
+        "sg13cmos5l_mux2_1": 2180,
+        "sg13cmos5l_mux4_1": 8,
+        "sg13cmos5l_nand2_1": 601,
+        "sg13cmos5l_nand2b_1": 112,
+        "sg13cmos5l_nand3_1": 212,
+        "sg13cmos5l_nand3b_1": 8,
+        "sg13cmos5l_nand4_1": 162,
+        "sg13cmos5l_nor2_1": 590,
+        "sg13cmos5l_nor2b_1": 65,
+        "sg13cmos5l_nor3_1": 103,
+        "sg13cmos5l_nor4_1": 67,
+        "sg13cmos5l_o21ai_1": 771,
+        "sg13cmos5l_or2_1": 53,
+        "sg13cmos5l_or3_1": 17,
+        "sg13cmos5l_or4_1": 7,
+        "sg13cmos5l_tiehi": 2104,
+        "sg13cmos5l_xnor2_1": 66,
+        "sg13cmos5l_xor2_1": 38
+      },
+      "startup_seeds": [
+        1,
+        17,
+        91
+      ],
+      "suite_log_sha256": {
+        "suite-seed-1.log": "618b38793b96b129ce40899f4ac6fbaf8b13110141d4f316c0b9bcb72f3175c0",
+        "suite-seed-17.log": "618b38793b96b129ce40899f4ac6fbaf8b13110141d4f316c0b9bcb72f3175c0",
+        "suite-seed-91.log": "618b38793b96b129ce40899f4ac6fbaf8b13110141d4f316c0b9bcb72f3175c0"
+      },
+      "firmware_sha256": {
+        "autobaud-demo.hex": "a96ef3fbffd4ca7c4b277c4616b41c800696cbc677035b5fa2a3de46a798e3f9",
+        "i2c-demo.hex": "b30b6747043e3aec21fb1e50b3cd83dfeb8cb673753f6e4b395418f07ad5f028",
+        "spi-demo.hex": "19503e8411d1f413a2ecdfb44cba34eb8ff7fd648b6d01c172580a6afcca0c2a",
+        "uart-demo.hex": "a63a1c173614eff060d2a5e293efbbf051181632bd89d2fa4b5c5c25ec84d29d"
+      },
+      "tools": {
+        "yosys": "Yosys 0.67+ (git sha1 45ea2b8d6, Release, GNU /usr/bin/c++ 11.4.0)",
+        "verilator": "Verilator 5.050 2026-07-01 rev v5.050-60-g3d2421f3b"
+      },
+      "helper_sha256": {
+        "tools/tt_axpe.py": "3962a0eb87a570004e4edcf8eaac51f1eb04cb81f9df4d061af0d4056476b55f",
+        "tools/tt_axpe_flow.py": "7d227c4aa93ee9da8aa23bb349993e30969e62809f2e66ee5e3c730d23488dab",
+        "tools/configure.py": "ce21a260fd127fb9a82b012239bbcb76719ff089d5ca442db7b881fbdbfac77e",
+        "tools/axpe_isa.py": "ad1b049b841f48559ee4f0d3684c13303fd165eb82b2a7c133908eff27306f4b"
+      },
+      "isa_sha256": "6bc75b907b156f96805baa321a3a2f86447477a4a8457f332cdc62217d30face",
+      "scope": "completed ECO routed netlist, with frozen clarified specification and all helper modules pinned; extracted electrical checks separately pass; full signoff in progress"
+    }
+  ],
+  "failures": [
+    {
+      "command": "verilator --lint-only --top-module tt_um_shubhgau_atomix_axpe <eco netlist> <PDK stdcell Verilog> <PDK UDP Verilog>",
+      "result": "Rejected: 85 warnings, including ignored specify constructs and disconnected dummy clock-load outputs. With Wall, undriven notifier and delayed_RESET_B warnings also appear. Ignoring all warnings would permit a reset model with no functional input driver; that path is not used.",
+      "default_lint_log_sha256": "ba01f89b8692c3b45dd43bf070c6ba54c75d6998c4c2716db255c330044c88c8",
+      "wall_lint_log_sha256": "66723aca4ca0015ed9b8e5aa2852018390b5c67cd43c4872ef8dc9f08f0f59f0"
+    },
+    {
+      "command": "yosys read_liberty <typ Liberty>",
+      "result": "Rejected: missing function on int_GATE of unused sg13cmos5l_lgcp_1. The selected designs do not use it. The replay allows the reader to skip unsupported library cells, then rejects a netlist that instantiates any skipped cell. No blackboxing is enabled."
+    },
+    {
+      "command": "python3 tools/tt_axpe_netlist.py --state <completed ECO route> --output build/asic/axpe-netlist-eco-routed-pinned --flow-lock asic/axpe/flow-lock-25ns-postgrt-noant-wire200-am0.json",
+      "result": "input changed during replay: /home/shubhgau/dev/atomiX/sw/pemu/isa/axpe-isa.json",
+      "cause": "The agent changed ISA prose while the replay was active. The suite logs pass, but the provenance guard rejects the changed input; this run is not accepted as evidence. Fresh frozen-input replay passes all shared cases at three seeds and pins the helper modules as well.",
+      "receipt_sha256": "ddf5baef6d721dc8f256d222bfe4b473cdd6fad31b0361df9362a28eee0e245c",
+      "recipe_sha256": "2df44cc6ed14bd1209afc186b1aed3b09560eec15eedf93d8d273ad5d8618524"
+    }
+  ],
+  "verification": {
+    "binding_self_test": "pass: eight rejection cases; valid dummy load with unused output accepted",
+    "overwrite_guard": "pass: existing output refused without changing it",
+    "make_verification_check": "pass: 122 advertised commands; the manual gate and its CI contract check are covered",
+    "make_pemu_chip_check": "pass; same harness and peers also pass on RTL; mapped binding checks included",
+    "make_verify_smoke": "pass: 14/14 stages, including mapped binding checks through pemu-chip",
+    "smoke_summary_sha256": "6be562f8a03a92de5d128c03afa9a458611fb4a3889c6c3a6d48449cc8ccd4cb",
+    "make_registry_check": "pass: three candidates and six content-addressed records",
+    "latest_make_verification_check": "pass: 124 advertised commands"
+  },
+  "limits": [
+    "no SDF or event-driven delay simulation",
+    "no four-state startup proof",
+    "no whole-design formal equivalence",
+    "no repair to electrical failures is inferred from functional replay",
+    "final ECO GDS/DRC/LVS still pending",
+    "no physical FPGA or silicon evidence"
+  ],
+  "current_helper_sha256": {
+    "tools/tt_axpe.py": "3962a0eb87a570004e4edcf8eaac51f1eb04cb81f9df4d061af0d4056476b55f",
+    "tools/tt_axpe_flow.py": "7d227c4aa93ee9da8aa23bb349993e30969e62809f2e66ee5e3c730d23488dab",
+    "tools/configure.py": "ce21a260fd127fb9a82b012239bbcb76719ff089d5ca442db7b881fbdbfac77e",
+    "tools/axpe_isa.py": "ad1b049b841f48559ee4f0d3684c13303fd165eb82b2a7c133908eff27306f4b"
+  },
+  "clock_context": {
+    "uart_demo_clock_hz": 50000000,
+    "uart_cycles_per_bit": 434,
+    "physical_candidate_clock_target_ns": 25,
+    "scope": "The fixed-rate UART demo and peer use the nominal 50 MHz program clock. The zero-delay replay checks cycles, not absolute physical baud. Retiming the runtime payload for the actual supplied clock needs no hardware rebuild; autobaud measures its own period."
+  },
+  "final_signoff_binding": {
+    "summary": "build/asic/tt-axpe-25ns-wire200-fanout-eco/runs/pe10-wire200-fanout-eco-signoff/summary.json",
+    "summary_sha256": "5db15d948955d3f830f5a9621e75f47774db8002c0f6c296b465a334a96ef160",
+    "state": "build/asic/tt-axpe-25ns-wire200-fanout-eco/runs/pe10-wire200-fanout-eco-signoff/17-misc-reportmanufacturability/state_out.json",
+    "state_sha256": "58f9fbed80792de2d8ce9d1f4cf78d33e8000182cf6ad2fd98383618f357899d",
+    "gds_sha256": "a5877dd7626f05d7462ce6e629e84e1b507a606f7c6a75e083e22c09af772134",
+    "netlist_sha256": "959c159a7259e687f3ef3003d1522266b3dfd838b500b9cbeaedbd4be88c05e3",
+    "final_replay_netlist_identical": true,
+    "replay_receipt": "build/asic/axpe-netlist-eco-final-functional/evidence.json",
+    "replay_receipt_sha256": "ad624998f6e0b4dc153e2ad363c8a7887850c7dde3ad848e965cd29258e11b92",
+    "scope": "Physical checks and mapped functional replay remain separate evidence; identical netlist bytes bind their candidate. See axpe-cmos5l-25ns.json for full checks and limits."
+  },
+  "not_claimed": []
+}

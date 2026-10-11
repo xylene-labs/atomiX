@@ -1,0 +1,196 @@
+// All legal instructions over an abstract word interface. References count
+// elapsed cell age upward and wait budget downward; DUT counters are observed.
+module core_formal(input clk, output wire [31:0] completed_op,
+    output wire covered_register_period, covered_shift_wait, covered_wait_shift,
+    covered_shift_chain, covered_wait_chain, covered_changed_word,
+    covered_max_delay, covered_max_count, covered_timeout, covered_final_event,
+    covered_immediate, covered_mode0, covered_mode1, covered_mode2, covered_mode3);
+    (* anyseq *) reg rst_n;
+    (* anyseq *) reg [31:0] word;
+    (* anyseq *) reg [15:0] pads;
+    wire [4:0] op=word[@OP_HI@:@OP_LO@], count_in=word[@X_HI@:@X_LO@];
+    wire [2:0] ra=word[@A_HI@:@A_LO@], rb=word[@B_HI@:@B_LO@];
+    wire [15:0] delay=word[@D_HI@:@D_LO@];
+    wire [7:0] imm=word[@IMM_HI@:@IMM_LO@];
+    wire [3:0] pin=imm[@PIN_HI@:@PIN_LO@];
+    wire [1:0] edge_mode=imm[@EDGE_HI@:@EDGE_LO@];
+    @OP_CONSTANTS@
+    wire is_shift=(op==OP_SHOUT || op==OP_SHIN || op==OP_SHIO);
+    wire [1:0] state, sh_state;
+    wire [4:0] sh_index, sh_total;
+    wire issue, wait_over, wait_timeout, halted, fault, ft, wait_prev;
+    wire halt_pending, reject, sh_busy, sh_done, sh_start;
+    wire [3:0] hold_wpin;
+    wire [1:0] hold_wedge;
+    wire [14:0] shcfg;
+    wire [@STACK_W@-1:0] sp;
+    wire [15:0] hold_delay, wait_count, cell_remaining, sh_remaining;
+    wire [15:0] retire_data, src_a, period, cell_delay, sh_delay;
+    axpe dut(.clk(clk), .rst_n(rst_n), .ui_in(pads[15:8]), .uio_in(pads[7:0]),
+      .imem_data(word), .halted(halted), .fault(fault), .state(state), .issue(issue),
+      .wait_over(wait_over), .wait_timeout(wait_timeout), .wait_count(wait_count),
+      .cell_remaining(cell_remaining), .retire_data(retire_data), .ft(ft),
+      .wait_prev(wait_prev), .hold_wpin(hold_wpin), .hold_wedge(hold_wedge),
+      .hold_delay(hold_delay), .halt_pending(halt_pending), .reject(reject),
+      .src_a(src_a), .period(period), .shcfg(shcfg), .sp(sp),
+      .cell_delay(cell_delay), .sh_delay(sh_delay), .sh_start(sh_start),
+      .sh_busy(sh_busy), .sh_done(sh_done), .sh_state(sh_state),
+      .sh_index(sh_index), .sh_total(sh_total), .sh_remaining(sh_remaining));
+
+    reg valid=0, has_instruction=0, pending_halt=0;
+    reg [1:0] phase=0;
+    reg [4:0] previous_op=0;
+    reg [15:0] duration=1, age=0, ref_period=0;
+    reg [14:0] ref_cfg=0, shift_cfg=0;
+    reg [@STACK_W@-1:0] depth=0;
+    reg flag=0, prev=0;
+    reg [3:0] wpin=0;
+    reg [1:0] mode=0;
+    reg [15:0] bound=1, remaining=1;
+    reg [15:0] bit_duration=1, bit_age=0, encoded_cell=0;
+    reg [15:0] issued_delay=0;
+    reg [4:0] count=1, bit_index=0;
+    reg used_period=0, from_wait=0, from_shift=0, immediate_prev=0;
+    wire live=pads[wpin];
+    wire hit=mode==0 ? (!prev && live) : mode==1 ? (prev && !live)
+             : mode==2 ? prev!=live : live;
+    wire wait_end=phase==2 && (hit || remaining==1);
+    wire shift_end=phase==1 && bit_index==count-1 && bit_age==bit_duration-1;
+    wire expected_issue=(phase==0 && age==duration-1) || wait_end || shift_end;
+    wire [15:0] effective_cell=rb[@PERIOD_BIT@] ? ref_period : delay;
+    wire [3:0] cfg_clk=ref_cfg[@CLK_HI@:@CLK_LO@];
+    wire [3:0] cfg_dout=ref_cfg[@DOUT_HI@:@DOUT_LO@];
+    wire [3:0] cfg_din=ref_cfg[@DIN_HI@:@DIN_LO@];
+    wire clocked=shift_cfg[@CLK_HI@:@CLK_LO@]!=@NO_CLOCK@;
+    wire [15:0] elapsed=bound-remaining+1;
+
+    always @(posedge clk) begin
+        valid<=1;
+        if(!valid) assume(!rst_n);
+        // Legal-program domain, expressed from the ISA and reference state.
+        // No DUT ready/done/reject signal is assumed.
+        if(rst_n && expected_issue && !pending_halt) begin
+            assume(@LEGAL_OPS@);
+            if(op==OP_CALL) assume(depth<@CALL_DEPTH@);
+            if(op==OP_RET) assume(depth>0);
+            if(op==OP_CALL || op==OP_BR) assume(imm<@IMEM_REACH@);
+            if(op==OP_BR) assume(@LEGAL_CONDITIONS@);
+            if(op==OP_SHL || op==OP_SHR) assume(count_in<=@REG_W@);
+            if(op==OP_WAITE) assume(imm<=@WAIT_IMM_MAX@);
+            if(is_shift) begin
+                assume(count_in>=1 && count_in<=@REG_W@);
+                assume(rb[@RSV_HI@:@RSV_LO@]==0);
+                if(op!=OP_SHIN) assume(cfg_dout<@UIO_PINS@);
+                if(cfg_clk!=@NO_CLOCK@) begin
+                    assume(cfg_clk<@UIO_PINS@ && effective_cell>=2 && !effective_cell[0]);
+                    assume(cfg_clk!=cfg_dout && cfg_clk!=cfg_din);
+                end
+            end
+        end
+        if(!rst_n) begin
+            phase<=0; has_instruction<=0; pending_halt<=0; previous_op<=0;
+            duration<=1; age<=0; ref_period<=0; ref_cfg<=0; depth<=0;
+            flag<=0; prev<=0; wpin<=0; mode<=0; bound<=1; remaining<=1;
+            bit_duration<=1; bit_age<=0; count<=1; bit_index<=0; shift_cfg<=0;
+            encoded_cell<=0; issued_delay<=0; used_period<=0; from_wait<=0; from_shift<=0; immediate_prev<=0;
+        end else begin
+            immediate_prev<=0;
+            if(phase==0 && age<duration-1) age<=age+1;
+            if(phase==2) begin
+                prev<=live;
+                if(remaining>1) remaining<=remaining-1;
+                if(wait_end) flag<=remaining==1;
+            end
+            if(phase==1 && !shift_end) begin
+                if(bit_age==bit_duration-1) begin bit_age<=0; bit_index<=bit_index+1; end
+                else bit_age<=bit_age+1;
+            end
+            if(expected_issue) begin
+                if(pending_halt) begin
+                    phase<=3; pending_halt<=0; has_instruction<=0;
+                end else begin
+                    previous_op<=op; has_instruction<=1;
+                    from_wait<=phase==2; from_shift<=phase==1;
+                    duration<=1; age<=0;
+                    if(is_shift) begin
+                        phase<=1; bit_duration<=@CELL_DURATION@; bit_age<=0;
+                        count<=count_in; bit_index<=0; shift_cfg<=ref_cfg;
+                        encoded_cell<=effective_cell; issued_delay<=delay; used_period<=rb[@PERIOD_BIT@];
+                    end else if(op==OP_WAITE) begin
+                        phase<=2; prev<=pads[pin]; wpin<=pin; mode<=edge_mode;
+                        bound<=@DURATION@; remaining<=@DURATION@;
+                        if(edge_mode==3 && pads[pin]) begin
+                            phase<=0; flag<=0; immediate_prev<=1;
+                        end
+                    end else begin
+                        phase<=0; duration<=@DURATION@;
+                        if(op==OP_HALT) pending_halt<=1;
+                        if(op==OP_SHPER) ref_period<=src_a;
+                        if(op==OP_SHCFG) ref_cfg<=src_a[14:0];
+                        if(op==OP_CALL) depth<=depth+1;
+                        if(op==OP_RET) depth<=depth-1;
+                    end
+                end
+            end
+        end
+        if(valid && rst_n) begin
+            assert(!fault);
+            assert(state==phase && issue==expected_issue);
+            assert(halted==(phase==3) && halt_pending==pending_halt);
+            assert(!pending_halt || phase==0);
+            assert(sp==depth && depth<=@CALL_DEPTH@);
+            assert(period==ref_period && shcfg==ref_cfg);
+            assert(ft==flag);
+            assert(duration>0 && age<duration && cell_remaining==duration-age);
+            assert(sh_busy==(phase==1) && sh_done==shift_end);
+            assert(wait_over==wait_end);
+            assert(cell_delay==effective_cell);
+            assert(sh_start==(expected_issue && !pending_halt && is_shift));
+            if(expected_issue && !pending_halt) assert(!reject);
+            if(phase==1) begin
+                assert(duration==1 && age==0);
+                assert(ref_cfg==shift_cfg);
+                assert(hold_delay==encoded_cell);
+                assert(bit_duration==(@ENCODED_DURATION@));
+                if(!shift_end) assert(sh_delay==encoded_cell);
+                assert(bit_duration>0 && bit_age<bit_duration && bit_index<count);
+                assert(count>=1 && count<=@REG_W@ && sh_index==bit_index && sh_total==count);
+                if(clocked) begin
+                    assert(bit_duration>=2 && !bit_duration[0]);
+                    assert(sh_state==(bit_age<(bit_duration>>1)?2:3));
+                    assert(sh_remaining==(bit_age<(bit_duration>>1)?(bit_duration>>1)-bit_age:bit_duration-bit_age));
+                end else begin
+                    assert(sh_state==1 && sh_remaining==bit_duration-bit_age);
+                end
+            end
+            if(phase==2) begin
+                assert(duration==1 && age==0);
+                assert(hold_wpin==wpin && hold_wedge==mode && wait_prev==prev);
+                assert((@HELD_DURATION@)==bound);
+                assert(bound>0 && remaining>0 && remaining<=bound);
+                assert({1'b0,wait_count}+{1'b0,remaining}=={1'b0,bound});
+                assert(wait_timeout==(remaining==1));
+                if(wait_end) assert(retire_data==elapsed);
+            end
+        end
+    end
+    wire completed=valid && rst_n && expected_issue && has_instruction;
+    assign completed_op=completed ? (32'b1<<previous_op) : 0;
+    assign covered_register_period=completed && shift_end && used_period && encoded_cell!=issued_delay;
+    assign covered_shift_wait=completed && wait_end && from_shift;
+    assign covered_wait_shift=completed && shift_end && from_wait;
+    assign covered_shift_chain=completed && shift_end && from_shift;
+    assign covered_wait_chain=completed && wait_end && from_wait;
+    assign covered_changed_word=valid && rst_n && phase==1 && !shift_end && delay!=issued_delay && delay!=encoded_cell;
+    assign covered_max_delay=valid && rst_n && phase==0 && duration==@MAX_DELAY@ && age==0;
+    assign covered_max_count=completed && shift_end && count==@REG_W@;
+    assign covered_timeout=completed && wait_end && bound==7 && remaining==1 && !hit;
+    assign covered_final_event=completed && wait_end && bound==7 && remaining==1 && hit;
+    assign covered_immediate=completed && immediate_prev && !ft;
+    wire [1:0] spi_mode={shift_cfg[@CPOL_LO@],shift_cfg[@CPHA_LO@]};
+    wire spi_completed=completed && shift_end && clocked && count==3 && bit_duration==4;
+    assign covered_mode0=spi_completed && spi_mode==0;
+    assign covered_mode1=spi_completed && spi_mode==1;
+    assign covered_mode2=spi_completed && spi_mode==2;
+    assign covered_mode3=spi_completed && spi_mode==3;
+endmodule

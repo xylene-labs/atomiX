@@ -446,6 +446,20 @@ def check_imem_bound_is_a_knob() -> None:
     check(expect_error_small, "8 words must not fit a 4-word imem")
 
 
+def check_constant_overrides() -> None:
+    source = ".equ CLOCK, 50\n.equ PERIOD, CLOCK / 5\nDELAY D=PERIOD\n"
+    check(assemble(source, Path("<test>"), defines={"CLOCK": 40})[0].cycles == 8,
+          "clock override must reach dependent period expressions")
+    for defines, fragment in [({"TYPO": 40}, "does not name a .equ"),
+                              ({"CLOCK": True}, "must be an integer")]:
+        try:
+            assemble(source, Path("<test>"), defines=defines)
+        except AsmError as exc:
+            check(fragment in str(exc), f"override diagnostic: {exc}")
+        else:
+            FAILURES.append(f"invalid constant override accepted: {defines}")
+
+
 def main() -> int:
     for probe in (check_encoding, check_timing_rule, check_perbit_rule,
                   check_period_select, check_waite_is_bounded,
@@ -454,7 +468,7 @@ def main() -> int:
                   check_autobaud_firmware, check_rx_pin_is_one_pin,
                   check_autobaud_demo_firmware, check_pad_setup_order,
                   check_i2c_firmware, check_include, check_diagnostics,
-                  check_imem_bound_is_a_knob):
+                  check_imem_bound_is_a_knob, check_constant_overrides):
         try:
             probe()
         except Exception as exc:  # a crashing check is a failing check

@@ -1,0 +1,651 @@
+{
+  "schema": "org.atomix.axpe-profiles-evidence.v1",
+  "date": "2026-10-10",
+  "level": "host RTL simulation and strict elaboration diagnostics",
+  "status": "partial",
+  "scope": "PE-08 capacity-verification slice; no RTL changes or width repair",
+  "sources_sha256": {
+    "components/pemu/axpe/axpe.sv": "1835160b3a4c7e847de2ea86ff12976735392873980080230c8d2b02f4f3489a",
+    "components/pemu/axpe/axpe_decode.sv": "6205c4559daaa96826218a8fd06b9008c8e64acd8bf947dff2289e14678e2282",
+    "components/pemu/axpe/axpe_timing.sv": "f027badac4187026c884a000019660684fc40f3707ff9647b91494757faf189a",
+    "components/pemu/axpe/axpe_shift.sv": "3052a6d158bab0101eba22e20e31154874638c40dd24d6193dc709d6bb3b3cd6",
+    "components/pemu/axpe/axpe_pads.sv": "d800e45c42dcc158560e9be8626b6e12e833e2069153f8e5c982d26b0b04a73c",
+    "components/pemu/axpe/axpe_imem.sv": "6ef2de718178e958222e02467be2fe16ab13762a2060c5e15653cef9cf898df2",
+    "components/pemu/axpe/axpe_host.sv": "88de3babed72a3e198251ee01bc130bd5bd27b7d16b5b860d5f286fa23ebe7aa",
+    "components/pemu/axpe/axpe_chip.sv": "b544e9306a8b216ea5f6f3afb067f0efd90954e29d2cb6ae996672c4e7fa48a3",
+    "sim/pemu/axpe_profile_tb.cpp": "9a5d1f28edca52ca215c2b21839e2e167d8f2a756c06fc61ac904afb39a4f0bd",
+    "tools/axpe_profile_check.py": "0e21c06fb8b0cc64eeeef0fd2004a28777fa2f72fa9b0a177db682fcaccdbd9f",
+    "tools/configure.py": "ce21a260fd127fb9a82b012239bbcb76719ff089d5ca442db7b881fbdbfac77e",
+    "components/pemu/axpe/component.json": "6c69e11ba3948432838540b5698036ec3cee387a72d4f03e0793f77bc0a88486",
+    "sw/pemu/isa/axpe_isa.svh": "a3a64fe4ef9b858f658b41c3ffb0634dbc7ee092d8b2c43d2546172550a4950f",
+    "sw/pemu/isa/axpe_isa.h": "9ad6612baea979bac8c7547a6ae9371e4244351b724135d2df2b3450097073b0",
+    "sw/pemu/model/axpe_model.h": "eee79ed2248714e2dc2436e6bdad2711379d285e1d1792769b76e94a1d6d7266",
+    "sim/pemu/axpe_trace.h": "edf30eabc8331b64177121e3a1394732d1b608953c0671241efda49003d84d5d"
+  },
+  "verilator_version": "Verilator 5.050 2026-07-01 rev v5.050-60-g3d2421f3b",
+  "cases": [
+    {
+      "case": "component defaults",
+      "status": "passed",
+      "parameters": {
+        "imem_words": 256,
+        "reg_count": 8,
+        "reg_width": 16,
+        "delay_bits": 16,
+        "uio_pins": 8,
+        "call_depth": 4
+      },
+      "profile": {
+        "schema": 1,
+        "name": "PE-08 isolated default probe",
+        "components": {
+          "pemu": "pemu.axpe"
+        },
+        "parameters": {
+          "pemu": {}
+        }
+      },
+      "command": [
+        "python3",
+        "tools/axpe_profile_check.py",
+        "--profile",
+        "/home/shubhgau/dev/atomiX/build/pemu/profiles/inputs/default.json",
+        "--output",
+        "build/pemu/profiles/default-final"
+      ],
+      "evidence": "build/pemu/profiles/default-final/evidence.json",
+      "evidence_sha256": "ecc2387b088c60742832bd42cb6b56ccffda93354e88cb336cd885624c0df5eb",
+      "runner_sha256": "abdf1c48e62a06fa21f927c58e28de53c4896cb34850e63272276050a4d62b59",
+      "build_returncode": 0,
+      "build_log_sha256": "8115cd4ca004e46cec96136e50d9877bde4836223917527d17dcc1a685548922",
+      "warnings": {},
+      "hard_error_lines": [],
+      "probe_log_sha256": "77c04602f977ba4ba186f906b35a7c5f6842f99de653a794a906cbc9b2e72826"
+    },
+    {
+      "case": "four non-default capacities",
+      "status": "passed",
+      "parameters": {
+        "imem_words": 64,
+        "reg_count": 7,
+        "reg_width": 16,
+        "delay_bits": 16,
+        "uio_pins": 4,
+        "call_depth": 2
+      },
+      "profile": {
+        "schema": 1,
+        "name": "axpe capacity probe: non-default store, register count, pins and stack",
+        "components": {
+          "pemu": "pemu.axpe"
+        },
+        "parameters": {
+          "pemu": {
+            "imem_words": 64,
+            "reg_count": 7,
+            "uio_pins": 4,
+            "call_depth": 2
+          }
+        }
+      },
+      "command": [
+        "python3",
+        "tools/axpe_profile_check.py",
+        "--profile",
+        "/home/shubhgau/dev/atomiX/configs/sim-axpe-capacity.json",
+        "--output",
+        "build/pemu/profiles/check-zkegcp2z"
+      ],
+      "evidence": "build/pemu/profiles/check-zkegcp2z/evidence.json",
+      "evidence_sha256": "f181aa344b4546591f28d06c12deaff512e9361d0f87172fd4bdfa395b6e429b",
+      "runner_sha256": "0e21c06fb8b0cc64eeeef0fd2004a28777fa2f72fa9b0a177db682fcaccdbd9f",
+      "build_returncode": 0,
+      "build_log_sha256": "fc231f868dced4ab01ea1e52d3002bc38c0d1dfe6e4f0235ed6b3be18e34be78",
+      "warnings": {},
+      "hard_error_lines": [],
+      "probe_log_sha256": "dd94de7717977f9d7b301731cb12a8fe5984cd153fd564dbe9e0596963b0da9a"
+    },
+    {
+      "case": "delay12",
+      "status": "failed",
+      "parameters": {
+        "imem_words": 256,
+        "reg_count": 8,
+        "reg_width": 16,
+        "delay_bits": 12,
+        "uio_pins": 8,
+        "call_depth": 4
+      },
+      "profile": {
+        "schema": 1,
+        "name": "PE-08 isolated delay12 probe",
+        "components": {
+          "pemu": "pemu.axpe"
+        },
+        "parameters": {
+          "pemu": {
+            "delay_bits": 12
+          }
+        }
+      },
+      "command": [
+        "python3",
+        "tools/axpe_profile_check.py",
+        "--profile",
+        "/home/shubhgau/dev/atomiX/build/pemu/profiles/inputs/delay12.json",
+        "--output",
+        "build/pemu/profiles/delay12-frozen"
+      ],
+      "evidence": "build/pemu/profiles/delay12-frozen/evidence.json",
+      "evidence_sha256": "02127a2a36957040f7c29e01e989c02bf30507bbcdc532b8494182db96ce8fca",
+      "runner_sha256": "0e21c06fb8b0cc64eeeef0fd2004a28777fa2f72fa9b0a177db682fcaccdbd9f",
+      "build_returncode": 1,
+      "build_log_sha256": "33dc9e4317c82c69b3b87d3ab8c29478af83ab1f77ee20e21676fe32b7fb5a6a",
+      "warnings": {
+        "WIDTHTRUNC": 4,
+        "WIDTHEXPAND": 1
+      },
+      "hard_error_lines": [
+        "%Error: Exiting due to 5 warning(s)"
+      ],
+      "probe_log_sha256": null
+    },
+    {
+      "case": "reg12",
+      "status": "failed",
+      "parameters": {
+        "imem_words": 256,
+        "reg_count": 8,
+        "reg_width": 12,
+        "delay_bits": 16,
+        "uio_pins": 8,
+        "call_depth": 4
+      },
+      "profile": {
+        "schema": 1,
+        "name": "PE-08 isolated reg12 probe",
+        "components": {
+          "pemu": "pemu.axpe"
+        },
+        "parameters": {
+          "pemu": {
+            "reg_width": 12
+          }
+        }
+      },
+      "command": [
+        "python3",
+        "tools/axpe_profile_check.py",
+        "--profile",
+        "/home/shubhgau/dev/atomiX/build/pemu/profiles/inputs/reg12.json",
+        "--output",
+        "build/pemu/profiles/reg12-frozen"
+      ],
+      "evidence": "build/pemu/profiles/reg12-frozen/evidence.json",
+      "evidence_sha256": "0e4d6566ab342cd21390b64c86485a5024644707275a698481ca7048a9682674",
+      "runner_sha256": "0e21c06fb8b0cc64eeeef0fd2004a28777fa2f72fa9b0a177db682fcaccdbd9f",
+      "build_returncode": 1,
+      "build_log_sha256": "1ab10f95bd29b4d39d17a9db29ebce9a45a0d939de7e15db5b42ea42d0078644",
+      "warnings": {
+        "WIDTHEXPAND": 1,
+        "WIDTHTRUNC": 2,
+        "SELRANGE": 2
+      },
+      "hard_error_lines": [
+        "%Error: /home/shubhgau/dev/atomiX/components/pemu/axpe/axpe.sv:164:31: Replication value of < 0 or X/Z not legal (IEEE 1800-2023 11.4.12.1): '32'hfffffffc'",
+        "%Error: Exiting due to 1 error(s), 5 warning(s)"
+      ],
+      "probe_log_sha256": null
+    },
+    {
+      "case": "reg12-delay12",
+      "status": "failed",
+      "parameters": {
+        "imem_words": 256,
+        "reg_count": 8,
+        "reg_width": 12,
+        "delay_bits": 12,
+        "uio_pins": 8,
+        "call_depth": 4
+      },
+      "profile": {
+        "schema": 1,
+        "name": "PE-08 isolated reg12-delay12 probe",
+        "components": {
+          "pemu": "pemu.axpe"
+        },
+        "parameters": {
+          "pemu": {
+            "reg_width": 12,
+            "delay_bits": 12
+          }
+        }
+      },
+      "command": [
+        "python3",
+        "tools/axpe_profile_check.py",
+        "--profile",
+        "/home/shubhgau/dev/atomiX/build/pemu/profiles/inputs/reg12-delay12.json",
+        "--output",
+        "build/pemu/profiles/reg12-delay12-frozen"
+      ],
+      "evidence": "build/pemu/profiles/reg12-delay12-frozen/evidence.json",
+      "evidence_sha256": "fe0d9f586954da214342004693f63a32a5dc7c3cbea493d6cd0f6544dcbd225b",
+      "runner_sha256": "0e21c06fb8b0cc64eeeef0fd2004a28777fa2f72fa9b0a177db682fcaccdbd9f",
+      "build_returncode": 1,
+      "build_log_sha256": "d00b498d49a9d746c4dbd974180b270c8f89e3b74c5c48c946d450394e5c60d4",
+      "warnings": {
+        "WIDTHTRUNC": 5,
+        "WIDTHEXPAND": 1,
+        "SELRANGE": 2
+      },
+      "hard_error_lines": [
+        "%Error: Exiting due to 8 warning(s)"
+      ],
+      "probe_log_sha256": null
+    },
+    {
+      "case": "regs4",
+      "status": "failed",
+      "parameters": {
+        "imem_words": 256,
+        "reg_count": 4,
+        "reg_width": 16,
+        "delay_bits": 16,
+        "uio_pins": 8,
+        "call_depth": 4
+      },
+      "profile": {
+        "schema": 1,
+        "name": "PE-08 isolated regs4 probe",
+        "components": {
+          "pemu": "pemu.axpe"
+        },
+        "parameters": {
+          "pemu": {
+            "reg_count": 4
+          }
+        }
+      },
+      "command": [
+        "python3",
+        "tools/axpe_profile_check.py",
+        "--profile",
+        "/home/shubhgau/dev/atomiX/build/pemu/profiles/inputs/regs4.json",
+        "--output",
+        "build/pemu/profiles/regs4-frozen"
+      ],
+      "evidence": "build/pemu/profiles/regs4-frozen/evidence.json",
+      "evidence_sha256": "207cc3f7bdd873e3e95d31319621a4b9ebf26b9f8c4c5ea1d555f62d8a6483cb",
+      "runner_sha256": "0e21c06fb8b0cc64eeeef0fd2004a28777fa2f72fa9b0a177db682fcaccdbd9f",
+      "build_returncode": 1,
+      "build_log_sha256": "02709bcd302b4005f7b52dc8b43fcf85323b7b26d341531e435f1422cb6e6a21",
+      "warnings": {
+        "WIDTHTRUNC": 5
+      },
+      "hard_error_lines": [
+        "%Error: Exiting due to 5 warning(s)"
+      ],
+      "probe_log_sha256": null
+    },
+    {
+      "case": "stack1",
+      "status": "failed",
+      "parameters": {
+        "imem_words": 256,
+        "reg_count": 8,
+        "reg_width": 16,
+        "delay_bits": 16,
+        "uio_pins": 8,
+        "call_depth": 1
+      },
+      "profile": {
+        "schema": 1,
+        "name": "PE-08 isolated stack1 probe",
+        "components": {
+          "pemu": "pemu.axpe"
+        },
+        "parameters": {
+          "pemu": {
+            "call_depth": 1
+          }
+        }
+      },
+      "command": [
+        "python3",
+        "tools/axpe_profile_check.py",
+        "--profile",
+        "/home/shubhgau/dev/atomiX/build/pemu/profiles/inputs/stack1.json",
+        "--output",
+        "build/pemu/profiles/stack1-frozen"
+      ],
+      "evidence": "build/pemu/profiles/stack1-frozen/evidence.json",
+      "evidence_sha256": "441d67f5d9bd8d563936dc6422fd9d1a9458bf7253a096ab9f09961dd8481fff",
+      "runner_sha256": "0e21c06fb8b0cc64eeeef0fd2004a28777fa2f72fa9b0a177db682fcaccdbd9f",
+      "build_returncode": 1,
+      "build_log_sha256": "3849a356f2cd8619b776da59f26ec0bd919115dac7d69de6c1dd3c23a83a8525",
+      "warnings": {
+        "ASCRANGE": 1,
+        "WIDTHTRUNC": 2,
+        "SELRANGE": 6
+      },
+      "hard_error_lines": [
+        "%Error: /home/shubhgau/dev/atomiX/components/pemu/axpe/axpe.sv:316:49: Replication value of < 0 or X/Z not legal (IEEE 1800-2023 11.4.12.1): '32'hffffffff'",
+        "%Error: Exiting due to 1 error(s), 9 warning(s)"
+      ],
+      "probe_log_sha256": null
+    },
+    {
+      "case": "tiny",
+      "status": "failed",
+      "parameters": {
+        "imem_words": 32,
+        "reg_count": 4,
+        "reg_width": 8,
+        "delay_bits": 8,
+        "uio_pins": 4,
+        "call_depth": 2
+      },
+      "profile": {
+        "schema": 1,
+        "name": "axpe tiny probe: known unsupported widths, retained as a failing experiment",
+        "components": {
+          "pemu": "pemu.axpe"
+        },
+        "parameters": {
+          "pemu": {
+            "imem_words": 32,
+            "reg_count": 4,
+            "reg_width": 8,
+            "delay_bits": 8,
+            "uio_pins": 4,
+            "call_depth": 2
+          }
+        }
+      },
+      "command": [
+        "python3",
+        "tools/axpe_profile_check.py",
+        "--profile",
+        "/home/shubhgau/dev/atomiX/configs/sim-axpe-tiny.json",
+        "--output",
+        "build/pemu/profiles/tiny-frozen"
+      ],
+      "evidence": "build/pemu/profiles/tiny-frozen/evidence.json",
+      "evidence_sha256": "66d2f70dc4e4ea5835f64fb6257acb1b4f11d94125d428d969d7f110da845145",
+      "runner_sha256": "0e21c06fb8b0cc64eeeef0fd2004a28777fa2f72fa9b0a177db682fcaccdbd9f",
+      "build_returncode": 1,
+      "build_log_sha256": "34840ad0e067a3352da49d8b0ce65d1f42f3d3aad6c2f0051b72ad35f0ff9431",
+      "warnings": {
+        "WIDTHTRUNC": 21,
+        "WIDTHEXPAND": 1,
+        "SELRANGE": 4
+      },
+      "hard_error_lines": [
+        "%Error: Exiting due to 26 warning(s)"
+      ],
+      "probe_log_sha256": null
+    }
+  ],
+  "limits": [
+    "Synchronous word-source stand-in; actual instruction memory and host loader are not exercised by these probes.",
+    "The C oracle and assembler remain at the default architecture; this is not full non-default ISA conformance.",
+    "Widths and index configurations with failing elaboration are unsupported by this check; no warnings are suppressed.",
+    "Invalid register/pin operands and general fault policy are outside this probe.",
+    "No synthesis, area, P&R, FPGA or silicon claim.",
+    "Frozen submission archive and its hardware/ISA inputs remain unchanged.",
+    "The wait result is observed through its low output byte here; full data equivalence belongs to separate model/formal evidence."
+  ],
+  "wiring_mutations": [
+    {
+      "removed_parameter": "IMEM_WORDS",
+      "command": [
+        "verilator",
+        "--cc",
+        "--exe",
+        "--build",
+        "-j",
+        "2",
+        "-Wall",
+        "--public-flat-rw",
+        "--top-module",
+        "axpe",
+        "--Mdir",
+        "/home/shubhgau/dev/atomiX/build/pemu/profiles/dropped-imem_words/obj",
+        "-I/home/shubhgau/dev/atomiX/sw/pemu/isa",
+        "-GREGS=7",
+        "-GREG_W=16",
+        "-GDELAY_BITS=16",
+        "-GUIO_PINS=4",
+        "-GCALL_DEPTH=2",
+        "-CFLAGS",
+        "-DPROFILE_IMEM_WORDS=64 -DPROFILE_REGS=7 -DPROFILE_REG_W=16 -DPROFILE_DELAY_BITS=16 -DPROFILE_UIO_PINS=4 -DPROFILE_CALL_DEPTH=2",
+        "/home/shubhgau/dev/atomiX/components/pemu/axpe/axpe.sv",
+        "/home/shubhgau/dev/atomiX/components/pemu/axpe/axpe_decode.sv",
+        "/home/shubhgau/dev/atomiX/components/pemu/axpe/axpe_timing.sv",
+        "/home/shubhgau/dev/atomiX/components/pemu/axpe/axpe_shift.sv",
+        "/home/shubhgau/dev/atomiX/components/pemu/axpe/axpe_pads.sv",
+        "/home/shubhgau/dev/atomiX/components/pemu/axpe/axpe_imem.sv",
+        "/home/shubhgau/dev/atomiX/components/pemu/axpe/axpe_host.sv",
+        "/home/shubhgau/dev/atomiX/components/pemu/axpe/axpe_chip.sv",
+        "/home/shubhgau/dev/atomiX/sim/pemu/axpe_profile_tb.cpp"
+      ],
+      "build_returncode": 0,
+      "probe_returncode": 1,
+      "diagnostic": "axpe profile: FAIL: missing expected architectural fault",
+      "logs_sha256": {
+        "build.log": "29794c4be22de46dabd68dd9992e849ed91bc17546e9266fcea305e962a40eb6",
+        "probe.log": "340fc71747b91b687b779da07430e65a3c84ea175ada3d569301a9e921773b2a"
+      }
+    },
+    {
+      "removed_parameter": "REGS",
+      "command": [
+        "verilator",
+        "--cc",
+        "--exe",
+        "--build",
+        "-j",
+        "2",
+        "-Wall",
+        "--public-flat-rw",
+        "--top-module",
+        "axpe",
+        "--Mdir",
+        "/home/shubhgau/dev/atomiX/build/pemu/profiles/dropped-regs/obj",
+        "-I/home/shubhgau/dev/atomiX/sw/pemu/isa",
+        "-GIMEM_WORDS=64",
+        "-GREG_W=16",
+        "-GDELAY_BITS=16",
+        "-GUIO_PINS=4",
+        "-GCALL_DEPTH=2",
+        "-CFLAGS",
+        "-DPROFILE_IMEM_WORDS=64 -DPROFILE_REGS=7 -DPROFILE_REG_W=16 -DPROFILE_DELAY_BITS=16 -DPROFILE_UIO_PINS=4 -DPROFILE_CALL_DEPTH=2",
+        "/home/shubhgau/dev/atomiX/components/pemu/axpe/axpe.sv",
+        "/home/shubhgau/dev/atomiX/components/pemu/axpe/axpe_decode.sv",
+        "/home/shubhgau/dev/atomiX/components/pemu/axpe/axpe_timing.sv",
+        "/home/shubhgau/dev/atomiX/components/pemu/axpe/axpe_shift.sv",
+        "/home/shubhgau/dev/atomiX/components/pemu/axpe/axpe_pads.sv",
+        "/home/shubhgau/dev/atomiX/components/pemu/axpe/axpe_imem.sv",
+        "/home/shubhgau/dev/atomiX/components/pemu/axpe/axpe_host.sv",
+        "/home/shubhgau/dev/atomiX/components/pemu/axpe/axpe_chip.sv",
+        "/home/shubhgau/dev/atomiX/sim/pemu/axpe_profile_tb.cpp"
+      ],
+      "build_returncode": 0,
+      "probe_returncode": 1,
+      "diagnostic": "axpe profile: FAIL: register count did not reach RTL",
+      "logs_sha256": {
+        "build.log": "5659ab8fd6264f4382554bae619541f6b566d6a134e4ee39e277df0734d00326",
+        "probe.log": "1846173568b6624ab4d1e7e311989e3550f39c0be8940725bf32819fcb44b6eb"
+      }
+    },
+    {
+      "removed_parameter": "UIO_PINS",
+      "command": [
+        "verilator",
+        "--cc",
+        "--exe",
+        "--build",
+        "-j",
+        "2",
+        "-Wall",
+        "--public-flat-rw",
+        "--top-module",
+        "axpe",
+        "--Mdir",
+        "/home/shubhgau/dev/atomiX/build/pemu/profiles/dropped-uio_pins/obj",
+        "-I/home/shubhgau/dev/atomiX/sw/pemu/isa",
+        "-GIMEM_WORDS=64",
+        "-GREGS=7",
+        "-GREG_W=16",
+        "-GDELAY_BITS=16",
+        "-GCALL_DEPTH=2",
+        "-CFLAGS",
+        "-DPROFILE_IMEM_WORDS=64 -DPROFILE_REGS=7 -DPROFILE_REG_W=16 -DPROFILE_DELAY_BITS=16 -DPROFILE_UIO_PINS=4 -DPROFILE_CALL_DEPTH=2",
+        "/home/shubhgau/dev/atomiX/components/pemu/axpe/axpe.sv",
+        "/home/shubhgau/dev/atomiX/components/pemu/axpe/axpe_decode.sv",
+        "/home/shubhgau/dev/atomiX/components/pemu/axpe/axpe_timing.sv",
+        "/home/shubhgau/dev/atomiX/components/pemu/axpe/axpe_shift.sv",
+        "/home/shubhgau/dev/atomiX/components/pemu/axpe/axpe_pads.sv",
+        "/home/shubhgau/dev/atomiX/components/pemu/axpe/axpe_imem.sv",
+        "/home/shubhgau/dev/atomiX/components/pemu/axpe/axpe_host.sv",
+        "/home/shubhgau/dev/atomiX/components/pemu/axpe/axpe_chip.sv",
+        "/home/shubhgau/dev/atomiX/sim/pemu/axpe_profile_tb.cpp"
+      ],
+      "build_returncode": 0,
+      "probe_returncode": 1,
+      "diagnostic": "axpe profile: FAIL: pad mask differs from selected pin count",
+      "logs_sha256": {
+        "build.log": "4f5400d15749d2bece3826f2f883391478c37b631d2c25dd874953eb38f5dc3e",
+        "probe.log": "e3d169f5e11f293f02b9c4bbdc8301198681f0fe59fe698878d0b07938547fac"
+      }
+    },
+    {
+      "removed_parameter": "CALL_DEPTH",
+      "command": [
+        "verilator",
+        "--cc",
+        "--exe",
+        "--build",
+        "-j",
+        "2",
+        "-Wall",
+        "--public-flat-rw",
+        "--top-module",
+        "axpe",
+        "--Mdir",
+        "/home/shubhgau/dev/atomiX/build/pemu/profiles/dropped-call_depth/obj",
+        "-I/home/shubhgau/dev/atomiX/sw/pemu/isa",
+        "-GIMEM_WORDS=64",
+        "-GREGS=7",
+        "-GREG_W=16",
+        "-GDELAY_BITS=16",
+        "-GUIO_PINS=4",
+        "-CFLAGS",
+        "-DPROFILE_IMEM_WORDS=64 -DPROFILE_REGS=7 -DPROFILE_REG_W=16 -DPROFILE_DELAY_BITS=16 -DPROFILE_UIO_PINS=4 -DPROFILE_CALL_DEPTH=2",
+        "/home/shubhgau/dev/atomiX/components/pemu/axpe/axpe.sv",
+        "/home/shubhgau/dev/atomiX/components/pemu/axpe/axpe_decode.sv",
+        "/home/shubhgau/dev/atomiX/components/pemu/axpe/axpe_timing.sv",
+        "/home/shubhgau/dev/atomiX/components/pemu/axpe/axpe_shift.sv",
+        "/home/shubhgau/dev/atomiX/components/pemu/axpe/axpe_pads.sv",
+        "/home/shubhgau/dev/atomiX/components/pemu/axpe/axpe_imem.sv",
+        "/home/shubhgau/dev/atomiX/components/pemu/axpe/axpe_host.sv",
+        "/home/shubhgau/dev/atomiX/components/pemu/axpe/axpe_chip.sv",
+        "/home/shubhgau/dev/atomiX/sim/pemu/axpe_profile_tb.cpp"
+      ],
+      "build_returncode": 0,
+      "probe_returncode": 1,
+      "diagnostic": "axpe profile: FAIL: call depth did not reach RTL",
+      "logs_sha256": {
+        "build.log": "ff29e7fc004b3dc185b24265c0e87bf687a435199494260866eac0f63cf419aa",
+        "probe.log": "3f964540a89491bc0cbe8ae8c5773c5b684f594d80b137e759bf16c35250a94b"
+      }
+    }
+  ],
+  "profile_rejections": [
+    {
+      "case": "typo",
+      "command": [
+        "python3",
+        "tools/axpe_profile_check.py",
+        "--profile",
+        "build/pemu/profiles/inputs/typo.json",
+        "--output",
+        "build/pemu/profiles/reject-typo"
+      ],
+      "returncode": 1,
+      "error": "/home/shubhgau/dev/atomiX/build/pemu/profiles/inputs/typo.json: pemu.axpe has no parameter 'reg_cout' (it declares: call_depth, delay_bits, imem_words, reg_count, reg_width, uio_pins)",
+      "evidence_sha256": "9d2f0212d337dc1489fdeeacc66b03e1a0d892428396ac35c94aeec0f3f80dcf"
+    },
+    {
+      "case": "bad-type",
+      "command": [
+        "python3",
+        "tools/axpe_profile_check.py",
+        "--profile",
+        "build/pemu/profiles/inputs/bad-type.json",
+        "--output",
+        "build/pemu/profiles/reject-bad-type"
+      ],
+      "returncode": 1,
+      "error": "/home/shubhgau/dev/atomiX/build/pemu/profiles/inputs/bad-type.json: parameter pemu.uio_pins must be an integer",
+      "evidence_sha256": "926403580521f0bcacf14eddcf4ee6da752841988f03e553d75b9e0dcf230eb4"
+    },
+    {
+      "case": "bad-memory",
+      "command": [
+        "python3",
+        "tools/axpe_profile_check.py",
+        "--profile",
+        "build/pemu/profiles/inputs/bad-memory.json",
+        "--output",
+        "build/pemu/profiles/reject-bad-memory"
+      ],
+      "returncode": 1,
+      "error": "/home/shubhgau/dev/atomiX/build/pemu/profiles/inputs/bad-memory.json: parameter 'pemu.imem_words' is 63, expected a power of two",
+      "evidence_sha256": "b00e8486a993e2128e73428ad3b208ac15c9221cb54c2d1095f30289a5035f36"
+    },
+    {
+      "case": "existing-output",
+      "returncode": 2,
+      "evidence_unchanged": true
+    }
+  ],
+  "integration": {
+    "target": "make pemu-profile-check",
+    "aggregate": "make pemu-cosim-check",
+    "stage": "pemu-cosim",
+    "suites": [
+      "smoke",
+      "ci-quick",
+      "nightly-integrated"
+    ],
+    "coverage": "pass: 129 commands, 49 stages and 9 suites",
+    "registry": "pass: 3 candidates and 6 records",
+    "smoke": "passed: all 14 stages",
+    "smoke_summary_sha256": "39822f049bb47938df0c6972db0150574b4ef2ac4e6ba9ba290fbbe99583a5d2",
+    "smoke_log_sha256": "16ab4baf2cbc18a2f785a7fa0e2c836543ababd903aca03f547664c8a2fd9da1",
+    "smoke_profile_receipt": "build/pemu/profiles/check-jisqdhvu/evidence.json",
+    "smoke_profile_receipt_sha256": "e6b80bcb6ff130dd530a7692ad752728e5d8936a7f18a2b0034079b139dc0615",
+    "coverage_log_sha256": "c64ec45ba0a47be9c4a013d1b1514b278eedd959a50108c6da7e36903af7d29d",
+    "registry_log_sha256": "d46509d00b34917078a20a9d008f8215aca7ef073b9069d72acdd2caea405207"
+  },
+  "history": [
+    {
+      "attempt": "capacity-first",
+      "result": "passed before adding explicit register-width wrap probe",
+      "receipt_sha256": "1f6c5fd31e867d0600b4d6d3ecccf3c31c698934b762dd475830733f000f018a"
+    },
+    {
+      "attempt": "initial coverage-map entry",
+      "result": "failed: used target instead of aggregate for via entry; corrected to aggregate pemu-cosim-check",
+      "log_sha256": "56a5feb65b1e1534b2ecd80f267627950ded469f5bc11019b7f0521046869222"
+    }
+  ],
+  "frozen_submission": {
+    "archive": "build/asic/axpe-submission-ready.tar.gz",
+    "sha256": "f981a923279e1669ba724e0faca8a0a4b4f2179387fd98b501d2fe0eab11a3b3",
+    "unchanged": true,
+    "packaged_integrity_check": "passed"
+  }
+}

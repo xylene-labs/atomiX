@@ -35,6 +35,10 @@ so firmware keeps all eight output bits whenever the host is not mid-frame
 rather than permanently losing one to a port used between programs.
 
 `ena` is the harness's design-select and gates the core's reset with `rst_n`.
+It does not clear the host's `running` latch. After selecting the design,
+establish state with `rst_n`, then STOP and fully reload/read back the payload
+before RUN. No instruction retention across selection or power loss is
+promised.
 
 ## Electrical and timing
 
@@ -120,6 +124,9 @@ which is where the result is.
 pins, runs it, then loads an unrelated program into that same design without
 rebuilding it, and checks both against the golden model cycle for cycle. It also
 writes and reads back a word, and proves a refused write was actually refused.
+Every shared-suite program is now read back completely before RUN. The exported
+Tiny Tapeout binding additionally checks fresh-instance loading,
+deselect/reset/reselect and warm-reset/full-reload sequences with a UART peer.
 
 This is host simulation. It is not an FPGA result and not a silicon result, and
 PE-02 has not yet shown that the 6×4 flow accepts the SRAM macro this store is

@@ -141,7 +141,7 @@ this instruction set is written down. Regenerate with
 
 | Op | Mnemonic | Operands | Retires in | Effect |
 |---|---|---|---|---|
-| `09` | `WAITE` | reg, imm8 | `w, 1<=w<=max(D,1)` | Wait for the selected edge with timeout D. Ra takes the number of cycles actually waited, and T is set if and only if the wait reached D. The returned count is what lets firmware measure an unknown peer's timing instead of only reproducing a known one. |
+| `09` | `WAITE` | reg, imm8 | `w, 1<=w<=max(D,1)` | Wait for the selected edge with effective timeout max(D,1). Ra takes the number of cycles actually waited, including zero when level-high is already satisfied at entry; occupancy still has a one-cycle floor. T is set if and only if the wait reached the effective timeout. The returned count lets firmware measure an unknown peer instead of only reproducing a known one. |
 
 ### Shift engine
 
@@ -174,7 +174,7 @@ this instruction set is written down. Regenerate with
 
 | Op | Mnemonic | Operands | Retires in | Effect |
 |---|---|---|---|---|
-| `1C` | `BR` | cond, target | `max(D,1)` | Branch if the condition holds. Costs 1 + D whether taken or not; a branch that were cheaper untaken would break the central property. |
+| `1C` | `BR` | cond, target | `max(D,1)` | Branch if the condition holds. Costs max(D,1) whether taken or not; a branch that were cheaper untaken would break the central property. |
 | `1D` | `CALL` | target | `max(D,1)` | Push PC+1 and jump. |
 | `1E` | `RET` | -- | `max(D,1)` | Pop. |
 | `1F` | `HALT` | -- | `max(D,1)` | Stop fetching. |
@@ -217,8 +217,11 @@ This is the instruction that makes `axpe` more than a transmitter, and it is
 the design's main functional bet.
 
 `WAITE Ra, {edge,pin}, D` waits for the edge, and then writes into `Ra` **the
-number of cycles it actually waited**. `T` is set if and only if the wait
-reached `D`.
+number of cycles it actually waited**. A level-high condition already satisfied
+at entry returns zero, clears `T`, and still occupies one cycle. Otherwise the
+returned count and occupancy agree. The effective timeout is `max(D,1)`; `T`
+is set if and only if the wait reached that bound, including an event on the
+final permitted sample. This keeps zero-encoded timeouts bounded too.
 
 The counter that produces that number already exists: it is the same delay
 counter every other instruction uses to honour its declared cost. Returning its

@@ -1,0 +1,489 @@
+{
+  "schema": "org.atomix.axpe-clock-evidence.v1",
+  "status": "passed",
+  "date": "2026-10-11",
+  "level": "host RTL and mapped functional protocol/rate simulation",
+  "netlist_sha256": "959c159a7259e687f3ef3003d1522266b3dfd838b500b9cbeaedbd4be88c05e3",
+  "state_sha256": "58f9fbed80792de2d8ce9d1f4cf78d33e8000182cf6ad2fd98383618f357899d",
+  "profiles": {
+    "40mhz-fast-i2c": {
+      "profile_sha256": "b47c1815e98983a526d2abb9ecaf2f75ee0584f8f69200970af559a4a7ee0f7e",
+      "build_receipt": {
+        "schema": "org.atomix.axpe-demo-build.v1",
+        "settings": {
+          "clock_hz": 40000000,
+          "uart_baud": 57600,
+          "spi_hz": 2000000,
+          "i2c_hz": 400000,
+          "i2c_guard_ns": 100
+        },
+        "imem_words": 64,
+        "inputs_sha256": {
+          "/home/shubhgau/dev/atomiX/sw/pemu/firmware/profiles/40mhz-fast-i2c.json": "b47c1815e98983a526d2abb9ecaf2f75ee0584f8f69200970af559a4a7ee0f7e",
+          "/home/shubhgau/dev/atomiX/sw/pemu/firmware/demo.json": "45aa6df6b1df2b2d1140945aa78bbbcf1a09e5dd72b2672e3dd9a0e1a02fa4a0",
+          "/home/shubhgau/dev/atomiX/sw/pemu/firmware/build_demos.py": "1fd5b990716849b11743638808d2046e98fc5fb5d340a57bd8adc75c67d81c99",
+          "/home/shubhgau/dev/atomiX/sw/pemu/as/axpe_as.py": "bfdf89b74d63ca43c159ef252c87c06031f03deda503c4d4a965129569062a6f",
+          "/home/shubhgau/dev/atomiX/tools/axpe_isa.py": "ad1b049b841f48559ee4f0d3684c13303fd165eb82b2a7c133908eff27306f4b",
+          "/home/shubhgau/dev/atomiX/sw/pemu/isa/axpe-isa.json": "6bc75b907b156f96805baa321a3a2f86447477a4a8457f332cdc62217d30face",
+          "/home/shubhgau/dev/atomiX/sw/pemu/firmware/autobaud-demo.s": "ab7e72b22979a778c7a84e9e3b8a4d84dc9934e87686771eccb02e86f4158fcc",
+          "/home/shubhgau/dev/atomiX/sw/pemu/firmware/autobaud.s": "cf2c3914671b5e05e4a9304a8eb7ee5d1b7273f6b998450a402fb42b8459c458",
+          "/home/shubhgau/dev/atomiX/sw/pemu/firmware/i2c-demo.s": "bf33cf7d155b8282b5501f4f167550716868fb2f164ef374cd2560593e08c04f",
+          "/home/shubhgau/dev/atomiX/sw/pemu/firmware/i2c.s": "2166c71510afbf469c0cb144769a987ca201a1f978ac0d8377efb5ba632b702d",
+          "/home/shubhgau/dev/atomiX/sw/pemu/firmware/spi-demo.s": "ce9e166b56f49b7cf55ae3ec4ecfe3bb053cd1d9b6e8dcd00c67f9c58e768208",
+          "/home/shubhgau/dev/atomiX/sw/pemu/firmware/spi.s": "28cb705901cec69a7bb691020b12f381b297f09bbd3a558b727685068026f353",
+          "/home/shubhgau/dev/atomiX/sw/pemu/firmware/uart-demo.s": "dc6162723e66d4bf55c2003aab463a46ce5aa3cf964c4606ad86c88f6032b330",
+          "/home/shubhgau/dev/atomiX/sw/pemu/firmware/uart.s": "85b60ebd94a640668d3bace20ea13f46b809d6f6b4e7c068224c220dd42a0077"
+        },
+        "cycles_per_bit": {
+          "uart_baud": 694,
+          "spi_hz": 20,
+          "i2c_hz": 112
+        },
+        "outputs_sha256": {
+          "autobaud-demo.hex": "02e54e53790187302b80d1381cf76966053828191f2f016d1871145d661e43c5",
+          "autobaud-demo.listing": "799fc8aefeadc6c5df5fc0c488af70d739c3f7f7911e4720a60ff4dc0162c030",
+          "clock-profile.txt": "d6f6e81c7b58e29f3348223277b94340dffecc7f63188fb9d066f6981673eca4",
+          "i2c-demo.hex": "b92b6022c304bc55fd71f57e98299174e05b3265bbc46354bfa9f6fdb67e275d",
+          "i2c-demo.listing": "7aadfb42e79390340e1fd681db1e7a6b79c21f5b77ca05ebe4458d4e1a4737ec",
+          "spi-demo.hex": "4955c31d2aefb4ade483ead06ed22427e615bdb852d72e0e4c9c1f9273733dca",
+          "spi-demo.listing": "07e562c7ecabdd60767d0a4139c132e9ec26c0ddd8f2d4a472613727a358c21a",
+          "uart-demo.hex": "369d130b16b8fe78f8ec80b0d7fd87ceaf7d32a0d271987f2bf7dba561d22151",
+          "uart-demo.listing": "c10005d94413eca709bfff41bf10df5d336598ae5750192c6b3c3d82dc651362"
+        }
+      },
+      "outputs_sha256": {
+        "autobaud-demo.hex": "02e54e53790187302b80d1381cf76966053828191f2f016d1871145d661e43c5",
+        "autobaud-demo.listing": "799fc8aefeadc6c5df5fc0c488af70d739c3f7f7911e4720a60ff4dc0162c030",
+        "clock-profile.txt": "d6f6e81c7b58e29f3348223277b94340dffecc7f63188fb9d066f6981673eca4",
+        "i2c-demo.hex": "b92b6022c304bc55fd71f57e98299174e05b3265bbc46354bfa9f6fdb67e275d",
+        "i2c-demo.listing": "7aadfb42e79390340e1fd681db1e7a6b79c21f5b77ca05ebe4458d4e1a4737ec",
+        "profile.json": "9cbf07cd73789409989cce5a1bfd823a9aad9807f9cb330fbc572f0b549eeb9b",
+        "spi-demo.hex": "4955c31d2aefb4ade483ead06ed22427e615bdb852d72e0e4c9c1f9273733dca",
+        "spi-demo.listing": "07e562c7ecabdd60767d0a4139c132e9ec26c0ddd8f2d4a472613727a358c21a",
+        "uart-demo.hex": "369d130b16b8fe78f8ec80b0d7fd87ceaf7d32a0d271987f2bf7dba561d22151",
+        "uart-demo.listing": "c10005d94413eca709bfff41bf10df5d336598ae5750192c6b3c3d82dc651362"
+      }
+    },
+    "40mhz-slow": {
+      "profile_sha256": "d513b1705727e414a0bf5b515feaf701e9d8378359f5103e7c43fee80df27d6a",
+      "build_receipt": {
+        "schema": "org.atomix.axpe-demo-build.v1",
+        "settings": {
+          "clock_hz": 40000000,
+          "uart_baud": 115200,
+          "spi_hz": 10000,
+          "i2c_hz": 10000,
+          "i2c_guard_ns": 50
+        },
+        "imem_words": 64,
+        "inputs_sha256": {
+          "/home/shubhgau/dev/atomiX/sw/pemu/firmware/profiles/40mhz-slow.json": "d513b1705727e414a0bf5b515feaf701e9d8378359f5103e7c43fee80df27d6a",
+          "/home/shubhgau/dev/atomiX/sw/pemu/firmware/demo.json": "45aa6df6b1df2b2d1140945aa78bbbcf1a09e5dd72b2672e3dd9a0e1a02fa4a0",
+          "/home/shubhgau/dev/atomiX/sw/pemu/firmware/build_demos.py": "1fd5b990716849b11743638808d2046e98fc5fb5d340a57bd8adc75c67d81c99",
+          "/home/shubhgau/dev/atomiX/sw/pemu/as/axpe_as.py": "bfdf89b74d63ca43c159ef252c87c06031f03deda503c4d4a965129569062a6f",
+          "/home/shubhgau/dev/atomiX/tools/axpe_isa.py": "ad1b049b841f48559ee4f0d3684c13303fd165eb82b2a7c133908eff27306f4b",
+          "/home/shubhgau/dev/atomiX/sw/pemu/isa/axpe-isa.json": "6bc75b907b156f96805baa321a3a2f86447477a4a8457f332cdc62217d30face",
+          "/home/shubhgau/dev/atomiX/sw/pemu/firmware/autobaud-demo.s": "ab7e72b22979a778c7a84e9e3b8a4d84dc9934e87686771eccb02e86f4158fcc",
+          "/home/shubhgau/dev/atomiX/sw/pemu/firmware/autobaud.s": "cf2c3914671b5e05e4a9304a8eb7ee5d1b7273f6b998450a402fb42b8459c458",
+          "/home/shubhgau/dev/atomiX/sw/pemu/firmware/i2c-demo.s": "bf33cf7d155b8282b5501f4f167550716868fb2f164ef374cd2560593e08c04f",
+          "/home/shubhgau/dev/atomiX/sw/pemu/firmware/i2c.s": "2166c71510afbf469c0cb144769a987ca201a1f978ac0d8377efb5ba632b702d",
+          "/home/shubhgau/dev/atomiX/sw/pemu/firmware/spi-demo.s": "ce9e166b56f49b7cf55ae3ec4ecfe3bb053cd1d9b6e8dcd00c67f9c58e768208",
+          "/home/shubhgau/dev/atomiX/sw/pemu/firmware/spi.s": "28cb705901cec69a7bb691020b12f381b297f09bbd3a558b727685068026f353",
+          "/home/shubhgau/dev/atomiX/sw/pemu/firmware/uart-demo.s": "dc6162723e66d4bf55c2003aab463a46ce5aa3cf964c4606ad86c88f6032b330",
+          "/home/shubhgau/dev/atomiX/sw/pemu/firmware/uart.s": "85b60ebd94a640668d3bace20ea13f46b809d6f6b4e7c068224c220dd42a0077"
+        },
+        "cycles_per_bit": {
+          "uart_baud": 347,
+          "spi_hz": 4000,
+          "i2c_hz": 4000
+        },
+        "outputs_sha256": {
+          "autobaud-demo.hex": "cb1da77fefcdbd4965dfc4b1f03aec40922d09dde5298c7f7250e0295633fc2e",
+          "autobaud-demo.listing": "1ac25f7cdf5cbcdd0433b8f821fabe4a4cc29c93fa346e3a0f8dc29a8b7d891c",
+          "clock-profile.txt": "5bf2b1f25a410b1feadcb2ee5a9e2a0c51f1648bf0e9ac32c398e99b4d65eecc",
+          "i2c-demo.hex": "11b95b60d810007e578dc8695b8202f09d25d9b760f8eba2bef268c080246cec",
+          "i2c-demo.listing": "8f82f83c3d177f4c54661fe71c62c71f5500e7450d810d77b36846144b81e69b",
+          "spi-demo.hex": "18fd2d576ff5ec52bb77fd8f48e74caac81bcdf15b5a4b63226aaf6236c44e94",
+          "spi-demo.listing": "14ac4b8e33768218423cf28ef17c6f672a563eda2d7ed5b81ae8c19b342e2ee3",
+          "uart-demo.hex": "031a2f65bb05224f117c5c67ef081099cfabd829fe36907666dc172bee801ac8",
+          "uart-demo.listing": "9e728db0b30a60f7806956280e1aab5ecf593e361a793a50c035362e9612ade0"
+        }
+      },
+      "outputs_sha256": {
+        "autobaud-demo.hex": "cb1da77fefcdbd4965dfc4b1f03aec40922d09dde5298c7f7250e0295633fc2e",
+        "autobaud-demo.listing": "1ac25f7cdf5cbcdd0433b8f821fabe4a4cc29c93fa346e3a0f8dc29a8b7d891c",
+        "clock-profile.txt": "5bf2b1f25a410b1feadcb2ee5a9e2a0c51f1648bf0e9ac32c398e99b4d65eecc",
+        "i2c-demo.hex": "11b95b60d810007e578dc8695b8202f09d25d9b760f8eba2bef268c080246cec",
+        "i2c-demo.listing": "8f82f83c3d177f4c54661fe71c62c71f5500e7450d810d77b36846144b81e69b",
+        "profile.json": "d6000fbde99403c938bca6b9cef136258e476d5dc8ee888cf25db8a74a7b3fdf",
+        "spi-demo.hex": "18fd2d576ff5ec52bb77fd8f48e74caac81bcdf15b5a4b63226aaf6236c44e94",
+        "spi-demo.listing": "14ac4b8e33768218423cf28ef17c6f672a563eda2d7ed5b81ae8c19b342e2ee3",
+        "uart-demo.hex": "031a2f65bb05224f117c5c67ef081099cfabd829fe36907666dc172bee801ac8",
+        "uart-demo.listing": "9e728db0b30a60f7806956280e1aab5ecf593e361a793a50c035362e9612ade0"
+      }
+    },
+    "40mhz-standard": {
+      "profile_sha256": "8313c5f00bc04e00ef26ad72ee7a4507bed5e3fa2ee724bc9fa1708f3b339110",
+      "build_receipt": {
+        "schema": "org.atomix.axpe-demo-build.v1",
+        "settings": {
+          "clock_hz": 40000000,
+          "uart_baud": 115200,
+          "spi_hz": 1000000,
+          "i2c_hz": 100000,
+          "i2c_guard_ns": 50
+        },
+        "imem_words": 64,
+        "inputs_sha256": {
+          "/home/shubhgau/dev/atomiX/sw/pemu/firmware/profiles/40mhz-standard.json": "8313c5f00bc04e00ef26ad72ee7a4507bed5e3fa2ee724bc9fa1708f3b339110",
+          "/home/shubhgau/dev/atomiX/sw/pemu/firmware/demo.json": "45aa6df6b1df2b2d1140945aa78bbbcf1a09e5dd72b2672e3dd9a0e1a02fa4a0",
+          "/home/shubhgau/dev/atomiX/sw/pemu/firmware/build_demos.py": "1fd5b990716849b11743638808d2046e98fc5fb5d340a57bd8adc75c67d81c99",
+          "/home/shubhgau/dev/atomiX/sw/pemu/as/axpe_as.py": "bfdf89b74d63ca43c159ef252c87c06031f03deda503c4d4a965129569062a6f",
+          "/home/shubhgau/dev/atomiX/tools/axpe_isa.py": "ad1b049b841f48559ee4f0d3684c13303fd165eb82b2a7c133908eff27306f4b",
+          "/home/shubhgau/dev/atomiX/sw/pemu/isa/axpe-isa.json": "6bc75b907b156f96805baa321a3a2f86447477a4a8457f332cdc62217d30face",
+          "/home/shubhgau/dev/atomiX/sw/pemu/firmware/autobaud-demo.s": "ab7e72b22979a778c7a84e9e3b8a4d84dc9934e87686771eccb02e86f4158fcc",
+          "/home/shubhgau/dev/atomiX/sw/pemu/firmware/autobaud.s": "cf2c3914671b5e05e4a9304a8eb7ee5d1b7273f6b998450a402fb42b8459c458",
+          "/home/shubhgau/dev/atomiX/sw/pemu/firmware/i2c-demo.s": "bf33cf7d155b8282b5501f4f167550716868fb2f164ef374cd2560593e08c04f",
+          "/home/shubhgau/dev/atomiX/sw/pemu/firmware/i2c.s": "2166c71510afbf469c0cb144769a987ca201a1f978ac0d8377efb5ba632b702d",
+          "/home/shubhgau/dev/atomiX/sw/pemu/firmware/spi-demo.s": "ce9e166b56f49b7cf55ae3ec4ecfe3bb053cd1d9b6e8dcd00c67f9c58e768208",
+          "/home/shubhgau/dev/atomiX/sw/pemu/firmware/spi.s": "28cb705901cec69a7bb691020b12f381b297f09bbd3a558b727685068026f353",
+          "/home/shubhgau/dev/atomiX/sw/pemu/firmware/uart-demo.s": "dc6162723e66d4bf55c2003aab463a46ce5aa3cf964c4606ad86c88f6032b330",
+          "/home/shubhgau/dev/atomiX/sw/pemu/firmware/uart.s": "85b60ebd94a640668d3bace20ea13f46b809d6f6b4e7c068224c220dd42a0077"
+        },
+        "cycles_per_bit": {
+          "uart_baud": 347,
+          "spi_hz": 40,
+          "i2c_hz": 400
+        },
+        "outputs_sha256": {
+          "autobaud-demo.hex": "cb1da77fefcdbd4965dfc4b1f03aec40922d09dde5298c7f7250e0295633fc2e",
+          "autobaud-demo.listing": "1ac25f7cdf5cbcdd0433b8f821fabe4a4cc29c93fa346e3a0f8dc29a8b7d891c",
+          "clock-profile.txt": "760295413cc87848bd2848efa06980187c087b67a3fc74d0b716d1b3558d0a0a",
+          "i2c-demo.hex": "5d66fa47ac492cafa15cc6c314acdfe96d6852359000d12dcbc771b6aa9075c5",
+          "i2c-demo.listing": "fdd0aa376e0ef1ca1a0c3aa0a7c45031341409c4a4e18887d67dc8f1652e145f",
+          "spi-demo.hex": "637ab767569d1aa29b50bc8102420b7da660bdf169b33fd8317af3eee7418eb0",
+          "spi-demo.listing": "7823b4477acdf81398a345d7c88612cba295814e4831516f31e77731d01e6fc3",
+          "uart-demo.hex": "031a2f65bb05224f117c5c67ef081099cfabd829fe36907666dc172bee801ac8",
+          "uart-demo.listing": "9e728db0b30a60f7806956280e1aab5ecf593e361a793a50c035362e9612ade0"
+        }
+      },
+      "outputs_sha256": {
+        "autobaud-demo.hex": "cb1da77fefcdbd4965dfc4b1f03aec40922d09dde5298c7f7250e0295633fc2e",
+        "autobaud-demo.listing": "1ac25f7cdf5cbcdd0433b8f821fabe4a4cc29c93fa346e3a0f8dc29a8b7d891c",
+        "clock-profile.txt": "760295413cc87848bd2848efa06980187c087b67a3fc74d0b716d1b3558d0a0a",
+        "i2c-demo.hex": "5d66fa47ac492cafa15cc6c314acdfe96d6852359000d12dcbc771b6aa9075c5",
+        "i2c-demo.listing": "fdd0aa376e0ef1ca1a0c3aa0a7c45031341409c4a4e18887d67dc8f1652e145f",
+        "profile.json": "5e755878c74c0d1bb6ca23b69ae809de3ae36c99be5c9a36e42055553e84b55b",
+        "spi-demo.hex": "637ab767569d1aa29b50bc8102420b7da660bdf169b33fd8317af3eee7418eb0",
+        "spi-demo.listing": "7823b4477acdf81398a345d7c88612cba295814e4831516f31e77731d01e6fc3",
+        "uart-demo.hex": "031a2f65bb05224f117c5c67ef081099cfabd829fe36907666dc172bee801ac8",
+        "uart-demo.listing": "9e728db0b30a60f7806956280e1aab5ecf593e361a793a50c035362e9612ade0"
+      }
+    }
+  },
+  "startup_seeds": [
+    1,
+    17,
+    91
+  ],
+  "commands": [
+    "make pemu-asic-check",
+    "python3 tools/tt_axpe_netlist.py --state build/asic/tt-axpe-25ns-wire200-fanout-eco/runs/pe10-wire200-fanout-eco-signoff/17-misc-reportmanufacturability/state_out.json --output build/asic/axpe-netlist-rate-budgets-2026-10-11 --flow-lock asic/axpe/flow-lock-25ns-postgrt-noant-wire200-am0.json"
+  ],
+  "rtl_log_sha256": "b511a006e2d50357dae2d5ec0df77c9846a53bc394bd1d7c9afd8450114db599",
+  "mapped_receipt": "build/asic/axpe-netlist-rate-budgets-2026-10-11/evidence.json",
+  "mapped_receipt_sha256": "61676de1f11579312b5c2cff1b8992cf09af826e67156b029e7eef5c53c3cbba",
+  "logs_sha256": {
+    "typ_1p20V_25C.log": "270193f3bdacfd5d7d0a7dc049289d9aa1291af23f2a5c4359edf527da9e3a8f",
+    "fast_1p32V_m40C.log": "f62e4e5c25af3ff41b0cbed34795151c00174c5e0d66ec20bad4b2dcdfebf3b5",
+    "slow_1p08V_125C.log": "d6fb038d9a3113fad02d5171add6af476719196af3d840533a8784c0cc1e8931",
+    "uart-demo.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "spi-demo.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "i2c-demo.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "autobaud-demo.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "verilator.log": "8aa916cdebfb1390717f466818767f570254917c9ff7645bc1f3d56f58e94f3f",
+    "suite-seed-1.log": "06f6b54f0582133cbcb53793d82a03251ab597b0f5cf262c3b480ceca6840bec",
+    "suite-seed-17.log": "06f6b54f0582133cbcb53793d82a03251ab597b0f5cf262c3b480ceca6840bec",
+    "suite-seed-91.log": "06f6b54f0582133cbcb53793d82a03251ab597b0f5cf262c3b480ceca6840bec",
+    "rates-40mhz-fast-i2c-build.log": "7cb63b602c778cbaab34ca8a217d657338bd99ca76c3fa63ba64024c468bb967",
+    "rates-40mhz-fast-i2c-seed-1.log": "6b5735cfec2d93b75774c526b54cde1bd29735379f0f23e09838c9ba72fef8dd",
+    "rates-40mhz-fast-i2c-seed-17.log": "6b5735cfec2d93b75774c526b54cde1bd29735379f0f23e09838c9ba72fef8dd",
+    "rates-40mhz-fast-i2c-seed-91.log": "6b5735cfec2d93b75774c526b54cde1bd29735379f0f23e09838c9ba72fef8dd",
+    "rates-40mhz-slow-build.log": "f3260b4a3d9a53f59d86b9ce5c38fd311186ff6a9af193876689126469d5f866",
+    "rates-40mhz-slow-seed-1.log": "eef80097fb91975fb83d545747c0a333788d4a2fee2e6defe8cd378618289682",
+    "rates-40mhz-slow-seed-17.log": "eef80097fb91975fb83d545747c0a333788d4a2fee2e6defe8cd378618289682",
+    "rates-40mhz-slow-seed-91.log": "eef80097fb91975fb83d545747c0a333788d4a2fee2e6defe8cd378618289682",
+    "rates-40mhz-standard-build.log": "e08f701dd51532b95703ccf12a74801a6c8dc507ec126477f7e1694e21cd9109",
+    "rates-40mhz-standard-seed-1.log": "a4242c20029b2528179fa152c38a2222e08d62c89b64d8eb5e6f894946004531",
+    "rates-40mhz-standard-seed-17.log": "a4242c20029b2528179fa152c38a2222e08d62c89b64d8eb5e6f894946004531",
+    "rates-40mhz-standard-seed-91.log": "a4242c20029b2528179fa152c38a2222e08d62c89b64d8eb5e6f894946004531"
+  },
+  "negative_probes": {
+    "level": "host RTL deliberately mismatched clock/profile images",
+    "status": "passed: all expected failures detected",
+    "cases": [
+      {
+        "name": "old-uart",
+        "returncode": 1,
+        "expected_diagnostic": "uart:",
+        "log_sha256": "d8a7aaa004e51c37c4702c792d58ad145863a8c493665302027bf68dd031432e"
+      },
+      {
+        "name": "old-spi",
+        "returncode": 1,
+        "expected_diagnostic": "SPI: rising-edge interval 50, expected 40",
+        "log_sha256": "0ba701284688b3a33123012111b6e201c8cfb6fa90c79701e89355a828578f3c"
+      },
+      {
+        "name": "fast-i2c-mislabeled",
+        "returncode": 1,
+        "expected_diagnostic": "I2C: no complete eight-bit cell train at 400 cycles",
+        "log_sha256": "a638129192498533bec96174386e7d342e6704866190243cc3dbce7659fd9d66"
+      }
+    ]
+  },
+  "profile_validation": "three non-default rate profiles plus guard-zero exercise; 12 refusals",
+  "development_failures": [
+    {
+      "case": "SPI invalid-period test initially used 900000 Hz",
+      "finding": "40 MHz / 900000 floors to 44, a valid even cell; corrected fixture to 930000 Hz (43 cycles). No firmware/runtime failure was hidden."
+    },
+    {
+      "case": "Previously decoded I2C waveforms violate UM10204 low-time minima",
+      "finding": "Old 40 MHz fast cell holds SCL low 50 cycles (1.25 us) below 52 cycles (1.3 us); old 50 MHz STOP/repeated-START quarter-cell handoffs hold low 129 cycles below 235 cycles (4.7 us). Both are rejected on RTL and mapped simulation. Runtime fast period and handoffs corrected; historical receipts retained."
+    },
+    {
+      "case": "Valid slower profiles exceed fixed test budgets",
+      "finding": "At 40 MHz, 10 kHz SPI/I2C cells are legal 4000-cycle words. The old SPI test timed out at 20480 cycles before a 32000-cycle byte completed; the old mapped I2C test likewise stopped at its 40000-cycle limit. Budgets now derive from periods; the published slow profile passes all RTL/mapped seeds."
+    }
+  ],
+  "verification": {
+    "smoke": "passed: all 14 stages",
+    "smoke_summary_sha256": "e2294dbf00ff7ede0a06e2dade201ee72a7b3f1b34631b7b924cdbf51df3fd45",
+    "smoke_log_sha256": "cf404f3fd92cb75775df30d5d1d16abf257e483bbc74c97356ec9bd54f2289f2",
+    "coverage_registry": "passed",
+    "gates_log_sha256": "57e2832688d033883f6d47eb470bf4a7ecfac4f501210b7a0d2a87cd4707182d",
+    "final_smoke_log_sha256": "56a97751eb6adc4eb7e1103d41a5e051adfff9051452d48f66808bd6fe8f0318",
+    "final_smoke_summary_sha256": "807cfc2ec56610e1a809ad23fb66f6e938f97216f2dd2d835366e39504844950"
+  },
+  "limits": [
+    "40 MHz is the supplied-clock assumption and selected P&R target; no oscillator measurement",
+    "UART integer division gives about 115273.8/57636.9 baud; independent receiver samples nearest requested bit centres",
+    "SPI checks all eight rising-edge spacings; I2C checks complete eight-bit cell trains, with handoff/ACK/START gaps separate from cell rate",
+    "SPI firmware mode 0 only; model/cosimulation exercise four modes; no new hardware mode 1-3 firmware claim",
+    "no physical pad/rise-time/FPGA/silicon evidence",
+    "Hardware RTL/GDS/netlist unchanged; I2C default/profile words change for longer STOP/repeated-START handoffs; runtime payload identity stays separate"
+  ],
+  "historical_functional_only_replay": {
+    "mapped_receipt": "build/asic/axpe-netlist-rates-2026-10-11/evidence.json",
+    "mapped_receipt_sha256": "46ee528e417e3dd6ef1c84356e9f3d4da2da41d84ae2389138d65f69e9918976",
+    "rtl_log_sha256": "cfda9cf61142ffd294852aad409afb2bd05683a69ad2a74f3ddd05b1eddb272f",
+    "limit": "Byte decoding and cell spacing did not detect bus low-time violations; not bus-timing compliance evidence"
+  },
+  "i2c_timing": {
+    "source_url": "https://www.nxp.com/docs/en/user-guide/UM10204.pdf",
+    "revision": "7.0, 2021-10-01, Table 11 (printed page 44)",
+    "source_sha256": "dc91f00f65584e06ef36e26c93bf9d91a95fb3c8a1830a9223e53caf678b36af",
+    "checks": [
+      "SCL low",
+      "SCL high",
+      "START/repeated-START setup",
+      "START hold",
+      "STOP setup",
+      "bus free before START",
+      "data setup"
+    ],
+    "fast_cell_cycles": 112,
+    "fast_cell_hz": 357142.85714285716,
+    "fast_half_cell_ns": 1400,
+    "fast_guard_ns": 100,
+    "standard_guard_ns": 50,
+    "excluded": [
+      "analog rise/fall",
+      "data hold",
+      "pad thresholds/characterization",
+      "clock stretching",
+      "post-STOP next transaction bus-free interval",
+      "physical operation"
+    ],
+    "negative_probes": {
+      "status": "passed: prior timing violations rejected",
+      "cases": [
+        {
+          "case": "short-stop-standard",
+          "returncode": 1,
+          "diagnostic": "I2C timing: SCL low: 129 cycles, minimum 235",
+          "payload_sha256": "b30b6747043e3aec21fb1e50b3cd83dfeb8cb673753f6e4b395418f07ad5f028",
+          "log_sha256": "b92bbb95062b8510b7dac0a604a55e55712aedfcdd32790825144f71599f6ab1"
+        },
+        {
+          "case": "short-fast-low",
+          "returncode": 1,
+          "diagnostic": "I2C timing: SCL low: 50 cycles, minimum 52",
+          "payload_sha256": "a16ee9d22dfbb49040842fa0dc3827821f94d49f45e7e112672994d024aca353",
+          "log_sha256": "0a8e2ade082efda35e5d735c1bb4e076b146e710657f72096a2d00672382276b"
+        }
+      ],
+      "mapped_cases": [
+        {
+          "case": "short-stop-standard",
+          "returncode": 1,
+          "diagnostic": "I2C timing: SCL low: 129 cycles, minimum 235",
+          "log_sha256": "b92bbb95062b8510b7dac0a604a55e55712aedfcdd32790825144f71599f6ab1"
+        },
+        {
+          "case": "short-fast-low",
+          "returncode": 1,
+          "diagnostic": "I2C timing: SCL low: 50 cycles, minimum 52",
+          "log_sha256": "0a8e2ade082efda35e5d735c1bb4e076b146e710657f72096a2d00672382276b"
+        }
+      ],
+      "historical_inputs": {
+        "receipt": "build/asic/axpe-netlist-rates-waveform-2026-10-11/evidence.json",
+        "receipt_sha256": "0a0cfacd6c27c0415b255c413f7e2719a7e46ec678e02126c63619283986ae59",
+        "scope": "exact prior payload images reused without mutation; metadata has four fields and no added timing guard"
+      },
+      "commands": [
+        {
+          "level": "RTL",
+          "argv": [
+            "/home/shubhgau/dev/atomiX/build/asic/tt-axpe-export/demo/build/obj/Vtt_um_shubhgau_atomix_axpe",
+            "/home/shubhgau/dev/atomiX/build/asic/axpe-i2c-timing-negative-2026-10-11/short-stop-standard",
+            "+verilator+seed+1"
+          ],
+          "executable_sha256": "a0287273d90d648a72e4eba345715d2b3649dba1d948a57277acfa149dd773ea",
+          "firmware_sha256": {
+            "autobaud-demo.hex": "a96ef3fbffd4ca7c4b277c4616b41c800696cbc677035b5fa2a3de46a798e3f9",
+            "i2c-demo.hex": "b30b6747043e3aec21fb1e50b3cd83dfeb8cb673753f6e4b395418f07ad5f028",
+            "spi-demo.hex": "19503e8411d1f413a2ecdfb44cba34eb8ff7fd648b6d01c172580a6afcca0c2a",
+            "uart-demo.hex": "a63a1c173614eff060d2a5e293efbbf051181632bd89d2fa4b5c5c25ec84d29d"
+          },
+          "clock_contract_sha256": null
+        },
+        {
+          "level": "RTL",
+          "argv": [
+            "/home/shubhgau/dev/atomiX/build/asic/tt-axpe-export/demo/build/obj/Vtt_um_shubhgau_atomix_axpe",
+            "/home/shubhgau/dev/atomiX/build/asic/axpe-i2c-timing-negative-2026-10-11/short-fast-low",
+            "+verilator+seed+1"
+          ],
+          "executable_sha256": "a0287273d90d648a72e4eba345715d2b3649dba1d948a57277acfa149dd773ea",
+          "firmware_sha256": {
+            "autobaud-demo.hex": "02e54e53790187302b80d1381cf76966053828191f2f016d1871145d661e43c5",
+            "i2c-demo.hex": "a16ee9d22dfbb49040842fa0dc3827821f94d49f45e7e112672994d024aca353",
+            "spi-demo.hex": "4955c31d2aefb4ade483ead06ed22427e615bdb852d72e0e4c9c1f9273733dca",
+            "uart-demo.hex": "369d130b16b8fe78f8ec80b0d7fd87ceaf7d32a0d271987f2bf7dba561d22151"
+          },
+          "clock_contract_sha256": "4c106351c5aa59b4213d17aad503f6733e38e83d98b1cd543d5e7fe63dd8dcb7"
+        },
+        {
+          "level": "mapped",
+          "argv": [
+            "/home/shubhgau/dev/atomiX/build/asic/axpe-netlist-i2c-timing-2026-10-11/obj/Vtt_um_shubhgau_atomix_axpe",
+            "/home/shubhgau/dev/atomiX/build/asic/axpe-i2c-timing-negative-2026-10-11/short-stop-standard",
+            "+verilator+seed+1"
+          ],
+          "executable_sha256": "1a5611f12694a0ec25499596aa8ebb9a2677ef25fa15235a6f5b3453070b19bb",
+          "firmware_sha256": {
+            "autobaud-demo.hex": "a96ef3fbffd4ca7c4b277c4616b41c800696cbc677035b5fa2a3de46a798e3f9",
+            "i2c-demo.hex": "b30b6747043e3aec21fb1e50b3cd83dfeb8cb673753f6e4b395418f07ad5f028",
+            "spi-demo.hex": "19503e8411d1f413a2ecdfb44cba34eb8ff7fd648b6d01c172580a6afcca0c2a",
+            "uart-demo.hex": "a63a1c173614eff060d2a5e293efbbf051181632bd89d2fa4b5c5c25ec84d29d"
+          },
+          "clock_contract_sha256": null
+        },
+        {
+          "level": "mapped",
+          "argv": [
+            "/home/shubhgau/dev/atomiX/build/asic/axpe-netlist-i2c-timing-2026-10-11/obj/Vtt_um_shubhgau_atomix_axpe",
+            "/home/shubhgau/dev/atomiX/build/asic/axpe-i2c-timing-negative-2026-10-11/short-fast-low",
+            "+verilator+seed+1"
+          ],
+          "executable_sha256": "1a5611f12694a0ec25499596aa8ebb9a2677ef25fa15235a6f5b3453070b19bb",
+          "firmware_sha256": {
+            "autobaud-demo.hex": "02e54e53790187302b80d1381cf76966053828191f2f016d1871145d661e43c5",
+            "i2c-demo.hex": "a16ee9d22dfbb49040842fa0dc3827821f94d49f45e7e112672994d024aca353",
+            "spi-demo.hex": "4955c31d2aefb4ade483ead06ed22427e615bdb852d72e0e4c9c1f9273733dca",
+            "uart-demo.hex": "369d130b16b8fe78f8ec80b0d7fd87ceaf7d32a0d271987f2bf7dba561d22151"
+          },
+          "clock_contract_sha256": "4c106351c5aa59b4213d17aad503f6733e38e83d98b1cd543d5e7fe63dd8dcb7"
+        }
+      ]
+    },
+    "negative_receipt_sha256": "9167da93aa304ee212dd472cc809e001b02897b6c3b5329f85f2eb7e6d48326f"
+  },
+  "portable_package": {
+    "status": "passed",
+    "receipt": "build/asic/axpe-portable-rates-complete-2026-10-11/evidence.json",
+    "receipt_sha256": "e7c4c02b780d2357b4311b888879cb74f5b4dd85f5774625d2e7660aa2e086b3",
+    "scope": "24 standalone RTL/mapped default/standard/fast/slow suite invocations at seeds 1, 17 and 91; bounded assembly; scaled budgets; package/XML/payload bindings"
+  },
+  "legacy_capacity_gate": {
+    "status": "passed",
+    "receipt": "build/asic/axpe-legacy-capacity-2026-10-11/evidence.json",
+    "receipt_sha256": "bc9e9bc819efa57a1a34441bf0c0e761d750cc48d3a36a43b8f0e4ccd24b1805",
+    "finding": "Legacy demo/replay assembly previously used the generic 256-word default rather than the selected capacity. Both now pass resolved imem_words; Make depends on the profile and recipe. The 16-word refusal and 64-word byte-identical acceptance pass."
+  },
+  "capacity_bound_final_replay": {
+    "status": "passed",
+    "receipt": "build/asic/axpe-netlist-submission-final-2026-10-11/evidence.json",
+    "receipt_sha256": "41fb2bb91eb8c413cb5233605a1d275f3a7d772acca9952bfa8367407313422f",
+    "scope": "same functional source/data; both legacy and profiled assembly use resolved instruction capacity; nine default/profile suite invocations"
+  },
+  "suite_budgets": {
+    "status": "passed",
+    "rule": "UART ten bits, SPI eight bits, I2C 36 shifted cells plus bus setup/handoffs; case budgets scale with periods and allow polling/instruction overhead",
+    "slow_profile": "40mhz-slow",
+    "slow_spi_i2c_cell_cycles": 4000,
+    "old_failures": [
+      {
+        "receipt": "build/asic/axpe-slow-rate-budget-2026-10-11/old-budget.json",
+        "receipt_sha256": "9721952ceb71b23b05e69ee3357e619372f37387a61804492635a9fe284222cb",
+        "result": {
+          "status": "expected failure",
+          "returncode": 1,
+          "argv": [
+            "/home/shubhgau/dev/atomiX/build/asic/tt-axpe-export/demo/build/obj/Vtt_um_shubhgau_atomix_axpe",
+            "/home/shubhgau/dev/atomiX/build/asic/axpe-slow-rate-budget-2026-10-11/fw",
+            "+verilator+seed+1"
+          ],
+          "profile_sha256": "d513b1705727e414a0bf5b515feaf701e9d8378359f5103e7c43fee80df27d6a",
+          "log_sha256": "f4f4ed09344a17543f91e8d375166c98437c151778883ce1994211edd0bec1cc",
+          "finding": "4000-cycle SPI cells require at least 32000 cycles for a byte; old fixed 20000-cycle suite budget times out"
+        }
+      },
+      {
+        "receipt": "build/asic/axpe-slow-rate-budget-2026-10-11/old-i2c-budget.json",
+        "receipt_sha256": "6dd67af7f74fe831845b20a3fe4080b29645d8396db0a761d7687ac89d88afbd",
+        "result": {
+          "status": "expected failure",
+          "returncode": 1,
+          "argv": [
+            "/home/shubhgau/dev/atomiX/build/asic/axpe-netlist-submission-final-2026-10-11/obj/Vtt_um_shubhgau_atomix_axpe",
+            "/home/shubhgau/dev/atomiX/build/asic/axpe-slow-rate-budget-2026-10-11/fw-i2c",
+            "+verilator+seed+1"
+          ],
+          "profile_sha256": "0fc4caf9cdbd253c7abe570c713b7b7c3a07bf69e930806407334e525b50b25d",
+          "log_sha256": "ff2aa20016bd938ab41cfa1fb881c7858fb787d0a171c587a8e904f6c2bd8efc",
+          "finding": "Valid 4000-cycle I2C cells exceed the old fixed 40000-cycle suite budget"
+        }
+      }
+    ]
+  },
+  "historical_portable_timing_package": {
+    "status": "passed",
+    "receipt": "build/asic/axpe-portable-timing-2026-10-11/evidence.json",
+    "receipt_sha256": "2cc576294c6eaa85c301495b26a004357c5f3d47c8fabb38ed7cf6a7df83a8de",
+    "scope": "18 standalone RTL/mapped default/profile suite invocations at seeds 1, 17 and 91; current I2C waveform checker; package/XML/payload bindings",
+    "deeper_refusals": {
+      "status": "passed",
+      "receipt": "build/asic/axpe-portable-timing-2026-10-11/refusals.json",
+      "receipt_sha256": "f105e32c87d743d9a2dbc009172518aab1be90c7f5f064a9b795cb182149f183",
+      "cases": [
+        "missing-precheck-case",
+        "skipped-precheck-case",
+        "altered-rate-payload"
+      ]
+    }
+  }
+}

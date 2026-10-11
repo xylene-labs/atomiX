@@ -1,0 +1,11 @@
+{
+  "schema": 1,
+  "name": "axpe tiny probe: known unsupported widths, retained as a failing experiment",
+  "components": {"pemu": "pemu.axpe"},
+  "parameters": {
+    "pemu": {
+      "imem_words": 32, "reg_count": 4, "reg_width": 8,
+      "delay_bits": 8, "uio_pins": 4, "call_depth": 2
+    }
+  }
+}

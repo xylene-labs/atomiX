@@ -1,0 +1,606 @@
+{
+  "schema": "org.atomix.axpe-package-evidence.v1",
+  "date": "2026-10-10",
+  "level": "host RTL simulation of standalone source export",
+  "status": "passed",
+  "commands": [
+    "make pemu-asic-check",
+    "python3 tools/tt_axpe.py export --output <fresh temporary export>",
+    "make -C <fresh temporary export>/demo check JOBS=2"
+  ],
+  "relocation_receipt": "build/asic/axpe-package-relocated.json",
+  "relocation_receipt_sha256": "07b52a7f7c19220b80b23c5f9913318eacc07c30d3243d74d7455e157dfe0f72",
+  "relocated_tree_sha256_before_build": "32311fa6f688bf513ba238cf56e1a998a3269bb7d525fe10df89c5e2e78e83cf",
+  "hardware_sources_unchanged": true,
+  "hardware_sources_sha256": {
+    "src/axpe.sv": "1835160b3a4c7e847de2ea86ff12976735392873980080230c8d2b02f4f3489a",
+    "src/axpe_chip.sv": "b544e9306a8b216ea5f6f3afb067f0efd90954e29d2cb6ae996672c4e7fa48a3",
+    "src/axpe_decode.sv": "6205c4559daaa96826218a8fd06b9008c8e64acd8bf947dff2289e14678e2282",
+    "src/axpe_host.sv": "88de3babed72a3e198251ee01bc130bd5bd27b7d16b5b860d5f286fa23ebe7aa",
+    "src/axpe_imem.sv": "6ef2de718178e958222e02467be2fe16ab13762a2060c5e15653cef9cf898df2",
+    "src/axpe_isa.svh": "a3a64fe4ef9b858f658b41c3ffb0634dbc7ee092d8b2c43d2546172550a4950f",
+    "src/axpe_pads.sv": "d800e45c42dcc158560e9be8626b6e12e833e2069153f8e5c982d26b0b04a73c",
+    "src/axpe_shift.sv": "3052a6d158bab0101eba22e20e31154874638c40dd24d6193dc709d6bb3b3cd6",
+    "src/axpe_timing.sv": "f027badac4187026c884a000019660684fc40f3707ff9647b91494757faf189a",
+    "src/tt_um_shubhgau_atomix_axpe.sv": "561b21a41966634743af89608aca8340d32e8dec7d75dd54b7e8abf1bb020ecd"
+  },
+  "verification_inputs_sha256": {
+    "components/pemu/axpe/component.json": "6c69e11ba3948432838540b5698036ec3cee387a72d4f03e0793f77bc0a88486",
+    "demo/Makefile": "80098f3242caf4d6facdceb15b729aa21ec15a3b93defff9f8190a4c6d3c8357",
+    "demo/README.md": "11dbabc91d8887be0a9eef546a9808dffd16b7277aec802fcc7c79f57748f5b1",
+    "docs/pemu-host-protocol.md": "05c7340a50137fb48914f916f81603d82de3b0c24472afdc3ed5c32deef87405",
+    "sim/pemu/axpe_cases.h": "2153b47977146c994ed20fe6d276e3ea19579fdbd84e02c9e8772bf49f2cad4c",
+    "sim/pemu/axpe_device.h": "eb874f14e3412af11a3184583cdce8a5d859647e4f88b15169a46299c533523d",
+    "sim/pemu/axpe_peers.h": "43e6ce00aec7dffa1505ce0c887e9e25df4780e1d6b7e809bc91a6d0c6a0a377",
+    "sim/pemu/axpe_trace.h": "edf30eabc8331b64177121e3a1394732d1b608953c0671241efda49003d84d5d",
+    "sim/pemu/axpe_tt_tb.cpp": "fb8f5aac0e770fe2cac415704278fa3d492f8cd679907beee8b7f4bf4b51c3de",
+    "sw/pemu/as/axpe_as.py": "3a6c682336de5d2364c43fcece262b662d9772c4dea0ab3f72a40f12a1b10638",
+    "sw/pemu/firmware/autobaud-demo.s": "ab7e72b22979a778c7a84e9e3b8a4d84dc9934e87686771eccb02e86f4158fcc",
+    "sw/pemu/firmware/autobaud.s": "cf2c3914671b5e05e4a9304a8eb7ee5d1b7273f6b998450a402fb42b8459c458",
+    "sw/pemu/firmware/i2c-demo.s": "bf33cf7d155b8282b5501f4f167550716868fb2f164ef374cd2560593e08c04f",
+    "sw/pemu/firmware/i2c.s": "4b2f04f3d42b65582322f1608efad8886b9dfde3431020c008f241031affa3d2",
+    "sw/pemu/firmware/spi-demo.s": "ce9e166b56f49b7cf55ae3ec4ecfe3bb053cd1d9b6e8dcd00c67f9c58e768208",
+    "sw/pemu/firmware/spi.s": "7922bcbee6c73e64df56d9d08d8ce9957abf82c24f3c92d4ee4fe0df7ca872d4",
+    "sw/pemu/firmware/uart-demo.s": "dc6162723e66d4bf55c2003aab463a46ce5aa3cf964c4606ad86c88f6032b330",
+    "sw/pemu/firmware/uart.s": "85b60ebd94a640668d3bace20ea13f46b809d6f6b4e7c068224c220dd42a0077",
+    "sw/pemu/isa/axpe-isa.json": "d60e77699decd1c03b55fc9788fcdae9d5119b64892a8b20a1ca8a42fe086903",
+    "sw/pemu/isa/axpe-isa.md": "230883db3657b4347d48f813c7e14190176f0a1faa374f427d1094495cff9bd0",
+    "sw/pemu/isa/axpe_isa.h": "9ad6612baea979bac8c7547a6ae9371e4244351b724135d2df2b3450097073b0",
+    "sw/pemu/isa/axpe_isa.svh": "a3a64fe4ef9b858f658b41c3ffb0634dbc7ee092d8b2c43d2546172550a4950f",
+    "sw/pemu/model/axpe_model.c": "4339a1f1409653749e9d42848c4bde7344440416010af0f61b07a7b95c0bd921",
+    "sw/pemu/model/axpe_model.h": "eee79ed2248714e2dc2436e6bdad2711379d285e1d1792769b76e94a1d6d7266",
+    "tools/axpe_isa.py": "ad1b049b841f48559ee4f0d3684c13303fd165eb82b2a7c133908eff27306f4b",
+    "tools/requirements.json": "ada67ac697fb682780342ad3da38216dd0d88fccf2a8c55d5285ad3fc5abe4a2",
+    "verification/evidence-index.json": "d889049f26c893271252554567363eabf07a90eb512e9a8c8a50a388d2bbc9b5",
+    "verification/evidence/axpe-chip.json": "bde90b82d972159f91de9ad3c431440614dab87db02d24ea84b7aa0f41ffec82",
+    "verification/evidence/axpe-cmos5l-25ns.json": "5cb47afe7b21ba5a32e38acbf55f90c7becf0ee6d15909241d489c422ffde6c0",
+    "verification/evidence/axpe-cmos5l-feasibility.json": "282b7f192c35f7522586843eef8f7a67e382cb321a8f033317a6eb94326f8097",
+    "verification/evidence/axpe-cosim.json": "46dac86c38e29159dffea5e81ec6a7ac5f7aeaa946514c23f3caeb7afe06fbef",
+    "verification/evidence/axpe-model.json": "43be19d741edbff117efb20d0df41a75372b32d4feb039536dae006664acd68d",
+    "verification/evidence/axpe-netlist.json": "94969bde2728b87ea02815a70cbf5280fc756e2b07a796ad1e71b18668638072",
+    "verification/evidence/axpe-period.json": "2e3d7a6640eba0b659c5bc4071253442c6f6a9c231b98933be23794c676db189",
+    "verification/evidence/axpe-protocols.json": "b472c2bfb321b373ded93b2bc66962c38506eae690d0f65aa8a4a94abd73b607",
+    "verification/evidence/axpe-timing.json": "ecf97c4d96e44a32c74c709ee87e58e89856ba36d5810b7b151a6d49d6c28019"
+  },
+  "firmware_sha256": {
+    "autobaud-demo.hex": "a96ef3fbffd4ca7c4b277c4616b41c800696cbc677035b5fa2a3de46a798e3f9",
+    "i2c-demo.hex": "b30b6747043e3aec21fb1e50b3cd83dfeb8cb673753f6e4b395418f07ad5f028",
+    "spi-demo.hex": "19503e8411d1f413a2ecdfb44cba34eb8ff7fd648b6d01c172580a6afcca0c2a",
+    "uart-demo.hex": "a63a1c173614eff060d2a5e293efbbf051181632bd89d2fa4b5c5c25ec84d29d"
+  },
+  "suite_log_sha256": "03e74844cd212c2538c660900aa79e64e29755baa30a8eb12a23ad662fdb7cad",
+  "root_gate_log_sha256": "d3f25b71990796c6c07e2e10765e4ed42c5ed0d9128e146d186806c19b981ba9",
+  "startup_seeds": [
+    1,
+    17,
+    91
+  ],
+  "cases": [
+    "reset silence",
+    "two unrelated runtime programs cycle-exact against C model",
+    "write refusal while running and status",
+    "UART independent 8N1 receiver",
+    "SPI mode 0 duplex independent target",
+    "I2C ACK/NACK repeated START/read/STOP/open-drain release",
+    "autobaud at 37 and 53 cycles per bit"
+  ],
+  "tools": {
+    "verilator": "Verilator 5.050 2026-07-01 rev v5.050-60-g3d2421f3b"
+  },
+  "coverage": "The existing pemu-chip stage runs pemu-asic-check, which now executes the export standalone demo; the exported repository test workflow also runs it. No extra CI-suite stage or dependency tier is introduced.",
+  "verification": {
+    "deterministic_export_and_runs_guard": "pass through pemu-asic-check",
+    "coverage_contract": "pass: 128 advertised commands",
+    "smoke": "pass: all 14 stages after complete timing-proof package integration",
+    "smoke_summary_sha256": "64da7f4d86f573c4c565e631ae799d42d315ba077f3ff926aeb8b1020989013a",
+    "writeup_in_smoke_export": true
+  },
+  "limits": [
+    "included historical receipts are bound only to their named inputs",
+    "4 ns external IO budget remains provisional",
+    "maintainer commit-pinned reviews remain outstanding",
+    "no physical FPGA or measured silicon claim",
+    "no commit, external publication or challenge submission made",
+    "legal-stream timing proof excludes program-memory/data correctness, invalid-program fault policy and non-default architecture"
+  ],
+  "relocation_recipes_sha256": {
+    "tools/tt_axpe.py": "c81d4bf35cbdffc734c27b98e81db94dcf7e4d38b44db46669c824374f201996",
+    "asic/axpe/demo/Makefile": "80098f3242caf4d6facdceb15b729aa21ec15a3b93defff9f8190a4c6d3c8357",
+    "asic/axpe/demo/README.md": "11dbabc91d8887be0a9eef546a9808dffd16b7277aec802fcc7c79f57748f5b1",
+    "asic/axpe/README.md": "ad5b6278b19e975f2f8f732fd55ef95dde016e48bd5194cde9fbefd81802d5ec",
+    "asic/axpe/.github/workflows/test.yaml": "da642d7e1679d515108480e64c6de9e9038f0101a48ee0b624d55b61e3a69770"
+  },
+  "integration_recipes_sha256": {
+    "tools/tt_axpe.py": "373f5387cc8e39fc177c39281a008a5a5db2bb6e7d81dbdf6210d7eacf165339",
+    "asic/axpe/demo/Makefile": "a60351701bf2013afbff58d5e005fb1f317cddea4a706c220da68fc025764052",
+    "asic/axpe/demo/README.md": "2176f07eaad77f6877d94071ce2efc6eed221faf53df81f46f2d41d1669584e9",
+    "asic/axpe/README.md": "47aa966c0037c357d871a93c4b770bac7cbd6fa5f0188884ce4ac2fe986d270a",
+    "asic/axpe/docs/verification.md": "0f56032a0e866e8d16fa996d30ae4743bfd67aa1ee81e7dd22d61b813cca2dae",
+    "asic/axpe/.github/workflows/test.yaml": "da642d7e1679d515108480e64c6de9e9038f0101a48ee0b624d55b61e3a69770",
+    "tools/tt_axpe_package.py": "df39ee63945ed6678cee75abaafea030492275c6ce18b2db6eb4b8f3df8310ff",
+    "asic/axpe/docs/physical-candidate.md": "3b23fe45d677f97e4fdc1b07ed226d97a85ad28a2a1f7aecbec86d07da9d7609"
+  },
+  "integration_verification_inputs_sha256": {
+    "components/pemu/axpe/component.json": "6c69e11ba3948432838540b5698036ec3cee387a72d4f03e0793f77bc0a88486",
+    "demo/Makefile": "a60351701bf2013afbff58d5e005fb1f317cddea4a706c220da68fc025764052",
+    "demo/README.md": "2176f07eaad77f6877d94071ce2efc6eed221faf53df81f46f2d41d1669584e9",
+    "docs/pemu-host-protocol.md": "05c7340a50137fb48914f916f81603d82de3b0c24472afdc3ed5c32deef87405",
+    "docs/physical-candidate.md": "3b23fe45d677f97e4fdc1b07ed226d97a85ad28a2a1f7aecbec86d07da9d7609",
+    "docs/verification.md": "0f56032a0e866e8d16fa996d30ae4743bfd67aa1ee81e7dd22d61b813cca2dae",
+    "sim/pemu/axpe_cases.h": "2153b47977146c994ed20fe6d276e3ea19579fdbd84e02c9e8772bf49f2cad4c",
+    "sim/pemu/axpe_device.h": "eb874f14e3412af11a3184583cdce8a5d859647e4f88b15169a46299c533523d",
+    "sim/pemu/axpe_peers.h": "43e6ce00aec7dffa1505ce0c887e9e25df4780e1d6b7e809bc91a6d0c6a0a377",
+    "sim/pemu/axpe_trace.h": "edf30eabc8331b64177121e3a1394732d1b608953c0671241efda49003d84d5d",
+    "sim/pemu/axpe_tt_tb.cpp": "fb8f5aac0e770fe2cac415704278fa3d492f8cd679907beee8b7f4bf4b51c3de",
+    "sw/pemu/as/axpe_as.py": "3a6c682336de5d2364c43fcece262b662d9772c4dea0ab3f72a40f12a1b10638",
+    "sw/pemu/firmware/autobaud-demo.s": "ab7e72b22979a778c7a84e9e3b8a4d84dc9934e87686771eccb02e86f4158fcc",
+    "sw/pemu/firmware/autobaud.s": "cf2c3914671b5e05e4a9304a8eb7ee5d1b7273f6b998450a402fb42b8459c458",
+    "sw/pemu/firmware/i2c-demo.s": "bf33cf7d155b8282b5501f4f167550716868fb2f164ef374cd2560593e08c04f",
+    "sw/pemu/firmware/i2c.s": "4b2f04f3d42b65582322f1608efad8886b9dfde3431020c008f241031affa3d2",
+    "sw/pemu/firmware/spi-demo.s": "ce9e166b56f49b7cf55ae3ec4ecfe3bb053cd1d9b6e8dcd00c67f9c58e768208",
+    "sw/pemu/firmware/spi.s": "7922bcbee6c73e64df56d9d08d8ce9957abf82c24f3c92d4ee4fe0df7ca872d4",
+    "sw/pemu/firmware/uart-demo.s": "dc6162723e66d4bf55c2003aab463a46ce5aa3cf964c4606ad86c88f6032b330",
+    "sw/pemu/firmware/uart.s": "85b60ebd94a640668d3bace20ea13f46b809d6f6b4e7c068224c220dd42a0077",
+    "sw/pemu/isa/axpe-isa.json": "6bc75b907b156f96805baa321a3a2f86447477a4a8457f332cdc62217d30face",
+    "sw/pemu/isa/axpe-isa.md": "5c5533a684c08cbc06813bd5a65d8e7e7c784bee632787c526e1e6d18ab38b57",
+    "sw/pemu/isa/axpe_isa.h": "9ad6612baea979bac8c7547a6ae9371e4244351b724135d2df2b3450097073b0",
+    "sw/pemu/isa/axpe_isa.svh": "a3a64fe4ef9b858f658b41c3ffb0634dbc7ee092d8b2c43d2546172550a4950f",
+    "sw/pemu/model/axpe_model.c": "4339a1f1409653749e9d42848c4bde7344440416010af0f61b07a7b95c0bd921",
+    "sw/pemu/model/axpe_model.h": "eee79ed2248714e2dc2436e6bdad2711379d285e1d1792769b76e94a1d6d7266",
+    "tools/axpe_isa.py": "ad1b049b841f48559ee4f0d3684c13303fd165eb82b2a7c133908eff27306f4b",
+    "tools/requirements.json": "ada67ac697fb682780342ad3da38216dd0d88fccf2a8c55d5285ad3fc5abe4a2",
+    "verification/evidence-index.json": "1ea078adbb057268e3e4ca284d02e22ebf6a7d091b72da01efd69606346fde56",
+    "verification/evidence/axpe-chip.json": "bde90b82d972159f91de9ad3c431440614dab87db02d24ea84b7aa0f41ffec82",
+    "verification/evidence/axpe-cmos5l-25ns.json": "a3cbe94416aa2c345ec970f6f0aa52d39f37941822bdc603111b82a76a04fccc",
+    "verification/evidence/axpe-cmos5l-feasibility.json": "282b7f192c35f7522586843eef8f7a67e382cb321a8f033317a6eb94326f8097",
+    "verification/evidence/axpe-cosim.json": "46dac86c38e29159dffea5e81ec6a7ac5f7aeaa946514c23f3caeb7afe06fbef",
+    "verification/evidence/axpe-model.json": "43be19d741edbff117efb20d0df41a75372b32d4feb039536dae006664acd68d",
+    "verification/evidence/axpe-netlist.json": "294f63bf871fa557c27762c624a8c3fd4984df92a8fd90e91d6f276b51e082db",
+    "verification/evidence/axpe-period.json": "2e3d7a6640eba0b659c5bc4071253442c6f6a9c231b98933be23794c676db189",
+    "verification/evidence/axpe-protocols.json": "b472c2bfb321b373ded93b2bc66962c38506eae690d0f65aa8a4a94abd73b607",
+    "verification/evidence/axpe-shift-timing.json": "a5455e902a272c0d486e09e24d6d87ec43cf52a408f0b2a4427e4687fab48025",
+    "verification/evidence/axpe-timing.json": "babdc5b66cb7c667152c50f71aeacf39d6a4df54f525a7a2bcaf3fe916b3ea1b",
+    "verification/evidence/axpe-wait-timing.json": "eb21ce3ee4dd25ffd354fa6a855045aec91182c40c940124ab43ce6704b8bc29"
+  },
+  "selected_candidate_package": {
+    "status": "passed",
+    "level": "local hash-bound physical candidate package and relocated two-state zero-delay RTL/mapped functional replay",
+    "output": "build/asic/axpe-submission-review",
+    "manifest_sha256": "c198f5d9e802606188623d45c471a299caf35486a596f02cdfeb53c415097212",
+    "hardware_sources_sha256": {
+      "src/axpe.sv": "1835160b3a4c7e847de2ea86ff12976735392873980080230c8d2b02f4f3489a",
+      "src/axpe_chip.sv": "b544e9306a8b216ea5f6f3afb067f0efd90954e29d2cb6ae996672c4e7fa48a3",
+      "src/axpe_decode.sv": "6205c4559daaa96826218a8fd06b9008c8e64acd8bf947dff2289e14678e2282",
+      "src/axpe_host.sv": "88de3babed72a3e198251ee01bc130bd5bd27b7d16b5b860d5f286fa23ebe7aa",
+      "src/axpe_imem.sv": "6ef2de718178e958222e02467be2fe16ab13762a2060c5e15653cef9cf898df2",
+      "src/axpe_isa.svh": "a3a64fe4ef9b858f658b41c3ffb0634dbc7ee092d8b2c43d2546172550a4950f",
+      "src/axpe_pads.sv": "d800e45c42dcc158560e9be8626b6e12e833e2069153f8e5c982d26b0b04a73c",
+      "src/axpe_shift.sv": "3052a6d158bab0101eba22e20e31154874638c40dd24d6193dc709d6bb3b3cd6",
+      "src/axpe_timing.sv": "f027badac4187026c884a000019660684fc40f3707ff9647b91494757faf189a",
+      "src/tt_um_shubhgau_atomix_axpe.sv": "561b21a41966634743af89608aca8340d32e8dec7d75dd54b7e8abf1bb020ecd"
+    },
+    "gds_sha256": "a5877dd7626f05d7462ce6e629e84e1b507a606f7c6a75e083e22c09af772134",
+    "netlist_sha256": "959c159a7259e687f3ef3003d1522266b3dfd838b500b9cbeaedbd4be88c05e3",
+    "functional_model_sha256": "50243b8a0b6126cc4359892c13ee3a511536b572192b32ad27f4be6bc20c2231",
+    "signoff_state_sha256": "58f9fbed80792de2d8ce9d1f4cf78d33e8000182cf6ad2fd98383618f357899d",
+    "replay_receipt_sha256": "ad624998f6e0b4dc153e2ad363c8a7887850c7dde3ad848e965cd29258e11b92",
+    "package_recipe_sha256": "df39ee63945ed6678cee75abaafea030492275c6ce18b2db6eb4b8f3df8310ff",
+    "portable_checker_sha256": "e817589350b8a9280fce7dfd37e0d95f7e537b646cea8aa628e587440d21e085",
+    "relocation_receipt": "build/asic/axpe-candidate-relocation.json",
+    "relocation_receipt_sha256": "6d3168afbbddd963ae1c64d01df8e2a84e7d0339cf0d990d464d0166f32ce308",
+    "commands": [
+      "make pemu-package PEMU_PACKAGE_ARGS='<explicit completed signoff, accepted replay, selected profile/lock, fresh output>'",
+      "python3 <relocated package>/verification/check_package.py",
+      "make -C <relocated package>/demo mapped-check",
+      "make -C <relocated package>/demo check"
+    ],
+    "mapped_suite_log_sha256": "3881a6efca73ffb08a753614a27e0f406160bb6e5444419173e5eebb365d7129",
+    "rtl_suite_log_sha256": "da99ee387f77b84ed6e9b074127549da0121bcf9393c60e9c61b4d08e7f6cf55",
+    "startup_seeds": [
+      1,
+      17,
+      91
+    ],
+    "rejection_checks": [
+      {
+        "name": "overwrite",
+        "command": [
+          "python3",
+          "tools/tt_axpe_package.py",
+          "--workdir",
+          "build/asic/tt-axpe-25ns-wire200-fanout-eco",
+          "--tag",
+          "pe10-wire200-fanout-eco-signoff",
+          "--replay",
+          "build/asic/axpe-netlist-eco-final-functional",
+          "--profile",
+          "configs/tt-axpe-6x4-25ns-postgrt-noant-wire200-am0.json",
+          "--flow-lock",
+          "asic/axpe/flow-lock-25ns-postgrt-noant-wire200-am0.json",
+          "--output",
+          "/home/shubhgau/dev/atomiX/build/asic/axpe-submission-review"
+        ],
+        "result": "expected rejection",
+        "log": "build/asic/axpe-package-reject-overwrite.log",
+        "log_sha256": "41d07e14a3c39e8be0a222ecf717d8d17760f9de45c83ecceb90665db394cfd3"
+      },
+      {
+        "name": "incomplete",
+        "command": [
+          "python3",
+          "tools/tt_axpe_package.py",
+          "--workdir",
+          "build/asic/tt-axpe-25ns-wire200-fanout-eco",
+          "--tag",
+          "pe10-wire200-fanout-eco-route",
+          "--replay",
+          "build/asic/axpe-netlist-eco-final-functional",
+          "--profile",
+          "configs/tt-axpe-6x4-25ns-postgrt-noant-wire200-am0.json",
+          "--flow-lock",
+          "asic/axpe/flow-lock-25ns-postgrt-noant-wire200-am0.json",
+          "--output",
+          "/home/shubhgau/dev/atomiX/build/asic/axpe-package-rejected-state"
+        ],
+        "result": "expected rejection",
+        "log": "build/asic/axpe-package-reject-incomplete.log",
+        "log_sha256": "6f1fbf83aa693d140f1854c9f7ec3c7051735ed8cf2c67d9fc8677a458879300"
+      },
+      {
+        "name": "changed-gds",
+        "command": [
+          "python3",
+          "/tmp/axpe-reject-33o7r70d/export/verification/check_package.py"
+        ],
+        "result": "expected rejection",
+        "log": "build/asic/axpe-package-reject-changed-gds.log",
+        "log_sha256": "76f4388fccc1d8f2b95f32750c5b0a8f8bd817a62ec61cfa5884fb98f32089dd"
+      },
+      {
+        "name": "wrong-binding",
+        "command": [
+          "python3",
+          "/tmp/axpe-reject-33o7r70d/export/verification/check_package.py"
+        ],
+        "result": "expected rejection",
+        "log": "build/asic/axpe-package-reject-wrong-binding.log",
+        "log_sha256": "6490fef80fac9e2173e97246599348c94a5a9f68e1fb94fe1810378dae320fdb"
+      },
+      {
+        "name": "changed-payload",
+        "command": [
+          "python3",
+          "/tmp/axpe-reject-33o7r70d/export/verification/check_package.py",
+          "--firmware-dir",
+          "/tmp/axpe-reject-33o7r70d/fw"
+        ],
+        "result": "expected rejection",
+        "log": "build/asic/axpe-package-reject-changed-payload.log",
+        "log_sha256": "481e9cd3bcac36b850c3949fd1499cd19083f34104207f696ff01d40008498ff"
+      }
+    ],
+    "source_profile_lock_selection": "pass: make pemu-asic-check with TT_AXPE_PROFILE, TT_AXPE_FLOW_LOCK and fresh TT_AXPE_OUTPUT selecting the 25 ns candidate",
+    "source_profile_lock_selection_log_sha256": "7bcc056deb6b1aeaef7f8377ff003c2c1379e948768be4a3afd3de6d2d24a69f",
+    "limits": [
+      "4 ns external IO delay remains provisional",
+      "only 25 ps fast-corner hold margin",
+      "KLayout DRC/XOR and Yosys EQY skipped",
+      "no package supply/IR-drop contract",
+      "two-state zero-delay functional replay; no SDF",
+      "maintainer commit-pinned reviews owed",
+      "complete instruction-retirement proof remains open",
+      "no FPGA or measured silicon evidence",
+      "fresh physical regeneration from source was not rerun for this packaging check; exact staged recipe and parent hashes are included"
+    ],
+    "smoke_summary_sha256": "374cffec1c286ea1fa908a61a82dd4b47276a83ed060dc367e40e04857912629"
+  },
+  "complete_timing_package": {
+    "status": "passed",
+    "date": "2026-10-10",
+    "tested_package": "build/asic/axpe-submission-2026-10-10",
+    "tested_manifest_sha256": "22f374cb317499dd39d62c592f5657f64c47a1b74efa51a7894a697d236df1ab",
+    "relocation_receipt": "build/asic/axpe-final-relocation.json",
+    "relocation_receipt_sha256": "d5a39e21439dba6a3545dc4431fda2f8b749cce43660fbb5d81f7ca98c1832ff",
+    "native_timing_receipt_sha256": "ad812f72b94cb8da60902138c2d477981f3a64ff83989efd98ea69cbb0146499",
+    "portable_formal_receipt_sha256": "a1193b315def82ed3723a0cfa2c050728f38d0a97d206e41c52edf91e81ae6aa",
+    "portable_formal_jobs": 52,
+    "portable_formal_log_sha256": "f61c22cf433c78d03c1a9f544e0fefdbacb6d057345cdeeaee7e4ccbda0656a7",
+    "portable_rtl_and_mapped_log_sha256": "684890af350aa4a22ed7d45a79691e371f8466f410a0c695c42c65f8e20946da",
+    "startup_seeds": [
+      1,
+      17,
+      91
+    ],
+    "checkpoint_restoration": {
+      "status": "passed",
+      "scope": "checkpoint restoration into a fresh test destination with the accepted recipe; not a rerun of the physical flow",
+      "inputs_match_pinned_eco": true,
+      "inherited_metrics_cleared": true,
+      "overwrite_rejected_and_original_unchanged": true,
+      "restored_state_sha256": "fc445da5002548bea0de771172170a71c06cda5d8cdc932ef585196361975f81",
+      "command": [
+        "python3",
+        "/home/shubhgau/dev/atomiX/build/asic/axpe-submission-2026-10-10/verification/restore_eco_parent.py",
+        "--atomix-root",
+        "/tmp/axpe-restore-test-m82d4206/atomix"
+      ],
+      "log_sha256": "b20c33865a08a29c10b05342980293189123cd002c4a994c54d0b63578f4ecdd",
+      "restorer_sha256": "02c58a32d7cecb05a79a4f36b0e81ecd88c6140b6055544262a5bff1ea04f10f"
+    },
+    "formal_input_rejections": [
+      {
+        "case": "changed-formal-harness",
+        "result": "expected rejection",
+        "log_sha256": "dcf671906e30228cbc451bc0e62f56ce3116a13b82c25b398cee12fff22aa3f3"
+      },
+      {
+        "case": "wrong-formal-profile",
+        "result": "expected rejection",
+        "log_sha256": "9cbbcdce57138c43bd7f6c37addca9fe0e5c97588cbfaa1c49c8743af5d08310"
+      }
+    ],
+    "package_recipe_sha256": "76e5f52715bbcae4fab75d91afdd593dd9590f02b566751feca903891c0eca04",
+    "portable_timing_runner_sha256": "bced7cf90d26e08f680afde999e809ab8c307f25de37fc9036e330ae572bd2ae",
+    "limits": [
+      "no fresh full source-to-GDS regeneration during packaging; exact pre-ECO checkpoint and staged recipe are included",
+      "external 4 ns IO delay remains provisional",
+      "maintainer commit-pinned reviews remain owed",
+      "no commit, publication or challenge submission made"
+    ]
+  },
+  "final_review_archive": {
+    "status": "passed",
+    "date": "2026-10-10",
+    "package": "build/asic/axpe-submission-ready",
+    "manifest_sha256": "9f57c99373899f729a39cf23d33e044dd5106f1bfb5d845419f67401281c218d",
+    "archive": "build/asic/axpe-submission-ready.tar.gz",
+    "archive_sha256": "f981a923279e1669ba724e0faca8a0a4b4f2179387fd98b501d2fe0eab11a3b3",
+    "archive_bytes": 6280799,
+    "archive_file_count": 171,
+    "deterministic_repeat": "byte-identical SHA-256 from two independent writes; sorted files, zero timestamp and owner, stable permissions and gzip header",
+    "extracted_package_check": "passed",
+    "test_binding": {
+      "tested_package": "build/asic/axpe-submission-2026-10-10",
+      "tested_manifest_sha256": "22f374cb317499dd39d62c592f5657f64c47a1b74efa51a7894a697d236df1ab",
+      "unchanged_supplied_files": 166,
+      "changed_files": [
+        ".atomix-export.json",
+        "README.md",
+        "verification/evidence-index.json",
+        "verification/evidence/axpe-core-timing.json"
+      ],
+      "scope": "Only README, evidence receipts/index and export metadata changed. Hardware, selected physical inputs and outputs, firmware, replay harnesses, all formal jobs and portable verification tools are byte-identical to the relocated package that passed."
+    },
+    "publication": "local archive only; not committed or submitted",
+    "current_recipes_sha256": {
+      "tools/tt_axpe.py": "318fca7c62df0dd5ed18ee42388a5328abbd4b7d9855dcfccdc147d163c742d8",
+      "asic/axpe/demo/Makefile": "22ce9895af9464fb7bf692326d348e2926d871e2bba317edecf76ae67a71bf8d",
+      "asic/axpe/demo/README.md": "2176f07eaad77f6877d94071ce2efc6eed221faf53df81f46f2d41d1669584e9",
+      "asic/axpe/README.md": "46feb0b4ab149cc7d9970e8de353d07a384945fddf0595b44e639921298a6739",
+      "asic/axpe/docs/verification.md": "31c8ee82855219583f5d74535d040899424ec75aabbc742e99fc786734f9e825",
+      "asic/axpe/.github/workflows/test.yaml": "da642d7e1679d515108480e64c6de9e9038f0101a48ee0b624d55b61e3a69770",
+      "tools/tt_axpe_package.py": "76e5f52715bbcae4fab75d91afdd593dd9590f02b566751feca903891c0eca04",
+      "asic/axpe/docs/physical-candidate.md": "68052c44607a60ef2a0607ecd311d7339195544c81d19604e56cef9833342446",
+      "asic/axpe/demo/check_package.py": "e817589350b8a9280fce7dfd37e0d95f7e537b646cea8aa628e587440d21e085",
+      "asic/axpe/demo/check_timing.py": "bced7cf90d26e08f680afde999e809ab8c307f25de37fc9036e330ae572bd2ae",
+      "asic/axpe/demo/restore_eco_parent.py": "02c58a32d7cecb05a79a4f36b0e81ecd88c6140b6055544262a5bff1ea04f10f",
+      "formal/pemu/check_core.py": "a14434759e2acf366a473c44b49c5302b912bc393649564a671e7599b1da56bc",
+      "formal/pemu/core.sv.in": "8c7c82089fe864a73c18b831ad2f9d975131e329c287bc1c1c1a71093d9d2d93"
+    },
+    "verification_contract": "PASS: 128 advertised commands; 49 stages, 9 suites; self-test passed",
+    "registry": "PASS: 3 candidates, 6 content-addressed records; self-test passed"
+  },
+  "historical_receipt_scope": "Earlier entries, including final_review_archive, are preserved historical revisions. current_local_review_package binds the completed 2026-10-11 local deliverables.",
+  "current_local_review_package": {
+    "schema": "org.atomix.axpe-final-local-package.v1",
+    "date": "2026-10-11",
+    "status": "passed",
+    "scope": "Completed authorized local preparation; maintainer review, publication and submission remain pending",
+    "artifacts": [
+      {
+        "directory": "build/asic/axpe-submission-final-2026-10-11",
+        "manifest_sha256": "81f1ec54028ab7f724f2489f02eb36a7bf9e45535dc779c1b0c5728091703e0b",
+        "archive": "build/asic/axpe-submission-final-2026-10-11.tar.gz",
+        "archive_sha256": "b0da965720ad3cac896cdb0b7a416ae1b55a2243e2ecafd5cb20d4a81a26e377",
+        "archive_bytes": 6374151,
+        "archive_file_count": 234,
+        "extracted_to": "/tmp/axpe-final-archives-338vcx87/axpe-submission-final-2026-10-11",
+        "extracted_check": {
+          "status": "passed",
+          "command": [
+            "python3",
+            "verification/check_package.py"
+          ],
+          "log": "build/asic/axpe-submission-final-2026-10-11-archive-check.log",
+          "log_sha256": "2a783fbe7cb27a9e9ba22c0c57f20872c1abe8e2cc928227836a69f9a3a8c4fe"
+        }
+      },
+      {
+        "directory": "build/asic/axpe-public-source-final-2026-10-11",
+        "manifest_sha256": "f65336ed6c2a88c0e281f023a48b698a2946ade1f9e0ce7c4e4d6a2ad38e3d72",
+        "archive": "build/asic/axpe-public-source-final-2026-10-11.tar.gz",
+        "archive_sha256": "80e3874c9c17bfb0eaad389cbe7f5dc775b5bac9dd4357fa784978ea719feaf6",
+        "archive_bytes": 173763,
+        "archive_file_count": 88,
+        "extracted_to": "/tmp/axpe-final-archives-338vcx87/axpe-public-source-final-2026-10-11",
+        "extracted_check": {
+          "status": "passed",
+          "command": [
+            "python3",
+            "/home/shubhgau/dev/atomiX/tools/tt_axpe.py",
+            "check",
+            "--output",
+            "/tmp/axpe-final-archives-338vcx87/axpe-public-source-final-2026-10-11",
+            "--profile",
+            "configs/tt-axpe-6x4-25ns-postgrt-noant-wire200-am0.json",
+            "--flow-lock",
+            "asic/axpe/flow-lock-25ns-postgrt-noant-wire200-am0.json"
+          ],
+          "log": "build/asic/axpe-public-source-final-2026-10-11-archive-check.log",
+          "log_sha256": "457504af456448013bc18d746115f2dd716f38e3fb7789889660e0572bfd5551"
+        }
+      }
+    ],
+    "functional_test_binding": {
+      "status": "passed",
+      "tested_package": "build/asic/axpe-submission-rates-complete-2026-10-11",
+      "tested_manifest_sha256": "9e6690a2cd4260d9298cdeb87de68613d294e9019e59a92459b473d7014c76a3",
+      "relocated_tested_package": "/tmp/axpe-rates-complete-7wvhhp5k/candidate",
+      "portable_receipt": "build/asic/axpe-portable-rates-complete-2026-10-11/evidence.json",
+      "portable_receipt_sha256": "e7c4c02b780d2357b4311b888879cb74f5b4dd85f5774625d2e7660aa2e086b3",
+      "unchanged_files": 226,
+      "changed_files": [
+        ".atomix-export.json",
+        "demo/README.md",
+        "docs/physical-candidate.md",
+        "docs/submission-compliance.md",
+        "verification/evidence-index.json",
+        "verification/evidence/axpe-clock.json",
+        "verification/evidence/axpe-flow-reproduction.json"
+      ],
+      "scope": "Executable inputs, hardware, physical assets, payloads, formal jobs and portable validator are byte-identical to the package that passed 24 RTL/mapped suites. Changes are documentation, compact evidence and export metadata only."
+    },
+    "functional_identity_receipt": "build/asic/axpe-final-functional-identity-2026-10-11.json",
+    "functional_identity_receipt_sha256": "6eb18bd4dbd5c967223b787479f0aa0e0e332e279fecca24e52bd5722ea399f6",
+    "archive_recipe": "GNU tar sorted names, fixed UTC date, numeric uid/gid zero; gzip filename empty and mtime zero; build/cache directories excluded",
+    "selected_gds_sha256": "a5877dd7626f05d7462ce6e629e84e1b507a606f7c6a75e083e22c09af772134",
+    "selected_netlist_sha256": "959c159a7259e687f3ef3003d1522266b3dfd838b500b9cbeaedbd4be88c05e3",
+    "preserved_historical_archive_sha256": "f981a923279e1669ba724e0faca8a0a4b4f2179387fd98b501d2fe0eab11a3b3",
+    "local_goal_requirements": [
+      {
+        "requirement": "Actual-clock runtime payload verification",
+        "status": "passed",
+        "evidence": {
+          "path": "research/benchmarks/axpe-clock.json",
+          "sha256": "5f38bfdb349b83a8bdaebb4cebdf842f383db1e5fb2dfac721ab659e28c35bd4"
+        },
+        "scope": "Three 40 MHz profiles; independent edge/rate and I2C digital timing checks, capacity/bounds/stale-image refusals, retained prior failures; no analog or physical claim"
+      },
+      {
+        "requirement": "Exact-GDS Tiny Tapeout precheck",
+        "status": "passed",
+        "evidence": {
+          "path": "build/asic/axpe-precheck-2026-10-11-v2/evidence.json",
+          "sha256": "08f511a6debc33f7705d4b86f07761c3f32e6f9c23f67fd9377377738d128152"
+        },
+        "checks": 9,
+        "scope": "Original selected GDS, raw nine-case JUnit XML parsed and hash-bound by portable package validator"
+      },
+      {
+        "requirement": "Staged ECO flow reproduction/compliance",
+        "status": "passed",
+        "evidence": {
+          "path": "research/benchmarks/axpe-flow-reproduction.json",
+          "sha256": "71e02a4454810c94a60927d2affa8e74cdcfb4595496f5e26a729c5c3c354d3b"
+        },
+        "zero_error_counts": 26,
+        "scope": "Pinned pre-ECO checkpoint through routing and full signoff, exact routed assets/metrics; GDS differs only in timestamps; no fresh source-to-parent synthesis"
+      },
+      {
+        "requirement": "Submission documentation and review package",
+        "status": "passed",
+        "evidence": {
+          "path": "build/asic/axpe-final-local-package-2026-10-11.json",
+          "sha256": "13881592facdb55cc40e803307b81b031d87555a5d0381668fd5ee057db6cf3e"
+        },
+        "scope": "Local source export and candidate archives validate after extraction; source package excludes GDS, logs and generated build trees; review remains owed"
+      },
+      {
+        "requirement": "Identify remaining maintainer, physical and publication actions",
+        "status": "recorded",
+        "evidence": "docs/notes/axpe-submission-review-2026-10-11.md",
+        "scope": "Commit-pinned reviews, publication target/link and organizer submission require maintainer action. Optional PE-08 width/model integration and PE-09 lab evidence remain on the board; provisional I/O and physical gaps stay explicit"
+      }
+    ],
+    "verification": {
+      "mapped_suites": 12,
+      "relocated_rtl_mapped_suites": 24,
+      "rtl_suites": 12,
+      "smoke_stages": 14,
+      "proof_instructions": 31,
+      "proof_witnesses": 46,
+      "proof_mutation_counterexamples": 5,
+      "mapped_receipt": {
+        "path": "build/asic/axpe-netlist-rate-budgets-2026-10-11/evidence.json",
+        "sha256": "61676de1f11579312b5c2cff1b8992cf09af826e67156b029e7eef5c53c3cbba"
+      },
+      "portable_receipt": {
+        "path": "build/asic/axpe-portable-rates-complete-2026-10-11/evidence.json",
+        "sha256": "e7c4c02b780d2357b4311b888879cb74f5b4dd85f5774625d2e7660aa2e086b3"
+      },
+      "smoke_receipt": {
+        "path": "build/verification/smoke/summary.json",
+        "sha256": "807cfc2ec56610e1a809ad23fb66f6e938f97216f2dd2d835366e39504844950"
+      },
+      "proof_receipt": {
+        "path": "build/formal/pemu/core-final/evidence.json",
+        "sha256": "ad812f72b94cb8da60902138c2d477981f3a64ff83989efd98ea69cbb0146499"
+      }
+    },
+    "pending_actions": [
+      "Maintainer commit-pinned review of all Review cards; no self-closure",
+      "Explicit authorization for signed-off commit, public submission repository publication and final organizer submission",
+      "Delivered-board revision/electrical validation and physical reload/operation evidence if optional lab work is pursued"
+    ],
+    "publication": "Local only; no commit, push, branch, PR, publication or submission performed",
+    "final_documentation_gates": {
+      "status": "passed",
+      "command": "make verification-check registry-check",
+      "log": "build/asic/axpe-submission-final-gates-2026-10-11.log",
+      "log_sha256": "121551195300cd71ed34868049a2045e1f6ff74e625979ad5d9f81c0c3e6d82c",
+      "diff_check": "passed",
+      "review_links_and_archive_digests": "passed",
+      "selftest_scope": "The deliberate missing-tool fixture reports FAILED/BLOCKED as expected; the enclosing selftest and make command pass."
+    }
+  },
+  "signed_off_commit_preparation_2026_10_12": {
+    "snapshot": "/tmp/atomix-precommit-2026-10-12-2cagep0w",
+    "staged_tree": "79a12ee7c5f972e8480d4edc135dfee1e757c0bb",
+    "staged_files": 74,
+    "runtime_manifest_and_three_profiles_present": true,
+    "retained_setup_failure": {
+      "log": "build/asic/axpe-precommit-checkout-export-initial-2026-10-12.log",
+      "log_sha256": "d71e4f0939fc68c7150d6f94540280e8fcb3945e42bc266761e465dc82ce9f57",
+      "cause": "git archive default tar.umask gives regular files mode 0664; template hash pins mode 0644/0755 as well as bytes",
+      "correction": "Normalize snapshot file permissions to 0644/0755 according to Git executable bits. File bytes and staged tree are unchanged."
+    },
+    "status": "passed",
+    "commands": [
+      {
+        "cwd": ".",
+        "command": "make pemu-model-check verification-check registry-check",
+        "log": "build/asic/axpe-precommit-focused-2026-10-12.log",
+        "returncode": 0,
+        "log_sha256": "244c6664c0a7f73f21fc271be4f3aa32138cc9c7d92dc1d968d5edf4efdf307b"
+      },
+      {
+        "cwd": "/tmp/atomix-precommit-2026-10-12-2cagep0w",
+        "command": "make pemu-model-check",
+        "log": "build/asic/axpe-precommit-checkout-model-2026-10-12.log",
+        "returncode": 0,
+        "log_sha256": "a9ea2744b7933f4cec616f11b2bffc0e6f4564c70af09bd90c70b3ef820bbd05"
+      },
+      {
+        "cwd": "/tmp/atomix-precommit-2026-10-12-2cagep0w",
+        "command": "make tt-export and python3 tools/tt_axpe.py check with selected 25 ns profile/flow lock",
+        "log": "build/asic/axpe-precommit-checkout-export-2026-10-12.log",
+        "returncode": 0,
+        "log_sha256": "32c71b580fd84bf909c567537494a818b9c90162027665bc6239c3693d60993c"
+      },
+      {
+        "cwd": "/tmp/atomix-precommit-2026-10-12-2cagep0w",
+        "command": "make verify-smoke",
+        "log": "build/asic/axpe-precommit-smoke-2026-10-12.log",
+        "returncode": 0,
+        "log_sha256": "4e6a2dad116fc52c1f642b113841dc6da9ad094cbb11b749be3713614421b071"
+      }
+    ],
+    "smoke_summary": "build/asic/axpe-precommit-smoke-summary-2026-10-12.json",
+    "smoke_summary_sha256": "dd9a02180a25d46cbc2135f488032b7c9675db0bf1c16e12bf9030fb02932658",
+    "smoke_passed_stages": 14,
+    "scope": "Staged source snapshot with Git file permission bits normalized; all four runtime JSON inputs present. Existing review/source archive hashes remain unchanged. Only this compact receipt and the review note are added after snapshot testing.",
+    "receipt": "build/asic/axpe-precommit-snapshot-2026-10-12.json",
+    "receipt_sha256": "6734bef8ff410410144255187c7a8cde9584f9fcd5e7f494765e1bf9aed97f38",
+    "review_status": "Maintainer authorization to commit received; commit-pinned approval and publication/submission remain pending"
+  }
+}

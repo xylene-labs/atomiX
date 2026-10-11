@@ -402,31 +402,72 @@ synth-baseline:
 pemu-model-check:
 	$(PYTHON) tools/axpe_isa.py check
 	$(PYTHON) sw/pemu/as/check_axpe_as.py
+	$(PYTHON) sw/pemu/firmware/check_demos.py
 	$(PYTHON) sw/pemu/model/check_axpe_model.py
 
-pemu-cosim-check: pemu-model-check
+PEMU_PROFILE ?= configs/sim-axpe-capacity.json
+
+pemu-profile-check:
+	$(PYTHON) tools/axpe_profile_check.py --profile "$(PEMU_PROFILE)"
+
+pemu-cosim-check: pemu-model-check pemu-profile-check
 	$(MAKE) -C sim/pemu core
 
 TT_AXPE_PROFILE ?= configs/tt-axpe-6x4.json
+TT_AXPE_FLOW_LOCK ?= asic/axpe/flow-lock.json
+PEMU_PACKAGE_ARGS ?=
 TT_AXPE_OUTPUT ?= build/asic/tt-axpe-export
 
 # The official template is immutable source provenance.  Export combines it
 # with the selected component/profile into a standalone Tiny Tapeout tree.
 tt-export:
 	$(PYTHON) tools/tt_axpe.py export --profile "$(TT_AXPE_PROFILE)" \
-	  --output "$(TT_AXPE_OUTPUT)"
+	  --flow-lock "$(TT_AXPE_FLOW_LOCK)" --output "$(TT_AXPE_OUTPUT)"
 
 pemu-asic-check: tt-export
 	$(PYTHON) tools/tt_axpe.py check --profile "$(TT_AXPE_PROFILE)" \
-	  --output "$(TT_AXPE_OUTPUT)"
-	$(MAKE) -C sim/pemu tt TT_STAGE="$(abspath $(TT_AXPE_OUTPUT))"
+	  --flow-lock "$(TT_AXPE_FLOW_LOCK)" --output "$(TT_AXPE_OUTPUT)"
+	$(MAKE) -C "$(TT_AXPE_OUTPUT)/demo" check rate-check
 
 # Programmability: two different programs loaded over the host port into one
 # unchanged design. A preinitialised memory image does not pass this.
-pemu-chip-check: pemu-asic-check tt-export
+pemu-netlist-contract-check:
+	$(PYTHON) tools/tt_axpe_netlist.py --self-test
+	$(PYTHON) tools/tt_axpe_precheck.py --self-test
+
+# Manual exact-layout precheck; its pinned upstream environment needs a PDK.
+PEMU_PRECHECK_ARGS ?=
+pemu-precheck:
+	$(PYTHON) tools/tt_axpe_precheck.py $(PEMU_PRECHECK_ARGS)
+
+pemu-timing-check:
+	$(PYTHON) formal/pemu/check_timing.py
+
+pemu-shift-timing-check:
+	$(PYTHON) formal/pemu/check_shift.py
+
+pemu-wait-timing-check:
+	$(PYTHON) formal/pemu/check_wait.py
+
+pemu-core-timing-check:
+	$(PYTHON) formal/pemu/check_core.py
+
+# Manual review package: explicit completed signoff/replay inputs, fresh output.
+pemu-package:
+	$(PYTHON) tools/tt_axpe_package.py $(PEMU_PACKAGE_ARGS)
+
+# Manual mapped replay: requires a local flow checkpoint and its pinned PDK.
+# Every attempt has a new output directory; no generated images enter Git.
+pemu-netlist-check:
+	$(PYTHON) tools/tt_axpe_netlist.py --state "$(PEMU_NETLIST_STATE)" \
+	  --output "$(PEMU_NETLIST_OUTPUT)" $(PEMU_NETLIST_ARGS)
+
+pemu-chip-check: pemu-asic-check tt-export pemu-netlist-contract-check
 	$(MAKE) -C sim/pemu chip
 
-.PHONY: pemu-model-check pemu-cosim-check pemu-chip-check pemu-asic-check tt-export
+.PHONY: pemu-profile-check pemu-model-check pemu-cosim-check pemu-chip-check pemu-asic-check tt-export \
+        pemu-netlist-contract-check pemu-netlist-check
+.PHONY: pemu-timing-check pemu-shift-timing-check pemu-wait-timing-check pemu-core-timing-check pemu-package pemu-precheck
 
 # `validate` checks the manifest; `self-test` checks the runner, by running a
 # suite built to go wrong: a stage whose tool is missing, one naming a

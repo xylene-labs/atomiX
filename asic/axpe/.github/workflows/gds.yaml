@@ -23,6 +23,8 @@ jobs:
     steps:
       - name: Run Tiny Tapeout precheck
         uses: TinyTapeout/tt-gds-action/precheck@3412659307918422f3f0727917cf9b499aaca588
+        with:
+          tools-ref: d66cf179e7bc4d296362ab7e2e3b344dc3c4f665
 
   gl_test:
     needs: gds

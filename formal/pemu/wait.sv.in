@@ -1,0 +1,97 @@
+// DELAY/WAITE core stream only; the word source is abstract, not program RAM.
+module wait_formal(input clk, output wire covered_timeout, covered_zero_timeout,
+    covered_final_event, covered_word_change, covered_immediate, covered_chain,
+    covered_max_delay, covered_edge0, covered_edge1, covered_edge2, covered_level);
+    (* anyseq *) reg rst_n, choose_wait;
+    (* anyseq *) reg [2:0] ra;
+    (* anyseq *) reg [3:0] pin;
+    (* anyseq *) reg [1:0] edge_mode;
+    (* anyseq *) reg [15:0] delay, pads;
+    reg [31:0] word;
+    always @* begin
+        word=0;
+        word[@OP_HI@:@OP_LO@]=choose_wait ? @OP_W@'d@WAIT@ : @OP_W@'d@DELAY@;
+        word[@A_HI@:@A_LO@]=ra;
+        word[@PIN_HI@:@PIN_LO@]=pin;
+        word[@EDGE_HI@:@EDGE_LO@]=edge_mode;
+        word[@D_HI@:@D_LO@]=delay;
+    end
+    wire [1:0] state;
+    wire issue, wait_over, wait_timeout, halted, fault, ft, wait_prev, halt_pending, reject;
+    wire [3:0] hold_wpin; wire [1:0] hold_wedge; wire [15:0] hold_delay;
+    wire [15:0] wait_count, cell_remaining, retire_data;
+    axpe dut(.clk(clk), .rst_n(rst_n), .ui_in(pads[15:8]), .uio_in(pads[7:0]),
+      .imem_data(word), .halted(halted), .fault(fault), .state(state), .issue(issue),
+      .wait_over(wait_over), .wait_timeout(wait_timeout), .wait_count(wait_count),
+      .cell_remaining(cell_remaining), .retire_data(retire_data), .ft(ft), .wait_prev(wait_prev), .hold_wpin(hold_wpin),
+      .hold_wedge(hold_wedge), .hold_delay(hold_delay),
+      .halt_pending(halt_pending), .reject(reject));
+    reg valid=0, waiting=0, prev, flag;
+    reg immediate_prev=0, chain_seen=0;
+    reg [3:0] wpin;
+    reg [1:0] mode;
+    reg [15:0] bound, remaining, duration, age;
+    wire live=pads[wpin];
+    wire hit=mode==0 ? (!prev && live) : mode==1 ? (prev && !live)
+             : mode==2 ? (prev!=live) : live;
+    wire over=waiting && (hit || remaining==1);
+    wire expected_issue=waiting ? over : age==duration-1;
+    wire [15:0] elapsed=bound-remaining+1;
+    always @(posedge clk) begin
+        valid<=1;
+        if(!valid) assume(!rst_n);
+        if(!rst_n) begin
+            waiting<=0; prev<=0; flag<=0; immediate_prev<=0; chain_seen<=0; wpin<=0; mode<=0;
+            bound<=1; remaining<=1; duration<=1; age<=0;
+        end else begin
+            immediate_prev<=expected_issue && choose_wait && edge_mode==3 && pads[pin];
+            if(waiting) begin
+                prev<=live;
+                if(remaining>1) remaining<=remaining-1;
+            end else if(age<duration-1) age<=age+1;
+            if(over) flag<=remaining==1;
+            if(expected_issue) begin
+                if(choose_wait) begin
+                    waiting<=!(edge_mode==3 && pads[pin]);
+                    chain_seen<=over;
+                    if(edge_mode==3 && pads[pin]) flag<=0;
+                    prev<=pads[pin]; wpin<=pin; mode<=edge_mode;
+                    bound<=@BOUND@; remaining<=@BOUND@;
+                    duration<=1; age<=0;
+                end else begin
+                    waiting<=0; chain_seen<=0; duration<=@DURATION@; age<=0;
+                end
+            end
+        end
+        if(valid && rst_n) begin
+            assert(!fault && !halted && !halt_pending && !reject);
+            assert(issue==expected_issue);
+            assert(state==(waiting?2:0));
+            assert(duration>0 && age<duration);
+            assert(cell_remaining==duration-age);
+            assert(ft==flag);
+            if(waiting) begin
+                assert(duration==1 && age==0);
+                assert(hold_wpin==wpin && hold_wedge==mode && wait_prev==prev);
+                assert((@HELD_BOUND@)==bound);
+                assert(bound>0 && remaining>0 && remaining<=bound);
+                assert({1'b0,wait_count}+{1'b0,remaining}=={1'b0,bound});
+                assert(wait_over==over);
+                assert(wait_timeout==(remaining==1));
+                if(over) assert(retire_data==elapsed);
+            end
+        end
+    end
+    wire seen=valid && rst_n && waiting;
+    assign covered_timeout=seen && bound==7 && remaining==1 && !hit;
+    assign covered_zero_timeout=seen && hold_delay==0 && remaining==1;
+    assign covered_final_event=seen && bound==7 && remaining==1 && hit;
+    assign covered_word_change=seen && over && pin!=wpin && delay!=hold_delay;
+    assign covered_immediate=valid && rst_n && immediate_prev && !waiting && !ft && issue;
+    assign covered_chain=seen && over && chain_seen && bound==7;
+    assign covered_max_delay=seen && bound==@MAX_DELAY@ && remaining==bound;
+    assign covered_edge0=seen && mode==0 && bound==7 && remaining==5 && hit;
+    assign covered_edge1=seen && mode==1 && bound==7 && remaining==5 && hit;
+    assign covered_edge2=seen && mode==2 && bound==7 && remaining==5 && hit;
+    assign covered_level=seen && mode==3 && bound==7 && remaining==5 && hit;
+endmodule

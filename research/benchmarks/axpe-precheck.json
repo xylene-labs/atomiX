@@ -1,0 +1,114 @@
+{
+  "schema": "org.atomix.axpe-precheck-summary.v1",
+  "date": "2026-10-11",
+  "observed_at_utc": "2026-10-11T10:51:29.919436+00:00",
+  "level": "local Tiny Tapeout CMOS5L physical-layout precheck",
+  "status": "passed",
+  "scope": "local Tiny Tapeout CMOS5L precheck of exact supplied GDS/LEF/netlist",
+  "gds_sha256": "a5877dd7626f05d7462ce6e629e84e1b507a606f7c6a75e083e22c09af772134",
+  "signoff_state_sha256": "58f9fbed80792de2d8ce9d1f4cf78d33e8000182cf6ad2fd98383618f357899d",
+  "flow_lock_sha256": "7b1c89a41bf9a15e3ca731f4729d7fd1b8f932a46dab4aee385d28f455a26756",
+  "support_tools_commit": "d66cf179e7bc4d296362ab7e2e3b344dc3c4f665",
+  "pdk_commit": "2bbec755dc67ca3db0261c3d6163e15735d66710",
+  "tools": {
+    "python": "3.11.16",
+    "packages": {
+      "pluggy": "1.5.0",
+      "setuptools": "79.0.1",
+      "iniconfig": "2.0.0",
+      "gdstk": "0.9.52",
+      "PyYAML": "6.0.1",
+      "numpy": "1.26.4",
+      "pip": "24.0",
+      "packaging": "24.1",
+      "pytest": "8.2.2",
+      "klayout": "0.28.17.post1"
+    },
+    "klayout": "KLayout 0.30.4",
+    "magic": "8.3.568"
+  },
+  "command": "python3 tools/tt_axpe_precheck.py --state build/asic/tt-axpe-25ns-wire200-fanout-eco/runs/pe10-wire200-fanout-eco-signoff/17-misc-reportmanufacturability/state_out.json --export build/asic/tt-axpe-25ns-wire200-fanout-eco --output build/asic/axpe-precheck-2026-10-11-v2",
+  "output": "build/asic/axpe-precheck-2026-10-11-v2",
+  "final_receipt": "build/asic/axpe-precheck-2026-10-11-v2/evidence.json",
+  "completed_checks": [
+    {
+      "name": "KLayout pin label overlapping drawing",
+      "status": "passed",
+      "errors": []
+    },
+    {
+      "name": "KLayout SG13CMOS5L DRC",
+      "status": "passed",
+      "errors": []
+    },
+    {
+      "name": "KLayout zero area",
+      "status": "passed",
+      "errors": []
+    },
+    {
+      "name": "KLayout Checks",
+      "status": "passed",
+      "errors": []
+    },
+    {
+      "name": "Pin check",
+      "status": "passed",
+      "errors": []
+    },
+    {
+      "name": "Boundary check",
+      "status": "passed",
+      "errors": []
+    },
+    {
+      "name": "Layer check",
+      "status": "passed",
+      "errors": []
+    },
+    {
+      "name": "Cell name check",
+      "status": "passed",
+      "errors": []
+    },
+    {
+      "name": "Analog pin check",
+      "status": "passed",
+      "errors": []
+    }
+  ],
+  "initial_setup_failure": {
+    "receipt": "build/asic/axpe-precheck-2026-10-11/evidence.json",
+    "sha256": "fb977a85bc309d71827781a29e4fce247a71e9cc0d542b8f39e7f231d41f2913",
+    "error": "runner incorrectly treated tracked reports/.gitignore as stale reports; corrected to copy only Git-tracked upstream files",
+    "level": "host runner setup; no GDS check ran"
+  },
+  "verification": {
+    "report_contract": "passed: 6 rejection cases and retained real-failure metadata",
+    "package_bindings": "passed: valid synthetic metadata and 9 rejection cases; no layout claim",
+    "package_binding_receipt": "build/asic/axpe-precheck-package-rejections.json",
+    "package_binding_receipt_sha256": "7eedffdd8c467df69d361d1635684014177ef5fa6bd0edbbac83751e02decf1f",
+    "smoke": "passed: 14 stages",
+    "smoke_log_sha256": "26f3ab167c55f3079f50ab7a511457d205c2d1d70c1be251e37e35e7e7737e41",
+    "registry": "passed"
+  },
+  "limits": [
+    "Nine exact-selected-GDS precheck checks pass; this does not establish flow reproduction, pad characterization or physical operation.",
+    "staged ECO flow reproduction audit remains open",
+    "external pad timing remains provisional and maintainer review is owed",
+    "no physical FPGA or measured-silicon claim"
+  ],
+  "follow_up": "Bundle this passing receipt/raw reports with the exact selected GDS; retain separate ECO reproduction and maintainer-review limits.",
+  "final_receipt_sha256": "08f511a6debc33f7705d4b86f07761c3f32e6f9c23f67fd9377377738d128152",
+  "report_sha256": {
+    "precheck.log": "dd2943ed5f23ea3be31c62f7541af9b61d0e708f9fc533f3a8c648800d0c6198",
+    "tools.json": "dce804b28da8e06bff0bfc03cbc4b3c9ef0cbb43b55b3c1106e7f07af3b0daaa",
+    "tools.log": "d1d1a093ade6e572bc841fdccfaa3b482ce740d2cbdb95fe82498fd4f374ed2b",
+    "tt/precheck/README.md": "19773787a1d431478ddb1bff218368129f3d50a00a9c00ea2c942e6a3d71396c",
+    "tt/precheck/reports/drc_pin_label_purposes_overlapping_drawing.xml": "577704a852f6c953c30570f01f5cd5aafd797b8ee685f0423b1e9711457096cb",
+    "tt/precheck/reports/drc_sg13cmos5l.xml": "aba818fe0b9da49ca13e3b9dc8927ccc97b949801a7f3ea0424611f1f4054d7b",
+    "tt/precheck/reports/drc_zero_area.xml": "454ce751e326c779b3080d9361d18a92e10d3e254ed50fd73fd1481d36916e45",
+    "tt/precheck/reports/results.md": "110b9623329adb5831d80d501e191948194d39a4b640f24f43d3dd70857efedf",
+    "tt/precheck/reports/results.xml": "e7358292bef06689b72bedb6ba4e0941dc307d4d3ed9976e9528a8df57f2a2d2"
+  }
+}

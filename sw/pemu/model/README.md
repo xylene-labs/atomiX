@@ -19,7 +19,8 @@ These conventions make the missing specification observable and reviewable:
 - WAITE samples at entry and after each waiting cycle. Edge modes require a
   change after entry; level-high may finish immediately. It occupies exactly
   the cycles it waited, with a one-cycle floor, so the value it returns and the
-  time it costs are the same number. An edge exactly at the effective timeout
+  time it costs agree except for an already-high level at entry: that returns
+  zero, occupies one cycle and clears T. An edge exactly at the effective timeout
   still sets T; a level already satisfied at entry does not, because that is
   not a timeout. Two waits measure a true interval only when adjacent.
 - Unclocked shifts emit/sample at each cell's first edge and hold for `max(D,1)`

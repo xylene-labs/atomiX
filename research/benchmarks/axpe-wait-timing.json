@@ -1,0 +1,139 @@
+{
+  "schema": "org.atomix.axpe-wait-timing-evidence.v1",
+  "status": "passed",
+  "inputs_sha256": {
+    "/home/shubhgau/dev/atomiX/sw/pemu/isa/axpe-isa.json": "6bc75b907b156f96805baa321a3a2f86447477a4a8457f332cdc62217d30face",
+    "/home/shubhgau/dev/atomiX/configs/tt-axpe-6x4.json": "01b1b9beffb015bf8c2cc6c55192921c17d81c0b0074873c34dd85a6b5962501",
+    "/home/shubhgau/dev/atomiX/components/pemu/axpe/component.json": "6c69e11ba3948432838540b5698036ec3cee387a72d4f03e0793f77bc0a88486",
+    "/home/shubhgau/dev/atomiX/formal/pemu/wait.sv.in": "8c5560fa15ff85cbd07a48dcd0ccd4d58506107ab388366201fd66b5939eb702",
+    "/home/shubhgau/dev/atomiX/formal/pemu/check_wait.py": "3f8d7c3dd37ff4baca6bfb3a023890ac4032ac84551c66a2986cdb31bd9cd1cb",
+    "/home/shubhgau/dev/atomiX/formal/pemu/check_timing.py": "70386a8095d47120e3d2d95c18a5e376dc59a010943bce90b8e11e24fbe87373",
+    "/home/shubhgau/dev/atomiX/formal/pemu/check_shift.py": "3de33117b1862ee2d8960647b9a16934d737c036f08cb9de4587d7ac73328c72",
+    "/home/shubhgau/dev/atomiX/tools/configure.py": "ce21a260fd127fb9a82b012239bbcb76719ff089d5ca442db7b881fbdbfac77e",
+    "/home/shubhgau/dev/atomiX/sw/pemu/isa/axpe_isa.svh": "a3a64fe4ef9b858f658b41c3ffb0634dbc7ee092d8b2c43d2546172550a4950f",
+    "/home/shubhgau/dev/atomiX/components/pemu/axpe/axpe.sv": "1835160b3a4c7e847de2ea86ff12976735392873980080230c8d2b02f4f3489a",
+    "/home/shubhgau/dev/atomiX/components/pemu/axpe/axpe_decode.sv": "6205c4559daaa96826218a8fd06b9008c8e64acd8bf947dff2289e14678e2282",
+    "/home/shubhgau/dev/atomiX/components/pemu/axpe/axpe_timing.sv": "f027badac4187026c884a000019660684fc40f3707ff9647b91494757faf189a",
+    "/home/shubhgau/dev/atomiX/components/pemu/axpe/axpe_shift.sv": "3052a6d158bab0101eba22e20e31154874638c40dd24d6193dc709d6bb3b3cd6",
+    "/home/shubhgau/dev/atomiX/components/pemu/axpe/axpe_pads.sv": "d800e45c42dcc158560e9be8626b6e12e833e2069153f8e5c982d26b0b04a73c"
+  },
+  "profile": "/home/shubhgau/dev/atomiX/configs/tt-axpe-6x4.json",
+  "parameters": {
+    "imem_words": 64,
+    "reg_count": 8,
+    "reg_width": 16,
+    "delay_bits": 16,
+    "uio_pins": 8,
+    "call_depth": 4
+  },
+  "bounded_formula": "w, 1<=w<=max(D,1)",
+  "scope": "DELAY/WAITE-only core stream, binary sampled edges",
+  "assumptions": [
+    "first sampled edge resets; reset interrupts an instruction",
+    "abstract instruction source supplies only legal DELAY/WAITE words"
+  ],
+  "not_proved": [
+    "program memory/fetch behavior",
+    "other instruction classes",
+    "immediate-level zero return register value (separately model/RTL tested)",
+    "non-default register/delay/pin composition",
+    "physical timing or reset recovery"
+  ],
+  "proof": {
+    "harness_sha256": "4e2259f4f3c2017f24ef54ee7d5d4ab90ca772678aa727a3fb776ea144433127",
+    "proof_script_sha256": "f7ae28110c78134e5ad8a67b04b5fa5b4974e5fb76b712701f8b28081e9d4034",
+    "proof_log_sha256": "216ed3cc52dcef23873f4f823ce542999bbbb5296a21b64e97d811376b77876c",
+    "result": "inductive pass",
+    "covers": {
+      "timeout": {
+        "script_sha256": "8f8b922f4f1ecb47498107632d621aab3e704ce69746599a2134aff5895bd4e2",
+        "log_sha256": "8d730bae5fcf55e12258e72cd32c4d4214298214685054d363b9d9e714d5ba98"
+      },
+      "zero_timeout": {
+        "script_sha256": "7a25ffc48c629b30842cc55ca56fb1bac54c7ad89774134353bad6c1149f7a7f",
+        "log_sha256": "e8f58fbee2977d4ca009bc2bf410437c8ef9f1034a7be068cedb715fb0aee630"
+      },
+      "final_event": {
+        "script_sha256": "1866ee92096787528588037278229d8e10786ff8c59d6e4f11cd9615a88fa4f3",
+        "log_sha256": "c6b79a1173440b29757fa97c11d03ce4e6001e881db85a5d4960276a46c5a5b6"
+      },
+      "word_change": {
+        "script_sha256": "83735003b12927e6530ad3416f8a9adf99398f1f8f6a42d2003b81c510937c01",
+        "log_sha256": "9e596dd8e90ab2528570e7dde93de92e9e46c0675a0d4c0ffbe24672465d5b07"
+      },
+      "immediate": {
+        "script_sha256": "200679eeb725c1af70cc0e614e0eca231af6d558bb68b20ecf06bde7bd690cb0",
+        "log_sha256": "2eb4451ab16b6d14dd1aa2463221fd4a6d6ac192c8bb889724bdae6e15215eef"
+      },
+      "chain": {
+        "script_sha256": "387578590833c2cf203ec33e2f69a02b1c71c48910f8405bb72cad50b6792a3d",
+        "log_sha256": "4045fdd9a117bd93fb489e0f28f3d775bbd449f63b900cffdfcba46959cd22b1"
+      },
+      "max_delay": {
+        "script_sha256": "ab8e6dcc5b8da916131af157f0eced544de218e1e5e35a84d0081b8a02378370",
+        "log_sha256": "f0315f09a8dc00d9c813ddc28839dbd3c1c80333984f432a5384f37f849eac1f"
+      },
+      "edge0": {
+        "script_sha256": "688815dad950270a27d8817a50ccb3671a946b172fd3b043feaac382d617dce8",
+        "log_sha256": "3914209a47e7b47752f5e428265f24c45ea2c463bbb76a2f58ac4c27e23b54f0"
+      },
+      "edge1": {
+        "script_sha256": "50bbb384ab878d3ac3e8f12e5a63c730013ea606b0b47fe5db79be82f0c9f311",
+        "log_sha256": "a9c1c6842bfebeceb09f2f5886be384909ef56710ed7ee56a14fcda6260d7854"
+      },
+      "edge2": {
+        "script_sha256": "0633c330ff3ab83e3d46c9181c07a15ab64dcd7f633e3638195900dfbb55cf4d",
+        "log_sha256": "5910592e2cd99673ad3d9f9b7a514d925ec3fc27489d280f8c558692213d3f74"
+      },
+      "level": {
+        "script_sha256": "5651d95506005666f3e74e21595277326c868617e947b3e72388bef01116e0b4",
+        "log_sha256": "4f1ebc2d8fe93f12623d5de9584d3d6474cfcd84f78969740d63fa7130f77df5"
+      }
+    }
+  },
+  "mutations": {
+    "late-timeout": {
+      "harness_sha256": "4e2259f4f3c2017f24ef54ee7d5d4ab90ca772678aa727a3fb776ea144433127",
+      "proof_script_sha256": "a1a8bead461b547b5042ad06e03a9fa7bc459078b2ef31eea9f56a1c30bc5a31",
+      "proof_log_sha256": "70929d113d9887766a443526e713627c825cc5198fe76f7407f310356e5393d5",
+      "result": "expected counterexample",
+      "core_sha256": "67c8c06c7f378214af0de346fb7b22fafae1bd6f7f88966f06cc6cc0da83347e"
+    },
+    "live-word-timeout": {
+      "harness_sha256": "4e2259f4f3c2017f24ef54ee7d5d4ab90ca772678aa727a3fb776ea144433127",
+      "proof_script_sha256": "de1c3a96efe8666f518a21c9a2ec56a73141639a6220a8a84cd333f35a91d02c",
+      "proof_log_sha256": "1d8aaf9d4d1fba149d156367c969ff26410a9f7b17eabe05564666029cef967d",
+      "result": "expected counterexample",
+      "core_sha256": "260a203aebca3666fc495311fb9bbeadb9f96e1fb331dced1d5fa627900cd3f2"
+    }
+  },
+  "yosys": "Yosys 0.67+ (git sha1 45ea2b8d6, Release, GNU /usr/bin/c++ 11.4.0)",
+  "date": "2026-10-09",
+  "level": "host formal verification of DELAY/WAITE core stream, binary sampled-edge semantics",
+  "command": "python3 formal/pemu/check_wait.py --output build/formal/pemu/wait-final",
+  "make_target": "make pemu-wait-timing-check",
+  "receipt": "build/formal/pemu/wait-final/evidence.json",
+  "receipt_sha256": "a1214fcf43cc6a200b474ec282295abf1c9c99196b66f95804663f936b56d25a",
+  "development_failures": [
+    {
+      "result": "Exploratory induction did not close until assertions related held operands and the no-HALT invariant to the independent reference. No base-case RTL counterexample was found."
+    },
+    {
+      "result": "First maintained runner failed elaboration because Yosys requires the include-directory option as -Idir. Corrected before accepting a proof.",
+      "receipt": "build/formal/pemu/wait-first/evidence.json",
+      "receipt_sha256": "f6d01b0f1019fe72116a61b1ab1c2c80ae3efebc8e82d2824d1bd0f2cbd0f0d8"
+    },
+    {
+      "result": "Second runner proved the core and reached all witnesses but refused the live-word mutation because its short anchor matched two locations. A scoped anchor now mutates only wait_bound. This partially completed run is not accepted as the gate.",
+      "receipt": "build/formal/pemu/wait-recorded/evidence.json",
+      "receipt_sha256": "7636ee23e89180698fda5d3a5d08f54b69c7118c64df3b5af25553ffed6e88da"
+    }
+  ],
+  "verification": {
+    "root_gate": "pass: make pemu-wait-timing-check",
+    "smoke": "pass: all 14 stages",
+    "root_gate_log_sha256": "34e0429bdce846b4032d85c6c78c6e9a2ddced98bff1fc6597f46f64f7d584d5",
+    "coverage_contract": "pass: 125 advertised commands",
+    "smoke_summary_sha256": "a6c449b3a5c7603b93c8843cbcc39636bce5ac1f28799578b85df485e2ac51e8"
+  }
+}

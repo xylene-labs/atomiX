@@ -10,7 +10,10 @@ The project's whole work-in-progress limit belongs to `axpe`, a timed-ISA
 protocol emulator entered in the Jane Street open-source CMOS5L ASIC
 competition. Read [`docs/protocol-emulator.md`](docs/protocol-emulator.md) for
 the design and [`docs/boards/protocol-emulator.md`](docs/boards/protocol-emulator.md)
-for the card queue; pull from that board unless asked otherwise.
+for the card queue; pull from that board unless asked otherwise. Organizer
+guidance and the complete follow-up email are recorded in
+[`docs/notes/jane-street-follow-up-2026-10-10.md`](docs/notes/jane-street-follow-up-2026-10-10.md);
+read its decision map before changing competition scope.
 
 - **M0 delivery work is paused, not abandoned.** No card is withdrawn and no
   evidence is invalidated. AX-04 stays pullable only because it needs two people
@@ -19,10 +22,12 @@ for the card queue; pull from that board unless asked otherwise.
   [RX-09](docs/research-checklist.md#rx-09). It does not create a parallel ASIC
   track, and it does not license a silicon claim: submitting to a shuttle is not
   fabrication, and nothing taped out exists until it returns measured.
-- The competition is judged on unique functionality **and on verification
-  methodology**. Evidence discipline is part of the deliverable here, not
-  overhead on it. Record gaps, timing violations, and failures as found — a
-  submission that states its own limits scores better than one that hides them.
+- The organizer follow-up names **flexibility** as the main judging criterion,
+  with no fixed weights; protocol demonstrations, unique functionality and
+  **verification methodology** support it. Evidence discipline is part of the
+  deliverable here, not overhead on it. Record gaps, timing violations, and
+  failures as found — a submission that states its own limits scores better
+  than one that hides them.
 - The deadline is external and fixed. When a card slips, take scope out of a
   later card rather than time out of the submission.
 

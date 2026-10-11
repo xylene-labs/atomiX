@@ -1,0 +1,10 @@
+{
+  "schema": "org.atomix.axpe-demo-profile.v1",
+  "settings": {
+    "clock_hz": 40000000,
+    "uart_baud": 57600,
+    "spi_hz": 2000000,
+    "i2c_hz": 400000,
+    "i2c_guard_ns": 100
+  }
+}

@@ -261,7 +261,8 @@ def expect_operands(mnemonic: str, operands: list[str], count: int,
 
 # --- assembly ---------------------------------------------------------------
 
-def assemble(source: str, path: Path, imem_words: int = 256) -> list[Insn]:
+def assemble(source: str, path: Path, imem_words: int = 256,
+             defines: dict[str, int] | None = None) -> list[Insn]:
     """Two passes: collect labels, then encode.
 
     A branch target that does not fit the 8-bit field is an error here rather
@@ -269,6 +270,8 @@ def assemble(source: str, path: Path, imem_words: int = 256) -> list[Insn]:
     that only shows up as a protocol glitch on real pins.
     """
     symbols: dict[str, int] = {}
+    overrides = dict(defines or {})
+    used_overrides: set[str] = set()
     raw: list[tuple[Path, int, str, str, list[str], str | None]] = []
     addr = 0
 
@@ -297,7 +300,14 @@ def assemble(source: str, path: Path, imem_words: int = 256) -> list[Insn]:
         if equ:
             if equ.group(1) in symbols:
                 raise AsmError(src, lineno, f"duplicate symbol {equ.group(1)!r}")
-            symbols[equ.group(1)] = evaluate(equ.group(2), symbols, src, lineno)
+            name = equ.group(1)
+            if name in overrides:
+                if type(overrides[name]) is not int:
+                    raise AsmError(src, lineno, f"override {name!r} must be an integer")
+                symbols[name] = overrides[name]
+                used_overrides.add(name)
+            else:
+                symbols[name] = evaluate(equ.group(2), symbols, src, lineno)
             continue
 
         tokens = line.strip().split(None, 1)
@@ -314,6 +324,9 @@ def assemble(source: str, path: Path, imem_words: int = 256) -> list[Insn]:
         raw.append((src, lineno, line.strip(), mnemonic, operands, delay))
         addr += 1
 
+    unknown = overrides.keys() - used_overrides
+    if unknown:
+        raise AsmError(path, 0, f"override does not name a .equ: {sorted(unknown)}")
     if addr > imem_words:
         raise AsmError(path, 0, f"program is {addr} words, imem_words is {imem_words}")
 
@@ -469,13 +482,26 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--listing", action="store_true",
                         help="print the static timing listing")
     parser.add_argument("--hex", type=Path, help="write a $readmemh image for simulation")
+    parser.add_argument("--define", action="append", default=[], metavar="NAME=INTEGER",
+                        help="override a declared .equ; repeat for multiple constants")
     parser.add_argument("--imem-words", type=int, default=256,
                         help="program memory depth, matching the profile knob (default: 256)")
     args = parser.parse_args(argv)
 
     try:
+        defines = {}
+        for item in args.define:
+            name, separator, value = item.partition("=")
+            if not separator or not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", name):
+                raise AsmError(args.source, 0, f"invalid --define {item!r}")
+            if name in defines:
+                raise AsmError(args.source, 0, f"duplicate override {name!r}")
+            try:
+                defines[name] = int(value, 0)
+            except ValueError:
+                raise AsmError(args.source, 0, f"override {name!r} must be an integer")
         program = assemble(args.source.read_text(encoding="utf-8"),
-                           args.source, args.imem_words)
+                           args.source, args.imem_words, defines)
     except AsmError as exc:
         print(f"axpe-as: {exc}", file=sys.stderr)
         return 1

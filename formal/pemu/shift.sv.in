@@ -1,0 +1,87 @@
+// Reference cell duration is generated from the normative ISA perbit formula.
+// Observe existing state only; no source RTL or data path changes.
+module shift_formal(input clk,
+    output wire covered_zero, covered_max_count, covered_max_delay, covered_chain,
+    output wire covered_mode0, covered_mode1, covered_mode2, covered_mode3);
+    (* anyseq *) reg rst_n, start;
+    (* anyseq *) reg [@COUNT_W@-1:0] nbits;
+    (* anyseq *) reg [@DELAY_W@-1:0] delay;
+    (* anyseq *) reg [@REG_W@-1:0] tx_value;
+    (* anyseq *) reg [15:0] pad_in;
+    (* anyseq *) reg [@CFG_W@-1:0] shcfg;
+    (* anyseq *) reg drive_data, take_data;
+    wire busy, done, rx_we;
+    wire [1:0] state;
+    wire [@COUNT_W@-1:0] index, total;
+    wire [@DELAY_W@-1:0] remaining;
+    axpe_shift dut(.clk(clk), .rst_n(rst_n), .start(start), .nbits(nbits),
+        .delay(delay), .shcfg(shcfg), .tx_value(tx_value), .drive_data(drive_data),
+        .take_data(take_data), .pad_in(pad_in), .busy(busy), .done(done), .rx_we(rx_we),
+        .state(state), .index(index), .total(total), .remaining(remaining));
+    reg valid=0;
+    reg active=0;
+    reg chain_seen=0;
+    reg [@DELAY_W@-1:0] duration, age, encoded_delay;
+    reg [@COUNT_W@-1:0] count, bit_index;
+    reg [@CFG_W@-1:0] cfg;
+    wire clocked=cfg[@CLK_HI@:@CLK_LO@]!=@NO_CLOCK@;
+    wire final_cell=bit_index==count-1 && age==duration-1;
+    always @(posedge clk) begin
+        valid<=1;
+        if(!valid) assume(!rst_n);
+        if (rst_n && start) begin
+            assume(!active || final_cell);
+            assume(nbits>=1 && nbits<=@REG_W@);
+            if(shcfg[@CLK_HI@:@CLK_LO@]!=@NO_CLOCK@) begin
+                assume(shcfg[@CLK_HI@:@CLK_LO@]<@UIO_PINS@ && delay>=2 && !delay[0]);
+                assume(shcfg[@CLK_HI@:@CLK_LO@]!=shcfg[@DOUT_HI@:@DOUT_LO@] && shcfg[@CLK_HI@:@CLK_LO@]!=shcfg[@DIN_HI@:@DIN_LO@]);
+            end
+            if(drive_data) assume(shcfg[@DOUT_HI@:@DOUT_LO@]<@UIO_PINS@);
+        end
+        if(active && rst_n) begin
+            assume(shcfg==cfg);
+            if(!final_cell) assume(delay==duration || (delay==0 && duration==1));
+        end
+        if (!rst_n) begin
+            active<=0; chain_seen<=0; encoded_delay<=0; duration<=1; age<=0; count<=1; bit_index<=0; cfg<=@NO_CLOCK@;
+        end else if(start) begin
+            active<=1; duration<=@DURATION@; age<=0; count<=nbits; bit_index<=0;
+            cfg<=shcfg; encoded_delay<=delay; chain_seen<=active && final_cell;
+        end else if(active) begin
+            if(final_cell) active<=0;
+            else begin
+                if(age==duration-1) begin age<=0; bit_index<=bit_index+1; end
+                else age<=age+1;
+            end
+        end
+        if(valid && rst_n) begin
+            assert(busy==active);
+            assert(done==(active && final_cell));
+            if(active) begin
+                assert(duration>0 && count>=1 && count<=@REG_W@);
+                assert(age<duration && bit_index<count);
+                assert(index==bit_index && total==count);
+                if(clocked) begin
+                    assert(duration>=2 && !duration[0]);
+                    assert(state==(age<(duration>>1)?2:3));
+                    assert(remaining==(age<(duration>>1)?(duration>>1)-age:duration-age));
+                end else begin
+                    assert(state==1);
+                    assert(remaining==duration-age);
+                end
+            end
+        end
+    end
+    wire completed=valid && rst_n && active && done;
+    assign covered_zero=completed && !clocked && count==1 && encoded_delay==0;
+    assign covered_max_count=completed && !clocked && count==@REG_W@ && duration==1;
+    assign covered_max_delay=valid && rst_n && active && age==0 && bit_index==0
+                             && encoded_delay=={(@DELAY_W@){1'b1}};
+    assign covered_chain=completed && chain_seen;
+    wire [1:0] spi_mode={cfg[@CPOL_LO@], cfg[@CPHA_LO@]};
+    wire spi_completed=completed && clocked && count==3 && duration==4;
+    assign covered_mode0=spi_completed && spi_mode==0;
+    assign covered_mode1=spi_completed && spi_mode==1;
+    assign covered_mode2=spi_completed && spi_mode==2;
+    assign covered_mode3=spi_completed && spi_mode==3;
+endmodule

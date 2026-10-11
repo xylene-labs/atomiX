@@ -1,6 +1,6 @@
 {
   "schema": "org.atomix.axpe-cmos5l-25ns.v1",
-  "date": "2026-10-08",
+  "date": "2026-10-09",
   "evidence_kind": "CMOS5L place-and-route, antenna and STA evidence, not silicon",
   "source_commit": "e82bdafe543809c6d876ef05d310cb4e059b873c",
   "source_state": "RTL at source_commit; baseline and CTS-size-8 flow inputs committed at 66964bb, later experiment profiles and locks committed through 224d88d; the post-GRT, no-antenna-repair, slew-margin and wire-length trial inputs, bounded-stop flow helper and this evidence update remain in the working tree pending maintainer review",
@@ -485,8 +485,302 @@
     "parent_state": "build/asic/tt-axpe-25ns-postgrt-noant-wire200/runs/pe10-25ns-postgrt-noant-wire200-from3/03-openroad-stamidpnr-3/state_out.json",
     "command": "python3 tools/tt_axpe_flow.py run --profile configs/tt-axpe-6x4-25ns-postgrt-noant-wire200-am0.json --flow-lock asic/axpe/flow-lock-25ns-postgrt-noant-wire200-am0.json --workdir build/asic/tt-axpe-25ns-postgrt-noant-wire200-am0 --tag pe10-25ns-postgrt-noant-wire200-am0-route --initial-state build/asic/tt-axpe-25ns-postgrt-noant-wire200/runs/pe10-25ns-postgrt-noant-wire200-from3/03-openroad-stamidpnr-3/state_out.json --from OpenROAD.DetailedRouting --threads 2",
     "supervision": "systemd-run --user --unit=axpe-wire200-am0-route --working-directory=/home/shubhgau/dev/atomiX --collect",
-    "scope": "This is a separate reroute in progress. A smaller diode count, route closure, antenna clearance, timing and signoff are not yet measured."
+    "scope": "Completed detailed route and RC-extracted all-corner STA. Electrical closure fails on one fanout violation; no GDS/DRC/LVS or external pad-contract validation for this variant.",
+    "route_console_sha256": "d2896e0a33868e498ced07e25ab24b9c6728564d08d640463c3b6acba9232d02",
+    "route_summary_sha256": "f926aa7dff50e50a35b02ae2e590edac6e60c0dd5089ed1c6da3641f73558ece",
+    "route_metrics_sha256": "6141234283e8f1a16d627488a47e7e19255929763ad8125b7c9d2c430901b1e9",
+    "slow_checks_sha256": "bd47c5ce92f3c177b8b1a553828abb46dec2de772c76a37dd962f0715bc17b6d",
+    "final_netlist_sha256": "74418df34bac7419cdf4634dcdb4a1ff1640e95bb8f0a503beaf3ce6e9389be0",
+    "post_route": {
+      "standard_cells": 18110,
+      "standard_cell_area_um2": 304093,
+      "core_area_um2": 902417,
+      "routing_drc_errors": 0,
+      "antenna_net_violations": 0,
+      "antenna_pin_violations": 0,
+      "corners": {
+        "nom_fast_1p32V_m40C": {
+          "setup_worst_slack_ns": 15.526210090395471,
+          "setup_violations": 0,
+          "hold_worst_slack_ns": 0.012070900176625385,
+          "hold_violations": 0,
+          "max_slew_violations": 0,
+          "max_fanout_violations": 1,
+          "max_cap_violations": 0
+        },
+        "nom_typ_1p20V_25C": {
+          "setup_worst_slack_ns": 12.751076999631072,
+          "setup_violations": 0,
+          "hold_worst_slack_ns": 0.17139712356749306,
+          "hold_violations": 0,
+          "max_slew_violations": 0,
+          "max_fanout_violations": 1,
+          "max_cap_violations": 0
+        },
+        "nom_slow_1p08V_125C": {
+          "setup_worst_slack_ns": 7.878492747856464,
+          "setup_violations": 0,
+          "hold_worst_slack_ns": 0.4568893170895858,
+          "hold_violations": 0,
+          "max_slew_violations": 0,
+          "max_fanout_violations": 1,
+          "max_cap_violations": 0
+        }
+      }
+    },
+    "result": "No improvement: final netlist, metrics and slow-corner checks are byte-identical to the 200 um default-margin route. Detailed routing still inserts five diodes on net4; input4/X remains fanout nine against eight at all corners. Setup, hold, slew, cap, route DRC and antenna pass; fast hold margin is 0.012071 ns."
   },
+  "post_grt_max_wire_200_fanout_eco_trial": {
+    "date": "2026-10-09",
+    "recipe": "asic/axpe/experiments/wire200-fanout-eco.py",
+    "recipe_record": {
+      "schema": "org.atomix.axpe-fanout-eco.v1",
+      "parent_state": "build/asic/tt-axpe-25ns-postgrt-noant-wire200/runs/pe10-25ns-postgrt-noant-wire200-from3/03-openroad-stamidpnr-3/state_out.json",
+      "parent_state_sha256": "331f9b1f19b3606a9fc8edac7fc81d00ea689a4b2a229fadae4260f796473acf",
+      "inputs": {
+        "odb": "99fdc276147ffb0b684e9e99780cb6233977d21cf855acc34533e3a9c3cf6f55",
+        "nl": "886761b6ab321e5b0c171dfc519141550abf38de7f02aeb84576905f28e735c2",
+        "sdc": "32c7cca7c2936483a39e48c808703e509fc24a96d0ec25c88d044a8dc4d96810"
+      },
+      "pdk_commit": "2bbec755dc67ca3db0261c3d6163e15735d66710",
+      "liberty_sha256": "3ee222c580ba33acb2131ac2bf224ff8ee9700751835b73aaec72b670bb31d3c",
+      "recipe_sha256": "c8afb58b59df1290461cdb521fbaac30d4a2b2733acfeff8862b1258b82f9b78",
+      "tcl_sha256": "1b49c1b8a6de8c2c79917967ab470cb61cc1b0560fe38d670144b89d6c3466d4",
+      "outputs": {
+        "tt_um_shubhgau_atomix_axpe.def": "ad60e2d2c17cea3d723afd8b4f5fb1b520d9fdf8e4baaae53cd768ea90198b17",
+        "openroad.log": "2f8a24b9d097721404bd08e2280b5a272ca552b2189ee67df0183af6011d32d0",
+        "tt_um_shubhgau_atomix_axpe.nl.v": "bff78005136b0e1f67c777c48f858ef0af5fe838eff17fc2f4ae6c11963b5f28",
+        "tt_um_shubhgau_atomix_axpe.odb": "b1a58b3967e92662016d9218bc5fb3637566946cbfb0bdf29caba3d6852452a2",
+        "state_out.json": "7d0609a7e4a6043011ec713142c798646887907cb09ce241e806f8af7f6cf990"
+      },
+      "connectivity_check": "pass: exactly one buf_1 and two A1 load moves",
+      "added_buffer": "eco_net4_mux7644",
+      "child_net": "eco_net4_mux_net7643",
+      "scope": "legalized pre-route ECO only; no timing or antenna claim"
+    },
+    "commands": {
+      "prepare": "NP_LOCATION=$PWD/build/asic/nix-portable-state build/asic/nix-portable nix-shell build/asic/librelane-src/shell.nix --option extra-substituters https://nix-cache.fossi-foundation.org --option extra-trusted-public-keys 'nix-cache.fossi-foundation.org:3+K59iFwXqKsL7BNu6Guy0v+uTlwsxYQxjspXzqLYQs=' --run 'python3 asic/axpe/experiments/wire200-fanout-eco.py --output build/asic/wire200-fanout-eco-v2'",
+      "global_route": "python3 tools/tt_axpe_flow.py run --profile configs/tt-axpe-6x4-25ns-postgrt-noant-wire200-am0.json --flow-lock asic/axpe/flow-lock-25ns-postgrt-noant-wire200-am0.json --workdir build/asic/tt-axpe-25ns-wire200-fanout-eco --tag pe10-wire200-fanout-eco-grt --initial-state build/asic/wire200-fanout-eco-v2/state_out.json --from OpenROAD.GlobalRouting --to OpenROAD.GlobalRouting --threads 2",
+      "nominal_sta": "python3 tools/tt_axpe_flow.py run --profile configs/tt-axpe-6x4-25ns-postgrt-noant-wire200-am0.json --flow-lock asic/axpe/flow-lock-25ns-postgrt-noant-wire200-am0.json --workdir build/asic/tt-axpe-25ns-wire200-fanout-eco --tag pe10-wire200-fanout-eco-sta --resume-from-tag pe10-wire200-fanout-eco-grt --from OpenROAD.STAMidPNR-3 --to OpenROAD.STAMidPNR-3 --threads 2",
+      "route": "python3 tools/tt_axpe_flow.py run --profile configs/tt-axpe-6x4-25ns-postgrt-noant-wire200-am0.json --flow-lock asic/axpe/flow-lock-25ns-postgrt-noant-wire200-am0.json --workdir build/asic/tt-axpe-25ns-wire200-fanout-eco --tag pe10-wire200-fanout-eco-route --resume-from-tag pe10-wire200-fanout-eco-sta --from OpenROAD.DetailedRouting --threads 2"
+    },
+    "preparation_failures": [
+      {
+        "output": "build/asic/wire200-fanout-eco",
+        "log_sha256": "a3f9778143ed082e9f26213c0ff0ccbedea17a6d3df628a8bfe7708dc69e44f5",
+        "result": "Failed closed at post-ECO connectivity assertion: OpenROAD appends numeric suffixes to buffer/net name prefixes. No checkpoint written."
+      },
+      {
+        "output": "build/asic/wire200-fanout-eco-diagnose",
+        "log_sha256": "1daaca2b8cc772a2eb59f2f0facca66096edfd3f84ecbba969c0f1f3e1242f8a",
+        "result": "Confirmed the suffix behavior; no checkpoint written. Final recipe resolves the actual added instance and net and verifies their exact connectivity."
+      }
+    ],
+    "global_route_state_sha256": "5b769be566fe04b1f2b0ed8b7c08f77477f9d9aea624196fa24008cf3ff401b0",
+    "nominal_sta_state_sha256": "4cec6c732ef37151397b855582de29ea1759f86f0b8ec4b353dd4f5f40be1cb9",
+    "nominal_checks_sha256": "33126bceeaaa38815b8bd74d4e9d8306ab3260d7945daa37ffdfaae09a8526cc",
+    "nominal_pre_route": {
+      "design__instance__count__stdcell": 18106,
+      "design__instance__area__stdcell": 304073,
+      "timing__setup__ws": 14.3684,
+      "timing__setup_vio__count": 0,
+      "timing__hold__ws": 0.140093,
+      "timing__hold_vio__count": 0,
+      "design__max_fanout_violation__count": 0,
+      "design__max_slew_violation__count": 0,
+      "design__max_cap_violation__count": 0
+    },
+    "global_route_antenna": {
+      "net_violations": 4,
+      "pin_violations": 4,
+      "report_sha256": "be9a11c795229183ac1172e0ec7fd095bb35884c90399369dbf10b83f1b3ac41"
+    },
+    "unselected_bounded_continuation": {
+      "tag": "pe10-wire200-fanout-eco-check",
+      "result": "Starting at CheckAntennas also executes the later enabled RepairDesignPostGRT step. It inserts 380 buffers across 357 nets. This separate completed bounded pass is not selected for routing; the isolated ECO STA and route resume directly from the single-buffer global-route state.",
+      "repair_log_sha256": "a8468f8f233fa32ba6e20245bd27d9fbbacabad64d8d023f69f4ea72b3f046fb"
+    },
+    "supervision": "systemd-run --user --unit=axpe-wire200-fanout-eco-route --working-directory=/home/shubhgau/dev/atomiX --collect",
+    "scope": "Legalized pre-route single-buffer ECO and nominal estimated-parasitic STA pass. The detailed route is running separately; antenna clearance, extracted all-corner timing, electrical closure and GDS/DRC/LVS are unmeasured.",
+    "guard_checks": "Existing output rejected; mismatched parent ODB digest rejected before writing. Parent timing and physical views and metrics are cleared from the ECO checkpoint.",
+    "post_route": {
+      "summary": {
+        "schema": "org.atomix.tt-axpe-flow-summary.v1",
+        "candidate": {
+          "profile": "configs/tt-axpe-6x4-25ns-postgrt-noant-wire200-am0.json",
+          "top_module": "tt_um_shubhgau_atomix_axpe",
+          "tiles": "6x4",
+          "die_area_um": [
+            0.0,
+            0.0,
+            1289.28,
+            710.64
+          ],
+          "clock_period_ns": 25.0,
+          "io_delay_ns": 4.0,
+          "cts_sink_clustering_size": 8,
+          "instruction_store": "64x32 inferred synchronous single-port array",
+          "post_grt_design_repair": true,
+          "post_grt_max_wire_length_um": 200,
+          "antenna_repair_enabled": false,
+          "antenna_repair_margin_pct": 0
+        },
+        "flow": {
+          "gds_action": "TinyTapeout/tt-gds-action@3412659307918422f3f0727917cf9b499aaca588",
+          "support_tools_repository": "TinyTapeout/tt-support-tools",
+          "support_tools_commit": "d66cf179e7bc4d296362ab7e2e3b344dc3c4f665",
+          "pdk": "ihp-sg13cmos5l",
+          "pdk_repository": "https://github.com/IHP-GmbH/IHP-Open-PDK.git",
+          "pdk_commit": "2bbec755dc67ca3db0261c3d6163e15735d66710",
+          "librelane": "3.1.0.dev3",
+          "librelane_source_commit": "ca6adb1e2982cd75445a68b632d461213d8ca421",
+          "nix_portable_sha256": "b409c55904c909ac3aeda3fb1253319f86a89ddd1ba31a5dec33d4a06414c72a"
+        },
+        "export_manifest_sha256": "764fb98cc11a8e0be9e4deaff2316cec51fe6e85e056755905ce652c06f564d0",
+        "flow_lock_sha256": "7b1c89a41bf9a15e3ca731f4729d7fd1b8f932a46dab4aee385d28f455a26756",
+        "merged_config_sha256": "e939c20c112f797c748f89ac51816c53ea04d1ac01a8003a1bbebb578edfcfa0",
+        "metrics_sha256": "dd8179baa03ce24c709c29104bdf47f6731305b1c22ac4daf55427010cf51dd6",
+        "run": "pe10-wire200-fanout-eco-route",
+        "standard_cells": 18109,
+        "standard_cell_area_um2": 304090,
+        "core_area_um2": 902417,
+        "routing_drc_errors": 0,
+        "antenna_net_violations": 0,
+        "antenna_pin_violations": 0,
+        "corners": {
+          "nom_fast_1p32V_m40C": {
+            "setup_worst_slack_ns": 15.511139478543774,
+            "setup_violations": 0,
+            "hold_worst_slack_ns": 0.02508138212556423,
+            "hold_violations": 0,
+            "max_slew_violations": 0,
+            "max_fanout_violations": 0,
+            "max_cap_violations": 0
+          },
+          "nom_typ_1p20V_25C": {
+            "setup_worst_slack_ns": 12.74213837176241,
+            "setup_violations": 0,
+            "hold_worst_slack_ns": 0.18837443249560712,
+            "hold_violations": 0,
+            "max_slew_violations": 0,
+            "max_fanout_violations": 0,
+            "max_cap_violations": 0
+          },
+          "nom_slow_1p08V_125C": {
+            "setup_worst_slack_ns": 7.85819076496478,
+            "setup_violations": 0,
+            "hold_worst_slack_ns": 0.4809256462525142,
+            "hold_violations": 0,
+            "max_slew_violations": 0,
+            "max_fanout_violations": 0,
+            "max_cap_violations": 0
+          }
+        }
+      },
+      "summary_sha256": "e1feeac489dd833cbc0327fa06d48c6487ad4d0fb69b7da976401a0a5fe8d88f",
+      "netlist_sha256": "959c159a7259e687f3ef3003d1522266b3dfd838b500b9cbeaedbd4be88c05e3",
+      "state_sha256": "bae9d21f7104ae53a39808ba9e0abcea8b066cd483321d8a1d405dcb201d5b44",
+      "slow_checks_sha256": "7d876f40b94dd6993190053583c7b608ec9ece4814f0b21f0427c9b9b6f50dbd",
+      "route_console_sha256": "e066278858ec9bdcf0f4ed933b5908dcd4493d034b5d3a1b354576382a371d47",
+      "antenna_report_sha256": "bd4c6489f063ba0e337ce9356da7a70bf063e08c5713b64eac28b6f9cd496d6a",
+      "diodes_added": 3,
+      "net4_final": "input4 drives three functional loads, with no added antenna diodes on net4; the ECO child drives two mux inputs and has no added diode",
+      "scope": "RC-extracted routed checks; subsequent Magic full DRC and Netgen LVS pass in the signoff receipt"
+    },
+    "result": "Completed one-buffer ECO passes routed all-corner setup/hold/slew/fanout/cap, route DRC and antenna, then Magic full DRC and Netgen LVS. Final signoff netlist is byte-identical to the replayed routed netlist. Fast hold margin is +0.025081 ns; IO budget remains provisional.",
+    "signoff": {
+      "command": "python3 tools/tt_axpe_flow.py run --profile configs/tt-axpe-6x4-25ns-postgrt-noant-wire200-am0.json --flow-lock asic/axpe/flow-lock-25ns-postgrt-noant-wire200-am0.json --workdir build/asic/tt-axpe-25ns-wire200-fanout-eco --tag pe10-wire200-fanout-eco-signoff --resume-from-tag pe10-wire200-fanout-eco-route --from OpenROAD.IRDropReport --full --threads 2",
+      "supervisor": "axpe-wire200-fanout-eco-signoff.service",
+      "status": "passed",
+      "last_step": "Misc.ReportManufacturability",
+      "summary": "build/asic/tt-axpe-25ns-wire200-fanout-eco/runs/pe10-wire200-fanout-eco-signoff/summary.json",
+      "summary_sha256": "5db15d948955d3f830f5a9621e75f47774db8002c0f6c296b465a334a96ef160",
+      "metrics_sha256": "99d6d44d18ec538c6db4f00393752a7bc8d6f8bb81a7e8bc17651fdab2398c44",
+      "state": "build/asic/tt-axpe-25ns-wire200-fanout-eco/runs/pe10-wire200-fanout-eco-signoff/17-misc-reportmanufacturability/state_out.json",
+      "state_sha256": "58f9fbed80792de2d8ce9d1f4cf78d33e8000182cf6ad2fd98383618f357899d",
+      "netlist_sha256": "959c159a7259e687f3ef3003d1522266b3dfd838b500b9cbeaedbd4be88c05e3",
+      "final_replay_netlist_identical": true,
+      "replay_receipt": "build/asic/axpe-netlist-eco-final-functional/evidence.json",
+      "replay_receipt_sha256": "ad624998f6e0b4dc153e2ad363c8a7887850c7dde3ad848e965cd29258e11b92",
+      "gds": "build/asic/tt-axpe-25ns-wire200-fanout-eco/runs/pe10-wire200-fanout-eco-signoff/03-klayout-streamout/tt_um_shubhgau_atomix_axpe.gds",
+      "gds_sha256": "a5877dd7626f05d7462ce6e629e84e1b507a606f7c6a75e083e22c09af772134",
+      "magic_gds_sha256": "e3bdfc39928b9fcd5d0646e6b930782d21de1fbeb9ca97f8377e84cb522e8ac7",
+      "klayout_gds_sha256": "a5877dd7626f05d7462ce6e629e84e1b507a606f7c6a75e083e22c09af772134",
+      "magic_drc_report_sha256": "341d003398713a7bc71364f61b93a1f2e81b951ec7fffd1e8fbe2c34c168988b",
+      "lvs_report_sha256": "1640129552667dfd35be9ad4fe5e1f8e6f1cae8b5f3cd5142f50c4ea6f1d8253",
+      "lvs_json_sha256": "98c4ec665a76d6759494d6e68a78fb5c2fe54a03cb61a74535bce85426fe353d",
+      "console_sha256": "58d1e5f8ba0d068e84d0e86d6df6432c10048d244b3744cadc1fcd61783f0d43",
+      "checks": {
+        "magic__drc_error__count": 0,
+        "design__lvs_device_difference__count": 0,
+        "design__lvs_net_difference__count": 0,
+        "design__lvs_property_fail__count": 0,
+        "design__lvs_error__count": 0,
+        "design__lvs_unmatched_device__count": 0,
+        "design__lvs_unmatched_net__count": 0,
+        "design__lvs_unmatched_pin__count": 0
+      },
+      "corners": {
+        "nom_fast_1p32V_m40C": {
+          "setup_worst_slack_ns": 15.511139478543774,
+          "setup_violations": 0,
+          "hold_worst_slack_ns": 0.02508138212556423,
+          "hold_violations": 0,
+          "max_slew_violations": 0,
+          "max_fanout_violations": 0,
+          "max_cap_violations": 0
+        },
+        "nom_typ_1p20V_25C": {
+          "setup_worst_slack_ns": 12.74213837176241,
+          "setup_violations": 0,
+          "hold_worst_slack_ns": 0.18837443249560712,
+          "hold_violations": 0,
+          "max_slew_violations": 0,
+          "max_fanout_violations": 0,
+          "max_cap_violations": 0
+        },
+        "nom_slow_1p08V_125C": {
+          "setup_worst_slack_ns": 7.85819076496478,
+          "setup_violations": 0,
+          "hold_worst_slack_ns": 0.4809256462525142,
+          "hold_violations": 0,
+          "max_slew_violations": 0,
+          "max_fanout_violations": 0,
+          "max_cap_violations": 0
+        }
+      },
+      "scope": "Pinned CMOS5L flow with Magic full DRC and Netgen LVS; zero violations at the declared 25 ns clock and provisional 4 ns IO delay. Tool evidence, not fabricated or measured silicon.",
+      "not_run": [
+        "KLayout DRC",
+        "KLayout XOR",
+        "Yosys EQY"
+      ],
+      "warnings": [
+        "VSRC_LOC_FILES unset; IR-drop does not establish a package supply contract",
+        "KLayout DRC skipped by locked flow; Magic full DRC ran"
+      ],
+      "limits": [
+        "Fast-corner hold margin is only +0.025081382 ns",
+        "4 ns IO delay remains provisional; external pad/carrier timing contract unavailable",
+        "Maintainer commit-pinned review owed"
+      ],
+      "magic_drc_gds_binding": {
+        "use_gds": true,
+        "input_gds_sha256": "a5877dd7626f05d7462ce6e629e84e1b507a606f7c6a75e083e22c09af772134",
+        "input_state_sha256": "f9642f4073f9a3d774c8337eac680b671db7d6999acebdaff3845d08f9b33b87",
+        "step_config_sha256": "367da5e4aff7a85cea8d813e4be88e84bbd32717b5861c99f611e19a8d9cff45"
+      }
+    },
+    "mapped_replay": {
+      "evidence": "research/benchmarks/axpe-netlist.json",
+      "netlist_sha256": "959c159a7259e687f3ef3003d1522266b3dfd838b500b9cbeaedbd4be88c05e3",
+      "receipt_sha256": "ad624998f6e0b4dc153e2ad363c8a7887850c7dde3ad848e965cd29258e11b92",
+      "result": "pass: all shared cases at startup seeds 1,17,91; frozen clarified ISA and all helper modules pinned; two-state zero-delay functional evidence",
+      "output": "build/asic/axpe-netlist-eco-final-functional",
+      "recipe_sha256": "2df44cc6ed14bd1209afc186b1aed3b09560eec15eedf93d8d273ad5d8618524"
+    }
+  },
+
   "stopped_continuations_2026_10_07": [
     {"tag": "pe10-25ns-cts8-signoff", "stop": "Operator stopped during Magic full DRC because this CTS-size-eight candidate already has six post-route fanout and six slow-corner slew violations; no CTS-size-eight DRC/LVS result is claimed"},
     {"tag": "pe10-25ns-closure-drt-retry", "stop": "Operator stopped during detailed routing after the better post-antenna repair checkpoint became available; no post-route result"},
@@ -543,7 +837,28 @@
     "smoke_summary_sha256": "dc3e6a339006fa41299d7997b753f1fe5d08406479dc55620bf062fa467b3c96",
     "evidence_level": "host verification plus separate RC-extracted routed STA for the 200 um variant; one fanout violation remains and no final-architecture signoff is claimed"
   },
-  "outcome": "The baseline 25 ns GDS continuation passes Magic DRC, LVS and antenna checks and keeps setup/hold clear, but electrical closure fails. A locked 200 um wire-length cap removes all slow-corner slew violations on a separate detailed-route candidate while retaining zero route DRC/antenna errors and passing setup/hold. It has one fanout violation on input4/X after five antenna diodes raise net4 to fanout nine; fast-corner hold margin is only 12 ps. It does not establish electrical or final-architecture signoff.",
-  "next": "Measure the separately locked zero-antenna-margin reroute to see whether it uses fewer diodes on net4 while retaining antenna and all-corner timing closure. If it does not, repair net4 fanout selectively and reroute/re-extract. Then repeat full GDS/DRC/LVS and all-corner timing on the final architecture; keep the 4 ns I/O delay provisional until an external pad contract exists.",
-  "not_claimed": ["electrical signoff", "final-architecture GDS/DRC/LVS", "gate-level firmware replay", "power from an activity model", "fabricated or measured silicon"]
+  "verification_2026_10_09_fanout_eco": {
+    "commands": [
+      "python3 -m py_compile asic/axpe/experiments/wire200-fanout-eco.py",
+      "python3 -m json.tool research/benchmarks/axpe-cmos5l-25ns.json",
+      "git diff --check",
+      "make verification-check",
+      "make registry-check",
+      "make verify-smoke"
+    ],
+    "result": "pass; smoke 14/14 stages",
+    "smoke_summary_sha256": "34dec237de0dea332b2cc06d96f60dbd0575e95c30f82d4ac0a62c69dd5b0ad7",
+    "recipe_sha256": "c8afb58b59df1290461cdb521fbaac30d4a2b2733acfeff8862b1258b82f9b78",
+    "tcl_sha256": "1b49c1b8a6de8c2c79917967ab470cb61cc1b0560fe38d670144b89d6c3466d4",
+    "guard_checks": "Existing output refused; mismatched parent ODB hash refused before writing; summarize rejects the completed nominal STA checkpoint as incomplete post-route evidence.",
+    "evidence_level": "Host verification plus legalized single-buffer ECO, global routing and nominal estimated-parasitic STA. The supervised detailed route is in progress; no ECO extracted all-corner timing, electrical closure, GDS/DRC/LVS or silicon claim."
+  },
+  "outcome": "The pinned one-buffer ECO passes extracted all-corner setup/hold/slew/fanout/cap, route DRC and antenna, Magic full DRC and Netgen LVS. Final netlist SHA matches the passing three-seed protocol replay. Fast hold margin is only +25 ps and external IO constraints remain provisional. Earlier failing candidates remain recorded.",
+  "next": "Maintainer commit-pinned review is owed for this candidate and recipe. Package the exact signoff/replay binding with reproducible inputs; obtain an external pad/carrier contract before promoting the provisional 4 ns IO budget.",
+  "not_claimed": [
+    "validated external pad/carrier IO contract",
+    "KLayout DRC/XOR or Yosys EQY",
+    "power from an activity model or package supply model",
+    "fabricated or measured silicon"
+  ]
 }

@@ -1,0 +1,211 @@
+{
+  "schema": "org.atomix.axpe-flow-reproduction.v1",
+  "date": "2026-10-11",
+  "status": "passed",
+  "level": "pinned CMOS5L staged ECO checkpoint reproduction; no physical-board evidence",
+  "preparation": {
+    "status": "passed",
+    "receipt": "build/asic/wire200-fanout-eco-reproduction-2026-10-11/evidence.json",
+    "receipt_sha256": "624ab5e9400049b08ec8f92b832b6199b1e3a99d9e88fae0761814a763bc11c9",
+    "matching_outputs_sha256": {
+      "tt_um_shubhgau_atomix_axpe.def": "ad60e2d2c17cea3d723afd8b4f5fb1b520d9fdf8e4baaae53cd768ea90198b17",
+      "openroad.log": "2f8a24b9d097721404bd08e2280b5a272ca552b2189ee67df0183af6011d32d0",
+      "tt_um_shubhgau_atomix_axpe.nl.v": "bff78005136b0e1f67c777c48f858ef0af5fe838eff17fc2f4ae6c11963b5f28",
+      "tt_um_shubhgau_atomix_axpe.odb": "b1a58b3967e92662016d9218bc5fb3637566946cbfb0bdf29caba3d6852452a2"
+    },
+    "state_relocation": "new state paths produce a distinct JSON hash; ODB/DEF/netlist/tool log bytes are identical"
+  },
+  "workdir": "build/asic/tt-axpe-eco-reproduction-2026-10-11",
+  "commands": {
+    "prepare": "NP_LOCATION=$PWD/build/asic/nix-portable-state build/asic/nix-portable nix-shell build/asic/librelane-src/shell.nix --option extra-substituters https://nix-cache.fossi-foundation.org --option extra-trusted-public-keys 'nix-cache.fossi-foundation.org:3+K59iFwXqKsL7BNu6Guy0v+uTlwsxYQxjspXzqLYQs=' --run 'python3 asic/axpe/experiments/wire200-fanout-eco.py --output build/asic/wire200-fanout-eco-reproduction-2026-10-11'",
+    "global_route": "python3 tools/tt_axpe_flow.py run --profile configs/tt-axpe-6x4-25ns-postgrt-noant-wire200-am0.json --flow-lock asic/axpe/flow-lock-25ns-postgrt-noant-wire200-am0.json --workdir build/asic/tt-axpe-eco-reproduction-2026-10-11 --tag pe12-reproduce-grt --initial-state build/asic/wire200-fanout-eco-reproduction-2026-10-11/state_out.json --from OpenROAD.GlobalRouting --to OpenROAD.GlobalRouting --threads 2",
+    "nominal_sta": "python3 tools/tt_axpe_flow.py run --profile configs/tt-axpe-6x4-25ns-postgrt-noant-wire200-am0.json --flow-lock asic/axpe/flow-lock-25ns-postgrt-noant-wire200-am0.json --workdir build/asic/tt-axpe-eco-reproduction-2026-10-11 --tag pe12-reproduce-sta --resume-from-tag pe12-reproduce-grt --from OpenROAD.STAMidPNR-3 --to OpenROAD.STAMidPNR-3 --threads 2",
+    "route": "python3 tools/tt_axpe_flow.py run --profile configs/tt-axpe-6x4-25ns-postgrt-noant-wire200-am0.json --flow-lock asic/axpe/flow-lock-25ns-postgrt-noant-wire200-am0.json --workdir build/asic/tt-axpe-eco-reproduction-2026-10-11 --tag pe12-reproduce-route --resume-from-tag pe12-reproduce-sta --from OpenROAD.DetailedRouting --threads 2",
+    "signoff": "python3 tools/tt_axpe_flow.py run --profile configs/tt-axpe-6x4-25ns-postgrt-noant-wire200-am0.json --flow-lock asic/axpe/flow-lock-25ns-postgrt-noant-wire200-am0.json --workdir build/asic/tt-axpe-eco-reproduction-2026-10-11 --tag pe12-reproduce-signoff --resume-from-tag pe12-reproduce-route --from OpenROAD.IRDropReport --full --threads 2"
+  },
+  "limits": [
+    "This repeats from the pinned pre-ECO checkpoint; no fresh source-to-parent synthesis is claimed",
+    "The default standalone GDS workflow does not reproduce this staged ECO",
+    "Selected GDS/netlist remain unchanged; fresh continuation does not replace the selected candidate",
+    "4 ns external I/O budget remains provisional; no pad characterization or measured operation",
+    "Fresh GDS has matching non-timestamp bytes; the nine Tiny Tapeout checks bind the original selected GDS, not a newly claimed precheck on the timestamp variant",
+    "KLayout DRC/XOR and Yosys EQY remain skipped in this LibreLane continuation; no IR-drop claim without supply locations"
+  ],
+  "stages": {
+    "grt": {
+      "status": "passed",
+      "reproduced_state_sha256": "be6e3d5667775ccf1ec335f58c64eefa610a2456e9a6a2a6fb7ab2531b69a063",
+      "checkpoint_assets": {
+        "odb": {
+          "selected_sha256": "133b42ab499b7bdfe32e38f60e94b2a408193042d535d3dac97d8d6dcd703a0b",
+          "reproduced_sha256": "133b42ab499b7bdfe32e38f60e94b2a408193042d535d3dac97d8d6dcd703a0b"
+        },
+        "nl": {
+          "selected_sha256": "bff78005136b0e1f67c777c48f858ef0af5fe838eff17fc2f4ae6c11963b5f28",
+          "reproduced_sha256": "bff78005136b0e1f67c777c48f858ef0af5fe838eff17fc2f4ae6c11963b5f28"
+        }
+      },
+      "metrics_match": true
+    },
+    "sta": {
+      "status": "passed",
+      "reproduced_state_sha256": "1eeb950f08ee4a881683cbca842a066c0369baf3ad926c59a7907cfd8b7644a5",
+      "checkpoint_assets": {
+        "odb": {
+          "selected_sha256": "133b42ab499b7bdfe32e38f60e94b2a408193042d535d3dac97d8d6dcd703a0b",
+          "reproduced_sha256": "133b42ab499b7bdfe32e38f60e94b2a408193042d535d3dac97d8d6dcd703a0b"
+        },
+        "nl": {
+          "selected_sha256": "bff78005136b0e1f67c777c48f858ef0af5fe838eff17fc2f4ae6c11963b5f28",
+          "reproduced_sha256": "bff78005136b0e1f67c777c48f858ef0af5fe838eff17fc2f4ae6c11963b5f28"
+        }
+      },
+      "metrics_match": true,
+      "checks_sha256": {
+        "checks.rpt": "33126bceeaaa38815b8bd74d4e9d8306ab3260d7945daa37ffdfaae09a8526cc"
+      }
+    },
+    "route": {
+      "status": "passed",
+      "summary_sha256": "e5149336207618d900c752581d45d1d81946a3f45e8ffade5b0c6e5863c04745",
+      "state_sha256": "b443192a056c795024c5c18ce640148cffbc724e4ee97fc3b6b8498bd42cc178",
+      "checkpoint_assets": {
+        "odb": {
+          "selected_sha256": "4c7a84508b22b5e805a4e684d538c570f3fbffdbd017ca6a6d6b31e9f9419c68",
+          "reproduced_sha256": "4c7a84508b22b5e805a4e684d538c570f3fbffdbd017ca6a6d6b31e9f9419c68"
+        },
+        "nl": {
+          "selected_sha256": "959c159a7259e687f3ef3003d1522266b3dfd838b500b9cbeaedbd4be88c05e3",
+          "reproduced_sha256": "959c159a7259e687f3ef3003d1522266b3dfd838b500b9cbeaedbd4be88c05e3"
+        },
+        "def": {
+          "selected_sha256": "cf96d459268ecd51b1e79b0a8847c58d59cc81243a4e09ada62a0bea64477092",
+          "reproduced_sha256": "cf96d459268ecd51b1e79b0a8847c58d59cc81243a4e09ada62a0bea64477092"
+        }
+      },
+      "metrics_match": true,
+      "corners": {
+        "nom_fast_1p32V_m40C": {
+          "setup_worst_slack_ns": 15.511139478543774,
+          "setup_violations": 0,
+          "hold_worst_slack_ns": 0.02508138212556423,
+          "hold_violations": 0,
+          "max_slew_violations": 0,
+          "max_fanout_violations": 0,
+          "max_cap_violations": 0
+        },
+        "nom_typ_1p20V_25C": {
+          "setup_worst_slack_ns": 12.74213837176241,
+          "setup_violations": 0,
+          "hold_worst_slack_ns": 0.18837443249560712,
+          "hold_violations": 0,
+          "max_slew_violations": 0,
+          "max_fanout_violations": 0,
+          "max_cap_violations": 0
+        },
+        "nom_slow_1p08V_125C": {
+          "setup_worst_slack_ns": 7.85819076496478,
+          "setup_violations": 0,
+          "hold_worst_slack_ns": 0.4809256462525142,
+          "hold_violations": 0,
+          "max_slew_violations": 0,
+          "max_fanout_violations": 0,
+          "max_cap_violations": 0
+        }
+      },
+      "final_route_drc_errors": 0,
+      "final_antenna_nets": 0,
+      "final_antenna_pins": 0
+    },
+    "signoff": {
+      "status": "passed",
+      "state_sha256": "d546f0b3eb77c28a4b3ac33ea915512095c26e9b8fa66f608f66b2ddedf2f287",
+      "summary_sha256": "f7005cf352481f9296b4371fbe4f17d65a6706e773c8394aee97d7d69a91f06f",
+      "metrics_sha256": "99d6d44d18ec538c6db4f00393752a7bc8d6f8bb81a7e8bc17651fdab2398c44",
+      "metrics_match_selected": true,
+      "checks": {
+        "route__drc_errors": 0,
+        "antenna__violating__nets": 0,
+        "antenna__violating__pins": 0,
+        "magic__drc_error__count": 0,
+        "design__lvs_error__count": 0,
+        "design__lvs_device_difference__count": 0,
+        "design__lvs_net_difference__count": 0,
+        "design__lvs_property_fail__count": 0,
+        "design__lvs_unmatched_device__count": 0,
+        "design__lvs_unmatched_net__count": 0,
+        "design__lvs_unmatched_pin__count": 0,
+        "timing__setup_vio__count__corner:nom_typ_1p20V_25C": 0,
+        "timing__hold_vio__count__corner:nom_typ_1p20V_25C": 0,
+        "design__max_slew_violation__count__corner:nom_typ_1p20V_25C": 0,
+        "design__max_fanout_violation__count__corner:nom_typ_1p20V_25C": 0,
+        "design__max_cap_violation__count__corner:nom_typ_1p20V_25C": 0,
+        "timing__setup_vio__count__corner:nom_slow_1p08V_125C": 0,
+        "timing__hold_vio__count__corner:nom_slow_1p08V_125C": 0,
+        "design__max_slew_violation__count__corner:nom_slow_1p08V_125C": 0,
+        "design__max_fanout_violation__count__corner:nom_slow_1p08V_125C": 0,
+        "design__max_cap_violation__count__corner:nom_slow_1p08V_125C": 0,
+        "timing__setup_vio__count__corner:nom_fast_1p32V_m40C": 0,
+        "timing__hold_vio__count__corner:nom_fast_1p32V_m40C": 0,
+        "design__max_slew_violation__count__corner:nom_fast_1p32V_m40C": 0,
+        "design__max_fanout_violation__count__corner:nom_fast_1p32V_m40C": 0,
+        "design__max_cap_violation__count__corner:nom_fast_1p32V_m40C": 0
+      },
+      "routed_netlist_sha256": "959c159a7259e687f3ef3003d1522266b3dfd838b500b9cbeaedbd4be88c05e3",
+      "gds_sha256": "55532851345e05e0e2efb8544fcd2f53e7a5fe0e876c6bba9e9ab365650ac3c4",
+      "selected_gds_sha256": "a5877dd7626f05d7462ce6e629e84e1b507a606f7c6a75e083e22c09af772134",
+      "source_hardware_matches_selected": true
+    }
+  },
+  "supervision": {
+    "status": "passed",
+    "transient_post_route_antenna_violations": {
+      "nets": 3,
+      "pins": 3
+    },
+    "final_route_antenna_violations": {
+      "nets": 0,
+      "pins": 0
+    },
+    "detail": "Configured antenna repair converged; fresh extracted all-corner checks, Magic full DRC and Netgen LVS all pass."
+  },
+  "gds_comparison": {
+    "status": "passed",
+    "result": {
+      "selected": {
+        "raw_sha256": "a5877dd7626f05d7462ce6e629e84e1b507a606f7c6a75e083e22c09af772134",
+        "timestamp_normalized_sha256": "489d00e925fccb4f38660a29909002f47cb5efc39aa88a2bb0d1cd63ead7165a",
+        "timestamp_records": 46,
+        "size_bytes": 16541514
+      },
+      "reproduced": {
+        "raw_sha256": "55532851345e05e0e2efb8544fcd2f53e7a5fe0e876c6bba9e9ab365650ac3c4",
+        "timestamp_normalized_sha256": "489d00e925fccb4f38660a29909002f47cb5efc39aa88a2bb0d1cd63ead7165a",
+        "timestamp_records": 46,
+        "size_bytes": 16541514
+      },
+      "identical_except_timestamps": true
+    },
+    "script": "\"\"\"Compare every GDS record byte except BGNLIB/BGNSTR timestamp payloads.\nReference: GDSTK library.cpp gds_timestamp/read_gds; no geometric XOR claim.\n\"\"\"\nimport hashlib,json,sys\nfrom pathlib import Path\n\ndef digest(path):\n    data=Path(path).read_bytes(); normalized=bytearray(); offset=0; stamps=0\n    while offset<len(data):\n        if offset+4>len(data): raise ValueError('truncated record header')\n        length=int.from_bytes(data[offset:offset+2],'big')\n        if length<4 or length%2 or offset+length>len(data): raise ValueError('invalid record length')\n        record=bytearray(data[offset:offset+length])\n        if record[2] in (1,5):\n            if length!=28 or record[3]!=2: raise ValueError('unexpected timestamp record')\n            record[4:]=bytes(24); stamps+=1\n        normalized.extend(record); offset+=length\n    return {'raw_sha256':hashlib.sha256(data).hexdigest(),'timestamp_normalized_sha256':hashlib.sha256(normalized).hexdigest(),'timestamp_records':stamps,'size_bytes':len(data)}\n\nif __name__=='__main__':\n    a,b=(digest(p) for p in sys.argv[1:])\n    print(json.dumps({'selected':a,'reproduced':b,'identical_except_timestamps':a['timestamp_normalized_sha256']==b['timestamp_normalized_sha256']},indent=2))\n",
+    "script_sha256": "6ee61109d269fb6948e539bb5b9a8193c2272b07d7904d0302596ac918fbecb1",
+    "reference_url": "https://raw.githubusercontent.com/heitzmann/gdstk/main/src/library.cpp",
+    "scope": "All record bytes are equal after zeroing only the 24-byte BGNLIB/BGNSTR timestamp payloads. This does not assert a new precheck or a KLayout geometric XOR run."
+  },
+  "logs_sha256": {
+    "build/asic/axpe-flow-reproduction-continuation-2026-10-11.log": "73b03a83a24c2a3d341f3db5a3facb4a2c707bcd5644cf305fa4df3a929659dd",
+    "build/asic/tt-axpe-eco-reproduction-2026-10-11/pe12-reproduce-signoff.console.log": "830692011383f09101b5c817f0e892aa3658ec23f35cbdd5e4a5c4848fa173a9"
+  },
+  "reports_sha256": {
+    "07-magic-drc/runtime.txt": "b77ff4e528dfe5c8b771735cd909675c8fb2f9d947790e4528ab4ecbd610100f",
+    "07-magic-drc/config.json": "d4cb669d002f2c3ec0ca7b608a352b887b1ad83d5e665a042eccf1bdf5859744",
+    "07-magic-drc/state_in.json": "dffd24f97ce93e4db717a7ae62325496b71a981d77f5805fb14f735785c73311",
+    "07-magic-drc/state_out.json": "eee96cbadd8fc7d98495ded2a25e624d4314a7ecd4683b324708c5ba6386f4b9",
+    "07-magic-drc/magic-drc.process_stats.json": "20f66a540b4846a25ee042c8d6ac013220213c4840c5d092bd2bfb3c58fbe3b1",
+    "07-magic-drc/reports/drc.magic.rpt": "341d003398713a7bc71364f61b93a1f2e81b951ec7fffd1e8fbe2c34c168988b",
+    "17-misc-reportmanufacturability/manufacturability.rpt": "038bd8e28c459644f9838180d7a82ccd04cac768605e2348af10b43fa259cf29",
+    "17-misc-reportmanufacturability/runtime.txt": "9ad84bebefa7b9431be40a34856fcc6acfa1c62102890023e029fdf6451e6859",
+    "17-misc-reportmanufacturability/config.json": "50f7df28b7f8bb073771eb6beabe586e0420aacc97c1c1cdd1062a7bb824e5b8",
+    "17-misc-reportmanufacturability/state_in.json": "d546f0b3eb77c28a4b3ac33ea915512095c26e9b8fa66f608f66b2ddedf2f287",
+    "17-misc-reportmanufacturability/state_out.json": "d546f0b3eb77c28a4b3ac33ea915512095c26e9b8fa66f608f66b2ddedf2f287"
+  }
+}

@@ -18,6 +18,8 @@ jobs:
           pip install -r test/requirements.txt
       - name: Run RTL loader test
         run: make -C test SIM=verilator
+      - name: Run standalone runtime protocol demonstrations
+        run: make -C demo check rate-check
       - name: Test summary
         uses: test-summary/action@31493c76ec9e7aa675f1585d3ed6f1da69269a86 # v2.4
         if: always()

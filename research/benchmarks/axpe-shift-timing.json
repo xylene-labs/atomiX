@@ -1,0 +1,137 @@
+{
+  "schema": "org.atomix.axpe-shift-timing-evidence.v1",
+  "status": "passed",
+  "inputs_sha256": {
+    "sw/pemu/isa/axpe-isa.json": "d60e77699decd1c03b55fc9788fcdae9d5119b64892a8b20a1ca8a42fe086903",
+    "components/pemu/axpe/component.json": "6c69e11ba3948432838540b5698036ec3cee387a72d4f03e0793f77bc0a88486",
+    "components/pemu/axpe/axpe_shift.sv": "3052a6d158bab0101eba22e20e31154874638c40dd24d6193dc709d6bb3b3cd6",
+    "components/pemu/axpe/axpe_timing.sv": "f027badac4187026c884a000019660684fc40f3707ff9647b91494757faf189a",
+    "formal/pemu/shift.sv.in": "05ad0daa082605fae2293271f60ddd71a74b3174829502e4b72339017d676c69",
+    "formal/pemu/check_timing.py": "70386a8095d47120e3d2d95c18a5e376dc59a010943bce90b8e11e24fbe87373",
+    "formal/pemu/check_shift.py": "3de33117b1862ee2d8960647b9a16934d737c036f08cb9de4587d7ac73328c72"
+  },
+  "formula": "n*max(D,1)",
+  "register_formula": "n*max(P,1)",
+  "parameters": {
+    "imem_words": 256,
+    "reg_count": 8,
+    "reg_width": 16,
+    "delay_bits": 16,
+    "uio_pins": 8,
+    "call_depth": 4
+  },
+  "scope": "isolated shift occupancy and busy/done; arbitrary binary data/inputs",
+  "assumptions": [
+    "first sampled edge resets; reset interrupts a transfer",
+    "start only while idle or on the expected final cycle",
+    "legal bit count and pins; clocked delay is even and at least two",
+    "SHCFG stable while active; effective delay stable except at final cycle"
+  ],
+  "not_proved": [
+    "core enforces caller contract and selects encoded/register period",
+    "core instruction retirement/handoff",
+    "shifted data correctness",
+    "pin waveform/glitches",
+    "reset recovery",
+    "physical timing"
+  ],
+  "proof": {
+    "harness_sha256": "00ec54d90a3e7a07d73e76d48bc4738fd74b9f7a5ba06e6fdb9c46405b4a0c30",
+    "proof_script_sha256": "f9c886f9066b8efdd87fb0ba09cd366975c1ef8a475578112eaf700880908e51",
+    "proof_log_sha256": "5718cbecbe4677311615a7c12cb450f77d26421438dc7ec4485f4f5f16869ba0",
+    "result": "inductive pass",
+    "covers": {
+      "covered_zero": {
+        "script_sha256": "45b4ab011e211f99a7bdbb047b9fe5abc5dbaa4e937cadd2893fea8cda611f9a",
+        "log_sha256": "02446ee9be77f57d4b20ff5488914a31dcec8b37e9fa8a29e73d954e9c433d3a"
+      },
+      "covered_max_count": {
+        "script_sha256": "0bd974aa350e549eb04b0b35c116b62f07af5dbd38b4efc86584757da19e7608",
+        "log_sha256": "1b5b8ea020760cdb458bc9d78b1c45e5e6dce525cb1d7e61595473c617cdfb90"
+      },
+      "covered_max_delay": {
+        "script_sha256": "29d4974b43283fff8eacbf2ba2debf93ee7d3e12a5b4532c0519d2ab7e325a29",
+        "log_sha256": "a7f87ff8922b47ae59f7e5acfe827eeaeb75aa2455bd61d9737c11788c1027c7"
+      },
+      "covered_chain": {
+        "script_sha256": "0c67ffc507794107f82a2eac44ad5ccba446200fef6dea99b5afffd9cca121e2",
+        "log_sha256": "4203baf4b3d217b85a5e11ffcc39ca12eae4216e809ee53dcd910b70a474d525"
+      },
+      "covered_mode0": {
+        "script_sha256": "143c35999bd0b8f858de7bc177ef18599f8cc4df072e198e835cf4106e9a07fd",
+        "log_sha256": "0e8df697041a8a7e081d584c0458bdf905f227e8356ba28e2d6288e4b4805965"
+      },
+      "covered_mode1": {
+        "script_sha256": "aea1b62bf9c54b123b1288025d2c7e9a2326183999262dab795bae22ab63194f",
+        "log_sha256": "00f3ccefccc45c9b9717a1a8770ae91ff3566383406f4b23bd9200df6848fc9e"
+      },
+      "covered_mode2": {
+        "script_sha256": "95e21d5750bc3b0d9733c03b4249f093e871ac014589b2cbdd5156c693f33140",
+        "log_sha256": "a208355234428f1e35d7587f3aa9948f2c3b4762fe3da5b9fef3f14f0d764d3c"
+      },
+      "covered_mode3": {
+        "script_sha256": "eaadf643801dc9ad8cbe77e8617db7e9c72e2a8995021ee7a13731ed797de105",
+        "log_sha256": "3010b516445ffd4ace8f8c0f7d767bd0e1a8bfd4ef15cc9d9a0aee2c993a2864"
+      }
+    }
+  },
+  "mutations": {
+    "extra-first-cell-cycle": {
+      "harness_sha256": "00ec54d90a3e7a07d73e76d48bc4738fd74b9f7a5ba06e6fdb9c46405b4a0c30",
+      "proof_script_sha256": "3fe3b3abb8658a62a96f6718e5d60ba791fcadeee66a4453251d881821699a90",
+      "proof_log_sha256": "dd850fe224814b569a8db4607ed49c6db697d02b0c918d074be7b43a5b9f0f1b",
+      "result": "expected counterexample",
+      "shift_sha256": "484cc97affe84893628584998abd25ffced1f20e84b2fb42e08324e2fcdcb340"
+    },
+    "early-final-bit": {
+      "harness_sha256": "00ec54d90a3e7a07d73e76d48bc4738fd74b9f7a5ba06e6fdb9c46405b4a0c30",
+      "proof_script_sha256": "dd25e26f79aeed4889cadd98e5ccbf33684b30e88e035bb3d72f288014991cd8",
+      "proof_log_sha256": "0be0582722b9ba0a3fbcda8565ff6d935c9af5963964b75a8176652a76b2842e",
+      "result": "expected counterexample",
+      "shift_sha256": "3575e254924714b27729444e5348e6b6755cbac1576cae27d9c9764027513e98"
+    }
+  },
+  "yosys": "Yosys 0.67+ (git sha1 45ea2b8d6, Release, GNU /usr/bin/c++ 11.4.0)",
+  "date": "2026-10-09",
+  "level": "host formal verification of isolated shift timing, binary sampled-edge semantics",
+  "command": "python3 formal/pemu/check_shift.py --output build/formal/pemu/shift-recorded",
+  "make_target": "make pemu-shift-timing-check",
+  "receipt": "build/formal/pemu/shift-recorded/evidence.json",
+  "receipt_sha256": "127e3e35d9643b3380b3ea90923f631c02abe665eee2566c2381864d525724a3",
+  "development_limits": [
+    {
+      "result": "The first exploration with a full elapsed counter and symbolic multipliers did not induct within eight steps. A strengthened multiplier version was still solving at step two when interrupted. No RTL failure follows. The maintained proof decomposes the ISA product into independently measured cell age and bit index, and inducts without nonlinear arithmetic."
+    }
+  ],
+  "verification": {
+    "root_gate": "pass: make pemu-shift-timing-check",
+    "smoke": "pass: 14/14 stages",
+    "latest_smoke": "pass: 14/14 stages; manual formal gates pass separately",
+    "latest_smoke_summary_sha256": "f6231d491cca65e65e3973e7daea0ab2017321400eed6b45cb39840ba2581f57",
+    "root_gate_log_sha256": "9101ccff78964d15f916f622f94e5089ba6a5c6d95d9c12559b5122a054d10a0",
+    "coverage_contract": "pass: 124 advertised commands"
+  },
+  "spec_wording_clarification": {
+    "date": "2026-10-09",
+    "receipt": "build/formal/pemu/shift-spec-clarified/evidence.json",
+    "receipt_sha256": "1ae66a2e35058c9d907422c63a50b6d452fcca61fd33f9c5f075c44c04ddcba2",
+    "result": "pass after prose-only BR/WAITE clarification",
+    "inputs_sha256": {
+      "sw/pemu/isa/axpe-isa.json": "6bc75b907b156f96805baa321a3a2f86447477a4a8457f332cdc62217d30face",
+      "components/pemu/axpe/component.json": "6c69e11ba3948432838540b5698036ec3cee387a72d4f03e0793f77bc0a88486",
+      "components/pemu/axpe/axpe_shift.sv": "3052a6d158bab0101eba22e20e31154874638c40dd24d6193dc709d6bb3b3cd6",
+      "components/pemu/axpe/axpe_timing.sv": "f027badac4187026c884a000019660684fc40f3707ff9647b91494757faf189a",
+      "formal/pemu/shift.sv.in": "05ad0daa082605fae2293271f60ddd71a74b3174829502e4b72339017d676c69",
+      "formal/pemu/check_timing.py": "70386a8095d47120e3d2d95c18a5e376dc59a010943bce90b8e11e24fbe87373",
+      "formal/pemu/check_shift.py": "3de33117b1862ee2d8960647b9a16934d737c036f08cb9de4587d7ac73328c72"
+    },
+    "generated_sv_header_sha256": "a3a64fe4ef9b858f658b41c3ffb0634dbc7ee092d8b2c43d2546172550a4950f",
+    "generated_c_header_sha256": "9ad6612baea979bac8c7547a6ae9371e4244351b724135d2df2b3450097073b0",
+    "generated_headers_unchanged": true,
+    "model_check_log_sha256": "5a34d2ba03d5a5a16b6536af25e5e3c012ab2dd3d90556bbe5855bcdb614389c"
+  },
+  "resolved_spec_wording": [
+    "The BR instruction doc still says 1+D although its normative fixed formula and both implementations use max(D,1).",
+    "WAITE level-high already satisfied at entry deliberately returns zero while occupying one cycle (model tests assert this). Existing prose incorrectly says return and occupancy are always the same; the effective timeout is max(D,1). Resolve the wording before the core proof."
+  ]
+}

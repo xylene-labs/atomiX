@@ -1,0 +1,8 @@
+# axpe-generated demo and candidate assets belong in local/release packages.
+demo/build/
+**/__pycache__/
+hardened/
+verification/candidate/
+verification/precheck/
+verification/formal/
+.atomix-candidate.json

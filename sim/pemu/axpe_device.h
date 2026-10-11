@@ -21,6 +21,7 @@
 #include "axpe_trace.h"
 
 #include <cstdint>
+#include <cstdio>
 
 /* Everything a bench needs of the part, and nothing about how it is simulated.
  *
@@ -139,6 +140,26 @@ struct Chip {
     void load(const std::vector<uint32_t> &program)
     {
         for (unsigned i = 0; i < program.size(); ++i) write_word(i, program[i]);
+    }
+
+    /* A successful write frame is not a verified image. Read every word back
+     * before RUN; callers must abort if any word differs. */
+    bool load_verified(const std::vector<uint32_t> &program)
+    {
+        load(program);
+        if (status() & 0x0800u) { // STATUS.refused in the frozen host contract
+            std::fprintf(stderr, "load-readback: loader refused a write\n");
+            return false;
+        }
+        for (unsigned i = 0; i < program.size(); ++i) {
+            const uint32_t actual = read_word(i);
+            if (actual != program[i]) {
+                std::fprintf(stderr, "load-readback: word %u expected %08x, read %08x\n",
+                             i, program[i], actual);
+                return false;
+            }
+        }
+        return true;
     }
 };
 

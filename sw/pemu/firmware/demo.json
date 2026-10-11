@@ -1,0 +1,25 @@
+{
+  "schema": "org.atomix.axpe-demo-manifest.v1",
+  "parameters": {
+    "clock_hz": {
+      "default": 50000000,
+      "doc": "Supplied chip clock for runtime payload periods; not a measured oscillator or a hardware identity."
+    },
+    "uart_baud": {
+      "default": 115200,
+      "doc": "Requested UART 8N1 rate; integer bit periods approximate this rate."
+    },
+    "spi_hz": {
+      "default": 1000000,
+      "doc": "Requested mode-0 SPI SCK rate; clocked periods must be even."
+    },
+    "i2c_hz": {
+      "default": 100000,
+      "doc": "Requested Standard/Fast-mode I2C rate ceiling (up to 400 kHz); symmetric cells are rounded up to satisfy nominal bus timing."
+    },
+    "i2c_guard_ns": {
+      "default": 50,
+      "doc": "Extra nominal clock margin beyond UM10204 Standard/Fast-mode low/high minima, in nanoseconds; does not characterize pads."
+    }
+  }
+}

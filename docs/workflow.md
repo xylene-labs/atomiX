@@ -83,22 +83,49 @@ FPGA environment once per shell: `source "$HOME/opt/oss-cad-suite/environment"`.
 
 ```bash
 make pemu-model-check   # ISA drift, assembler, C model and firmware checks
-make pemu-cosim-check   # Verilated RTL against the C model, cycle for cycle
+make pemu-cosim-check   # default C-model cosim plus non-default capacity probes
+make pemu-profile-check # profile-driven capacity probes (PEMU_PROFILE selects profile)
 make pemu-chip-check    # programmability, and UART/SPI/I2C against peers
 make pemu-asic-check    # deterministic export plus the same suite at tt_um_*
+make pemu-netlist-contract-check # missing models/inputs fail before mapped replay
+make pemu-precheck PEMU_PRECHECK_ARGS='<explicit selected state/export/output>' # manual exact-GDS Tiny Tapeout precheck
+make pemu-timing-check   # isolated timer induction, covers and two mutation checks
+make pemu-shift-timing-check # isolated transfer occupancy under caller contract
+make pemu-wait-timing-check # DELAY/WAITE core timing with an abstract word source
+make pemu-core-timing-check # all legal opcode occupancy, witnesses and mutations
 make tt-export          # standalone, pinned Tiny Tapeout CMOS5L repository
 ```
 
+The model command also checks runtime rate-profile validation and assembler
+constant overrides. `pemu-asic-check` runs all three bundled 40 MHz runtime profiles
+through the exported wrapper at three seeds. Defaults/docs are owned by
+`sw/pemu/firmware/demo.json`; requested rates and period/size bounds reach the
+builder, listings, readback procedure and independent peers. These are runtime
+payloads and never hardware identity inputs. The mapped replay repeats the
+same profile cases and binds their image/log hashes in its receipt.
+
 The model command requires a host C compiler and Python. The cosimulation adds
 Verilator and checks the RTL pin/output trace cycle by cycle against that model.
-Both run in smoke, quick CI and nightly verification. The differential stage
+Both run in smoke, quick CI and nightly verification. The cosimulation gate
+also runs `pemu-profile-check`: it resolves `PEMU_PROFILE` (default
+`configs/sim-axpe-capacity.json`) through the component manifest and supplies
+every parameter to both Verilator and the capacity harness. Each attempt has
+a fresh `build/pemu/profiles/check-*` directory with input hashes, actual
+commands, logs and an `evidence.json`, including failed attempts. It exercises
+the highest register/address, pad mask/open-drain release, maximum delay/wait,
+and full/overflow/empty stack behavior. These are capacity probes, not full
+non-default ISA-model conformance. A synchronous word-source model supplies
+instructions; the instruction-memory module and runtime loader are covered by
+the separate default chip suite, not by these capacity probes. The tiny profile
+is a deliberately retained failing experiment: selecting `PEMU_PROFILE=configs/sim-axpe-tiny.json` fails
+strict elaboration until PE-08 repairs the width assumptions. No warning
+suppression or expected-failure pass is used. The differential stage
 compares every cycle: scalar and control timing, the shift engine and `WAITE`,
-across 112 deterministic randomized programs and twelve directed cases, with no
+across 112 deterministic randomized programs and seventeen directed cases, with no
 tolerated deviation. A run that is exact except for one duplicated cycle is
 named as an undeclared retirement handoff rather than left to be diffed by
-hand, because that was this design's standing defect. I2C firmware and a
-platform oracle for SPI remain open, and none of this is FPGA or silicon
-evidence.
+hand, because that was this design's standing defect. Protocol peers are
+exercised by the separate chip gate; none of this is FPGA or silicon evidence.
 
 The chip gate is the programmability one, and it is separate on purpose. It
 elaborates `axpe_chip` once -- core, writable store and host port -- loads one
@@ -121,7 +148,17 @@ official template plus the maintained axpe overlay, and repeats the whole chip
 suite through the exact `tt_um_shubhgau_atomix_axpe` top at the profile's
 64-word depth. `make tt-export` is the independently runnable export step; it
 verifies the template's canonical hash and refuses to overwrite a directory it
-did not create or an export containing a `runs/` tree. Its commit-pinned GDS
+did not create or an export containing a `runs/` tree. The export now contains
+the unchanged shared chip harness, C model, ISA/assembler, independent peers
+and all four protocol images as assembly sources. `make pemu-asic-check` runs
+that standalone demo at three startup seeds from the exported tree itself;
+its demo README provides the same command for a recipient without atomiX.
+The manifest separates hardware `sources` from `verification_inputs` and
+indexes the historical evidence by hash and level. Firmware changes never
+become hardware identity. The index records pending signoff, provisional I/O
+constraints and missing proofs; inclusion is not approval of this candidate.
+Use `TT_AXPE_PROFILE` and `TT_AXPE_FLOW_LOCK` together to export a separately
+locked candidate; the default remains the early-flow profile. Its commit-pinned GDS
 workflow is the physical-flow entry point. The first 6×4 run, its exact inputs
 and commands, and the 20 ns timing failure are recorded in the
 [CMOS5L feasibility evidence](../research/benchmarks/axpe-cmos5l-feasibility.json).
@@ -331,8 +368,70 @@ python3 tools/tt_axpe_flow.py prepare --profile configs/tt-axpe-6x4-25ns-postgrt
 python3 tools/tt_axpe_flow.py run --profile configs/tt-axpe-6x4-25ns-postgrt-noant-wire200-am0.json --flow-lock asic/axpe/flow-lock-25ns-postgrt-noant-wire200-am0.json --workdir build/asic/tt-axpe-25ns-postgrt-noant-wire200-am0 --tag pe10-25ns-postgrt-noant-wire200-am0-route --initial-state build/asic/tt-axpe-25ns-postgrt-noant-wire200/runs/pe10-25ns-postgrt-noant-wire200-from3/03-openroad-stamidpnr-3/state_out.json --from OpenROAD.DetailedRouting --threads 2
 ```
 
-The zero-margin variant must complete detailed routing, final antenna and
-extracted all-corner STA before it can support any improvement claim.
+The zero-margin variant completes with the same netlist, metrics and
+slow-corner checks as the default-margin 200 µm route, including its one
+fanout violation. The next experiment adds one buffer for two mux loads on
+`net4`. It uses the same locked profile in a separate workdir, with a separately
+hashed physical-ECO recipe and parent checkpoint. Run the recipe inside the
+pinned Nix environment above; choose a new output directory for every attempt:
+
+```bash
+NP_LOCATION="$PWD/build/asic/nix-portable-state" build/asic/nix-portable nix-shell build/asic/librelane-src/shell.nix --option extra-substituters https://nix-cache.fossi-foundation.org --option extra-trusted-public-keys 'nix-cache.fossi-foundation.org:3+K59iFwXqKsL7BNu6Guy0v+uTlwsxYQxjspXzqLYQs=' --run 'python3 asic/axpe/experiments/wire200-fanout-eco.py --output build/asic/wire200-fanout-eco-v2'
+python3 tools/tt_axpe_flow.py run --profile configs/tt-axpe-6x4-25ns-postgrt-noant-wire200-am0.json --flow-lock asic/axpe/flow-lock-25ns-postgrt-noant-wire200-am0.json --workdir build/asic/tt-axpe-25ns-wire200-fanout-eco --tag pe10-wire200-fanout-eco-grt --initial-state build/asic/wire200-fanout-eco-v2/state_out.json --from OpenROAD.GlobalRouting --to OpenROAD.GlobalRouting --threads 2
+python3 tools/tt_axpe_flow.py run --profile configs/tt-axpe-6x4-25ns-postgrt-noant-wire200-am0.json --flow-lock asic/axpe/flow-lock-25ns-postgrt-noant-wire200-am0.json --workdir build/asic/tt-axpe-25ns-wire200-fanout-eco --tag pe10-wire200-fanout-eco-sta --resume-from-tag pe10-wire200-fanout-eco-grt --from OpenROAD.STAMidPNR-3 --to OpenROAD.STAMidPNR-3 --threads 2
+python3 tools/tt_axpe_flow.py run --profile configs/tt-axpe-6x4-25ns-postgrt-noant-wire200-am0.json --flow-lock asic/axpe/flow-lock-25ns-postgrt-noant-wire200-am0.json --workdir build/asic/tt-axpe-25ns-wire200-fanout-eco --tag pe10-wire200-fanout-eco-route --resume-from-tag pe10-wire200-fanout-eco-sta --from OpenROAD.DetailedRouting --threads 2
+```
+
+Starting directly at `STAMidPNR-3` preserves the isolated buffer change;
+starting at `CheckAntennas` also executes the later enabled post-GRT design
+repair, which adds 380 buffers in a separately recorded, unselected trial.
+The recipe validates parent hashes, the exact cell/connectivity delta and
+placement, then writes a checkpoint without inherited timing/physical views
+or metrics. Nominal pre-route STA passes. Global-route antenna estimation
+finds four violating nets; the separately supervised detailed route now
+clears final antenna and extracted all-corner checks. Its local supervisor was
+`axpe-wire200-fanout-eco-route.service`; status and summary use the same
+profile, lock and workdir as the run commands. The full continuation starts
+at IRDropReport, preserving the completed candidate:
+
+```bash
+python3 tools/tt_axpe_flow.py run --profile configs/tt-axpe-6x4-25ns-postgrt-noant-wire200-am0.json --flow-lock asic/axpe/flow-lock-25ns-postgrt-noant-wire200-am0.json --workdir build/asic/tt-axpe-25ns-wire200-fanout-eco --tag pe10-wire200-fanout-eco-signoff --resume-from-tag pe10-wire200-fanout-eco-route --from OpenROAD.IRDropReport --full --threads 2
+```
+
+For a mapped functional replay, select the completed checkpoint whose `nl`
+view you intend to test, and a new output directory. This command reuses the
+unchanged chip bench, firmware and independent peers:
+
+```bash
+make pemu-netlist-check PEMU_NETLIST_STATE=build/asic/wire200-fanout-eco-v2/state_out.json PEMU_NETLIST_OUTPUT=build/asic/axpe-netlist-eco-functional PEMU_NETLIST_ARGS='--flow-lock asic/axpe/flow-lock-25ns-postgrt-noant-wire200-am0.json'
+```
+
+The replay derives cell logic from the pinned PDK's Liberty files using Yosys,
+requires identical functional models at all three corners, and rejects every
+unmodelled cell or missing input connection. Disconnected outputs of dummy
+clock loads are allowed. It runs all chip cases at three randomized startup
+seeds and records commands, source/firmware/model hashes and failures under the
+output directory. The binding rejection checks also run in smoke, quick CI and
+nightly through `pemu-chip-check`.
+
+This is two-state, zero-delay mapped simulation. The PDK Verilog models use
+timing-check delayed signals, which Verilator does not drive when it ignores
+the timing constructs; that direct-model attempt is not accepted as evidence.
+The Liberty route avoids handwritten replacement cells but carries no SDF,
+four-state startup or pad-timing claim. Extracted STA remains the timing gate.
+Selecting an ECO or pre-route checkpoint earns only that checkpoint's functional
+result. The one-buffer ECO now completes its detailed route with zero DRC,
+antenna and all-corner electrical violations; fast hold slack is +0.025081 ns.
+Its routed netlist passes all shared chip cases at three seeds. Full
+GDS/DRC/LVS is running separately and must retain the replayed netlist hash.
+
+The timing command uses the formal-tier Yosys to prove the isolated cell timer
+against the duration formula loaded from the ISA JSON. It includes D=0/1/7
+cover witnesses and requires counterexamples for two mutated timer copies.
+Results and compact evidence go to a fresh `build/formal/pemu/timing-*` directory.
+It proves every delay at the manifest default width and half that width; it
+does not establish full-core retirement, shift or wait timing, or full-core
+profile-knob composition. See [the proof contract](../formal/pemu/README.md).
 
 ### Choose / inspect a profile
 ```bash
@@ -1212,3 +1311,83 @@ After every milestone, update this file in the same change if the milestone:
 
 Keep the command groups and the §3.8 full-regression sequence current.  A
 milestone is not done until its reproducible command lives here.
+
+
+For a local PE-12 review package of the completed one-buffer ECO, use explicit
+signoff/replay inputs and a fresh output directory:
+
+```bash
+make pemu-package PEMU_PACKAGE_ARGS='--workdir build/asic/tt-axpe-25ns-wire200-fanout-eco --tag pe10-wire200-fanout-eco-signoff --replay build/asic/axpe-netlist-eco-final-functional --profile configs/tt-axpe-6x4-25ns-postgrt-noant-wire200-am0.json --flow-lock asic/axpe/flow-lock-25ns-postgrt-noant-wire200-am0.json --output build/asic/axpe-submission-review'
+python3 build/asic/axpe-submission-review/verification/check_package.py
+make -C build/asic/axpe-submission-review/demo mapped-check
+```
+
+The packager requires the recorded completed signoff, zero physical and
+all-corner electrical errors, unchanged hardened source inputs and a passing
+replay whose netlist hash matches. It copies the final GDS, netlist, cell
+functions, physical reports, replay receipt, runtime payloads, selected
+profile/lock and exact ECO recipe into a standalone source export. It refuses
+an existing output and any changed functional input. The package validator
+checks supplied file hashes and final signoff/replay binding; mapped-check
+recompiles and exercises all protocols without a PDK or atomiX checkout.
+This manual command is not part of CI because it needs a completed local
+physical run. The package's physical-candidate document explains the staged
+regeneration procedure and limits; the default source GDS workflow does not
+reproduce this ECO. The external 4 ns I/O budget remains provisional, full
+instruction retirement remains unproved, and maintainer review is owed.
+
+For the selected GDS's separate Tiny Tapeout precheck, prepare a Python venv
+using the pinned support checkout's `precheck/pyproject.toml` interpreter
+contract and install its unchanged `precheck/requirements.txt`. The existing
+flow interpreter can create it without selecting another package environment:
+
+```bash
+build/asic/tt-flow-venv/bin/python -m venv build/asic/tt-precheck-py311
+build/asic/tt-precheck-py311/bin/python -m pip install -r build/asic/tt-axpe-flow/tt/precheck/requirements.txt
+make pemu-precheck PEMU_PRECHECK_ARGS='--state build/asic/tt-axpe-25ns-wire200-fanout-eco/runs/pe10-wire200-fanout-eco-signoff/17-misc-reportmanufacturability/state_out.json --export build/asic/tt-axpe-25ns-wire200-fanout-eco --output build/asic/axpe-precheck-review'
+```
+
+Use a fresh output for every attempt; the command refuses replacement. It
+checks the export's selected flow lock and clean pinned support/PDK checkouts,
+copies the exact GDS, LEF, powered netlist and `info.yaml`, and runs unchanged
+upstream checks using their `default.nix`. `--python`, `--support-tools`,
+`--pdk-root`, `--nix-portable` and `--nix-state` select existing tool locations.
+The Python environment is separate from the Nix KLayout executable, and both
+versions are recorded. `evidence.json` binds input bytes, state, commands,
+reports, individual check outcomes and failures. Missing, duplicate, skipped
+or contradictory report entries cannot pass. `pemu-netlist-contract-check`
+exercises those refusal cases in the existing chip verification stage.
+
+This is physical-layout precheck evidence only. The staged ECO still requires
+flow-reproduction review; a precheck pass cannot establish that review, pad
+timing, FPGA behavior or silicon operation. The exported CI precheck explicitly
+uses the same locked support-tools revision. The new AI-use disclosure is
+bundled with source exports and awaits maintainer review.
+
+Add `--precheck <accepted precheck directory>` to `PEMU_PACKAGE_ARGS` to bundle
+its receipt and raw reports. Packaging requires all nine CMOS5L checks to pass,
+unchanged report/input hashes and matching GDS, signoff state, flow lock,
+support-tools and PDK identities. The portable package validator repeats the
+GDS/state/receipt binding checks. Omitting this option preserves the local
+review-package path and explicitly records that no Tiny Tapeout precheck was
+supplied; it does not satisfy the submission gate.
+
+
+`make pemu-core-timing-check` runs the complete legal instruction-stream timing
+proof. ISA-derived counters establish scalar duration, shift cell duration and
+bit count, register-period selection, held operands, bounded waits, mixed
+handoff and HALT occupancy. Completion witnesses cover every opcode and five
+changed core copies must produce actual counterexamples. The first sampled
+edge resets; legal operands, balanced stack operations and in-range branch/call
+targets define the instruction domain. No DUT ready/done/reject signal is
+assumed. Program memory/fetch data, arithmetic/data/pin effects, non-default
+register/delay/pin composition and physical reset recovery are outside this
+proof. Fresh jobs and receipts stay under `build/formal/pemu/`.
+
+Pass `--timing-proof <accepted proof directory>` in `PEMU_PACKAGE_ARGS` to
+include those exact harnesses and SAT jobs in a candidate package. Its portable
+`verification/check_timing.py` repeats induction, all witnesses and all mutation
+checks from the package root using Yosys. The original generator/template
+snapshots are included for audit; regenerating for a new ISA/profile uses the
+maintained atomiX runner. The package's existing mapped and RTL demos remain
+independent checks of data and protocol behavior.
