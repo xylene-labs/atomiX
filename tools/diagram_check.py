@@ -13,7 +13,7 @@ It is deliberately not a parser.  For a real render, `npx @mermaid-js/mermaid-cl
 draws every block to SVG, which is worth doing before publishing but needs a
 network and several hundred megabytes; this check is what runs every time.
 """
-import re, sys, pathlib
+import re, sys, pathlib, subprocess
 
 NODE_DECL = re.compile(r'([A-Za-z_][A-Za-z0-9_]*)\s*[\[\({>]')
 SUBGRAPH = re.compile(r'^\s*subgraph\s+([A-Za-z_][A-Za-z0-9_]*)', re.M)
@@ -37,8 +37,14 @@ def blocks(path):
 
 problems = 0
 count = 0
-for path in sorted(pathlib.Path('.').glob('**/*.md')):
-    if '.git' in path.parts or 'gator-tools' in path.parts:
+# Check tracked and visible untracked source documents. Generated build trees
+# and downloaded dependencies are not project diagrams, and traversing them
+# made a local CI replay fail on unrelated Nix documentation.
+documents = subprocess.check_output(
+    ['git', 'ls-files', '--cached', '--others', '--exclude-standard', '-z',
+     '--', '*.md'], text=True).split('\0')
+for path in sorted({pathlib.Path(name) for name in documents if name}):
+    if not path.is_file():
         continue
     for start, body in blocks(path):
         count += 1

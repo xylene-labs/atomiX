@@ -247,6 +247,13 @@ unless the caller states that the test was re-run.
   external delay remains an assumption while organizer updates are tracked.
   PE-12 submission readiness takes priority over further PE-08 repairs. No
   silicon claim follows.
+  The maintainer's October 12 [hardware plan](notes/axpe-hardware-test-plan-2026-10-12.md)
+  schedules PE-09 physical FPGA tests before further PE-08 repairs, using the
+  confirmed available Dock and peers. First readback is targeted October
+  21–23 and a repeatable report November 13. The FPGA adapter/constraints,
+  physical host bridge and EEPROM-specific payload still need implementation.
+  FPGA operation would remain separate evidence from CMOS5L feasibility and
+  returned-silicon characterization; no physical axpe result exists yet.
   All nine unchanged pinned Tiny Tapeout checks pass on the selected GDS.
   `research/benchmarks/axpe-precheck.json` records exact GDS/state/tool/report
   identities and the retained setup failure. Candidate packaging binds the

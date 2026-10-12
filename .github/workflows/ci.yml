@@ -25,9 +25,8 @@ permissions:
 jobs:
   quick:
     name: ISS, profiles, and lock-step cosim
-    # Pinned to the host recorded in docs/dependencies.md (Verilator 4.038,
-    # RISC-V GCC 10.2). Moving to a newer image is a toolchain change: record
-    # it in that table rather than letting `ubuntu-latest` make it silently.
+    # Keep the host image stable. setup-atomix installs the Verilator pin
+    # declared in tools/requirements.json instead of the older apt package.
     runs-on: ubuntu-22.04
     timeout-minutes: 20
     steps:
@@ -44,7 +43,10 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: verification-ci-quick
-          path: build/verification/ci-quick
+          path: |
+            build/verification/ci-quick
+            build/pemu/profiles/**/evidence.json
+            build/pemu/profiles/**/*.log
           if-no-files-found: error
           retention-days: 7
 

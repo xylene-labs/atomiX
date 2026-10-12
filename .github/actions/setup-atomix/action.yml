@@ -21,7 +21,63 @@ runs:
         sudo apt-get update
         sudo apt-get install -y --no-install-recommends \
           build-essential ccache gcc-riscv64-unknown-elf make \
-          picolibc-riscv64-unknown-elf python3 verilator
+          picolibc-riscv64-unknown-elf python3 git autoconf flex bison \
+          help2man libfl-dev zlib1g-dev liblz4-dev
+
+    - name: Read the pinned Verilator installation
+      id: verilator
+      shell: bash
+      run: |
+        python3 - <<'PY' >> "$GITHUB_OUTPUT"
+        import json
+        from tools.requirements import satisfies
+        tool = json.load(open('tools/requirements.json'))['tools']['verilator']
+        pin = tool['ci']
+        assert satisfies(pin['version'], tool['supported'])
+        for key in ('version', 'revision', 'repository'):
+            print(f'{key}={pin[key]}')
+        PY
+
+    - name: Restore the pinned Verilator
+      id: verilator-cache
+      uses: actions/cache@v4
+      with:
+        path: ~/.local/atomix-verilator
+        key: verilator-${{ runner.os }}-${{ runner.arch }}-ubuntu-22.04-${{ steps.verilator.outputs.revision }}-v1
+
+    - name: Build the pinned Verilator on cache miss
+      if: steps.verilator-cache.outputs.cache-hit != 'true'
+      shell: bash
+      env:
+        ATOMIX_VERILATOR_VERSION: ${{ steps.verilator.outputs.version }}
+        ATOMIX_VERILATOR_REVISION: ${{ steps.verilator.outputs.revision }}
+        ATOMIX_VERILATOR_REPOSITORY: ${{ steps.verilator.outputs.repository }}
+      run: |
+        unset VERILATOR_ROOT
+        git clone --depth 1 --branch "v$ATOMIX_VERILATOR_VERSION" \
+          "$ATOMIX_VERILATOR_REPOSITORY" "$RUNNER_TEMP/atomix-verilator-source"
+        cd "$RUNNER_TEMP/atomix-verilator-source"
+        test "$(git rev-parse HEAD)" = "$ATOMIX_VERILATOR_REVISION"
+        autoconf
+        ./configure --prefix="$HOME/.local/atomix-verilator"
+        make -j2
+        make install
+
+    - name: Select and verify the pinned Verilator
+      shell: bash
+      env:
+        ATOMIX_VERILATOR_VERSION: ${{ steps.verilator.outputs.version }}
+      run: |
+        unset VERILATOR_ROOT
+        "$HOME/.local/atomix-verilator/bin/verilator" --version
+        python3 - <<'PY'
+        import os, re, subprocess
+        from pathlib import Path
+        executable = Path.home() / '.local/atomix-verilator/bin/verilator'
+        result = subprocess.check_output([str(executable), '--version'], text=True)
+        assert re.search(r'Verilator\s+(\S+)', result).group(1) == os.environ['ATOMIX_VERILATOR_VERSION']
+        PY
+        echo "$HOME/.local/atomix-verilator/bin" >> "$GITHUB_PATH"
 
     # Ubuntu's ccache package ships compiler symlinks in /usr/lib/ccache.
     # Putting that directory first transparently caches every C++ compile,

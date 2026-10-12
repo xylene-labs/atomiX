@@ -36,6 +36,13 @@ FPGA synthesis, place-and-route, and physical-board results are deliberately
 project rule ([design-checklist.md](design-checklist.md)); a green build never
 implies a working bitstream.
 
+The shared setup action installs the immutable Verilator pin declared in
+`tools/requirements.json`, verifies its version, and caches the installation.
+Profile elaboration failures print diagnostic excerpts; quick and integrated
+nightly artifacts also retain their raw profile logs and receipts. The
+[October 12 CI investigation](notes/ci-verilator-failure-2026-10-12.md) records
+the older-frontend failure, local reproduction and pending hosted confirmation.
+
 ---
 
 ## 0. Prerequisites (tiers)
@@ -413,6 +420,14 @@ clock loads are allowed. It runs all chip cases at three randomized startup
 seeds and records commands, source/firmware/model hashes and failures under the
 output directory. The binding rejection checks also run in smoke, quick CI and
 nightly through `pemu-chip-check`.
+
+Physical FPGA testing is scheduled separately in the
+[October 12 hardware plan](notes/axpe-hardware-test-plan-2026-10-12.md).
+The existing Primer SoC commands do not build an axpe bench image. PE-09 still
+needs the axpe wrapper/profile/Pmod constraints, Pico SPI host bridge and
+matched EEPROM payload; hardware commands will be added after those tools
+are implemented and verified. The plan records required equipment, clocks,
+dates and physical pass criteria without claiming a completed board run.
 
 This is two-state, zero-delay mapped simulation. The PDK Verilog models use
 timing-check delayed signals, which Verilator does not drive when it ignores

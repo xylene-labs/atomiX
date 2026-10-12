@@ -37,7 +37,10 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: verification-nightly-integrated
-          path: build/verification/nightly-integrated
+          path: |
+            build/verification/nightly-integrated
+            build/pemu/profiles/**/evidence.json
+            build/pemu/profiles/**/*.log
           if-no-files-found: error
           retention-days: 14
 

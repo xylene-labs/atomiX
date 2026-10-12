@@ -48,6 +48,12 @@ sudo apt install build-essential gcc-riscv64-unknown-elf \
 name.  The project defaults to `-march=rv32im -mabi=ilp32`, which works with
 Ubuntu 22.04's GCC 10.2 as well as newer toolchains.
 
+Check `make doctor` after installing packages. On older distributions the
+packaged Verilator can be outside the accepted range below; follow the pinned
+source-build recipe in `.github/actions/setup-atomix/action.yml`, whose version
+and revision come from `tools/requirements.json`. CI caches that installation
+and verifies the selected version before running suites.
+
 ## Kernel checks: a current QEMU
 
 The packaged Ubuntu 22.04 QEMU 6.2 is adequate for basic experiments but is
@@ -229,7 +235,7 @@ Everything the ISS, Verilator simulation and target images need.
 | Tool | Required | Supported | Tested here | Use |
 |---|---|---|---|---|
 | RISC-V GCC | yes | `>=10` | 10.2.0 | RV32 bare-metal and kernel images |
-| Verilator | yes | `>=4.0` | 4.038<br>5.050 | RTL simulation |
+| Verilator | yes | `>=5.0`<br>**not** `<5.0` — axpe RTL and generated ISA headers use UNUSEDPARAM/UNUSEDSIGNAL lint directives introduced in Verilator 5; older releases reject elaboration | 4.038<br>5.050 | RTL simulation |
 | Python | yes | `>=3.10` | 3.10.12 | Configuration resolution, test generation, and runners |
 | GNU Make | yes | `>=4.0` | 4.3 | Build orchestration |
 

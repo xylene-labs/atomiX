@@ -172,6 +172,9 @@ def main() -> int:
                     stream.flush()
                     attempt["log_sha256"] = digest(log)
             if result.returncode:
+                print(f"{stage} diagnostics (last 40 lines):", file=sys.stderr)
+                print("\n".join(log.read_text(errors="replace").splitlines()[-40:]),
+                      file=sys.stderr)
                 raise RuntimeError(f"{stage} failed ({result.returncode}); see {log}")
         receipt["status"] = "passed"
         receipt["scope"] = [

@@ -73,18 +73,29 @@
         ]
       },
       "override": "VERILATOR=<path>",
-      "supported": ">=4.0",
+      "supported": ">=5.0",
       "tested": [
         {
           "version": "4.038",
-          "evidence": "the full suite; the recorded baseline for every timing number"
+          "evidence": "historical full-suite baseline before axpe; no longer accepted for the current full suite"
         },
         {
           "version": "5.050",
           "evidence": "make verify-smoke, make component-test, and sim-role-loopback/sim-bram cycle-identical to 4.038 on cpu_perf (42,978 cycles, checksum 0xe9266745)"
         }
       ],
-      "note": "Releases 5 and later report component-API package constants as UNUSEDPARAM and make warnings fatal under -Wall; sim/soc and sim/web pass -Wno-UNUSEDPARAM on 5+ for that reason. Those constants are intentional component API, not dead elaborated hardware."
+      "note": "The current axpe suite needs the split unused-warning lint directives. The historical baseline is retained as evidence, not current support. CI installs the immutable release pin in ci instead of Ubuntu apt Verilator. Releases 5 and later also report component-API package constants as UNUSEDPARAM; sim/soc and sim/web suppress that intentional API warning.",
+      "unsupported": [
+        {
+          "range": "<5.0",
+          "reason": "axpe RTL and generated ISA headers use UNUSEDPARAM/UNUSEDSIGNAL lint directives introduced in Verilator 5; older releases reject elaboration"
+        }
+      ],
+      "ci": {
+        "version": "5.050",
+        "revision": "848d926ebd4addacacd294dc84e35d9d4ae8078c",
+        "repository": "https://github.com/verilator/verilator.git"
+      }
     },
     "python": {
       "name": "Python",

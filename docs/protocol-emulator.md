@@ -18,6 +18,12 @@ The complete email and the requirement-to-card mapping live there. Its sent
 date was not supplied; expected releases in that message are not recorded as
 completed releases. PE-12 submission compliance now precedes further PE-08 work.
 
+The maintainer's October 12 [physical test plan](notes/axpe-hardware-test-plan-2026-10-12.md)
+schedules PE-09 on the available Tang Primer Dock before further PE-08 repairs.
+It includes missing FPGA/loader tooling, peer requirements, real EEPROM
+transactions, capture-clock timing and power-cycle recovery. Dates are targets;
+no physical axpe result is claimed.
+
 | | |
 |---|---|
 | Deadline | 2027-01-18 |

@@ -154,10 +154,10 @@ sequences are in [tangprimer25k-bringup.md](tangprimer25k-bringup.md) and
   picolibc package. Build the `-v` targets with the extra flag
   `-isystem /usr/lib/picolibc/riscv64-unknown-elf/include` appended to
   `RISCV_GCC_OPTS` (tests/README.md shows the full invocation).
-- **Verilator 4.038** (jammy) is old but sufficient, and it is what the recorded
-  numbers were measured on. 5.050 is also tested — `make verify-smoke`, `make
-  component-test`, and cycle-identical `cpu_perf` runs — so a distribution
-  shipping Verilator 5 needs no workaround. The supported range and the evidence
+- **Packaged Verilator on older Ubuntu releases** can be below the accepted
+  range for axpe's lint directives. CI builds and caches the immutable release
+  pin in `tools/requirements.json`; use that setup recipe when apt is too old.
+  The earlier baseline remains historical evidence. The supported range and evidence
   behind each tested version are in
   [`tools/requirements.json`](../tools/requirements.json); `make doctor` reports
   this host against it.

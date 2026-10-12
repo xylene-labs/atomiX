@@ -1,0 +1,58 @@
+{
+  "schema": "org.atomix.axpe-ci-toolchain.v1",
+  "date": "2026-10-12",
+  "level": "Hosted CI failure investigation and local host RTL/software verification; no hardware changes",
+  "status": "local-fix-verified-hosted-confirmation-pending",
+  "hosted_failures": [
+    {
+      "url": "https://github.com/xylene-labs/atomiX/actions/runs/38239693617",
+      "commit": "386ff3c0d456195dc1cf972d3e17b6f3b63f592f",
+      "failed_stage": "pemu-cosim profile elaboration",
+      "other_ci_jobs": "unit and integration passed"
+    },
+    {
+      "url": "https://github.com/xylene-labs/atomiX/actions/runs/38238712118",
+      "commit": "e82bdafe543809c6d876ef05d310cb4e059b873c",
+      "failed_stages": [
+        "pemu-cosim",
+        "pemu-chip"
+      ],
+      "passed_stages": 35
+    }
+  ],
+  "root_cause": "Hosted apt frontend rejects split unused-warning lint directives before simulation",
+  "old_frontend_failure": {
+    "path": "build/pemu/profiles/ci-old-verilator-2026-10-12/evidence.json",
+    "sha256": "19c3a008e385679efb4157b0b7ec0839dfac1791680d8ca520e042cc4cccfb93"
+  },
+  "negative_diagnostics": {
+    "path": "build/pemu/profiles/ci-old-verilator-diagnostics-2026-10-12/evidence.json",
+    "sha256": "415f413c6f9e50ed9a2848258d32722c57c0724a34151ba76578b60d176f7a66"
+  },
+  "initial_local_quick_failure": {
+    "path": "build/verification/ci-repair-2026-10-12/ci-quick/summary.json",
+    "sha256": "fd877eb1d1cb7843195d8cbbd7b03637e0a4ff9789cb5508f8e5a5dabfb44ca0"
+  },
+  "local_quick": {
+    "path": "build/verification/ci-repair-final-2026-10-12/ci-quick/summary.json",
+    "sha256": "488b1fdbd7aa90af39712b95d152eb5eceb3d9f5ac613353fb84d8bdad43a940"
+  },
+  "local_smoke": {
+    "path": "build/verification/ci-repair-final-2026-10-12/smoke/summary.json",
+    "sha256": "07bf3186f0ef137e3c6b865c186825e5c2231627507f5b8bd803a9e898e8b384"
+  },
+  "local_commands": [
+    "make pemu-cosim-check pemu-chip-check",
+    "python3 tools/verify.py run ci-quick --log-root build/verification/ci-repair-final-2026-10-12",
+    "python3 tools/verify.py run smoke --log-root build/verification/ci-repair-final-2026-10-12"
+  ],
+  "workflow_checks": "YAML and all embedded shell blocks parsed; actual pin-output step executed; immutable upstream tag resolves to configured revision",
+  "hardware_sources_unchanged": true,
+  "hardware_source_count": 10,
+  "source_export": "build/asic/axpe-ci-repair-source-2026-10-12",
+  "limits": [
+    "Local accepted frontend is the previously tested installation; fresh GitHub pinned-source build/cache execution remains unverified",
+    "Latest hosted job results remain failures until fixes are committed/pushed and a new run succeeds",
+    "New hosted unit/integration results with the repaired setup are not claimed"
+  ]
+}
