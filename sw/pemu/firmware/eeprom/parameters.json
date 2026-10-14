@@ -1,0 +1,38 @@
+{
+  "schema": "org.atomix.axpe-eeprom-parameters.v1",
+  "device": "AT24C256 family: 32768 bytes, two word-address bytes; byte operations only",
+  "parameters": {
+    "device_address": {
+      "default": 80,
+      "doc": "7-bit strapped address. Family superset 0x50..0x57 includes newer C variants; legacy AT24C256 uses 0x50..0x53. Confirm the exact device/module; default 0x50 works at all-low address straps."
+    },
+    "word_address": {
+      "default": 32512,
+      "doc": "Byte address used by generated programs, 0..32767. This default is a planning address, not permission to overwrite an unreserved EEPROM location."
+    },
+    "data_byte": {
+      "default": 90,
+      "doc": "Byte-write payload, 0..255; runtime software, never FPGA identity."
+    },
+    "write_timeout_ms": {
+      "default": 1000,
+      "doc": "Positive host readiness deadline including program reload, USB/SPI transport and probe execution. This is not a device tWR specification or measurement."
+    },
+    "poll_interval_ms": {
+      "default": 1,
+      "doc": "Positive host pause between completed readiness probes; must not exceed readiness deadline."
+    },
+    "program_timeout_ms": {
+      "default": 1000,
+      "doc": "Positive host deadline for one runtime program to reach HALT."
+    },
+    "read_iterations": {
+      "default": 100,
+      "doc": "Positive acceptance repetition count; the first read is the backup value."
+    },
+    "write_iterations": {
+      "default": 10,
+      "doc": "Positive byte-write/read acceptance count when the operator requests write testing; restore the original byte afterwards."
+    }
+  }
+}

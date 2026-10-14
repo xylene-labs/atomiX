@@ -1,0 +1,53 @@
+{
+  "schema": "org.atomix.axpe-pico-bridge.v1",
+  "parameters": {
+    "spi_hz": {
+      "default": 100000,
+      "doc": "Requested mode-0 host SCLK; must not exceed supplied axpe clock/4."
+    },
+    "sck_gpio": {
+      "default": 18,
+      "doc": "Pico SPI0 clock GPIO (2, 6, 18 or 22); rewire the loader when changed."
+    },
+    "mosi_gpio": {
+      "default": 19,
+      "doc": "Pico SPI0 TX GPIO (3, 7 or 19); GPIO23 is reserved on Pico 2."
+    },
+    "miso_gpio": {
+      "default": 16,
+      "doc": "Pico SPI0 RX GPIO (0, 4, 16 or 20)."
+    },
+    "cs_gpio": {
+      "default": 17,
+      "doc": "Pico output GPIO for active-low loader select."
+    },
+    "ena_gpio": {
+      "default": 20,
+      "doc": "Pico output GPIO for axpe design selection."
+    },
+    "reset_gpio": {
+      "default": 21,
+      "doc": "Pico output GPIO for active-low board reset."
+    },
+    "capture_gpio": {
+      "default": 22,
+      "doc": "Pico PWM output to FPGA capture_clk; normal mode holds it low."
+    },
+    "reset_delay_us": {
+      "default": 1000,
+      "doc": "Positive reset assertion duration; release delay is at least this and the resolved FPGA reset-counter duration."
+    },
+    "cs_delay_us": {
+      "default": 20,
+      "doc": "Positive delay before and after each selected host frame."
+    },
+    "poll_timeout_ms": {
+      "default": 1000,
+      "doc": "Positive deadline for a runtime program to reach HALT."
+    },
+    "serial_timeout_ms": {
+      "default": 2000,
+      "doc": "Positive deadline for each USB-line response. USB line baud is a transport convention, independent of SPI and UART workload rates."
+    }
+  }
+}

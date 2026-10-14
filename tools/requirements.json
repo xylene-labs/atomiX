@@ -347,6 +347,26 @@
       "supported": "*",
       "tested": [],
       "missing_hint": "that stage of make static-analysis is skipped"
+    },
+    "iverilog": {
+      "name": "Icarus Verilog",
+      "tier": "analysis",
+      "required": false,
+      "use": "Optional isolated four-state axpe Primer pad-boundary check",
+      "probe": {
+        "command": "iverilog",
+        "args": [
+          "-V"
+        ]
+      },
+      "supported": "*",
+      "tested": [
+        {
+          "version": "14.0",
+          "evidence": "make pemu-primer-pads-check: OSS CAD Suite build s20260301-328-geda9fdcd1-dirty; isolated axpe_pads + physical adapter only"
+        }
+      ],
+      "note": "The full axpe core is excluded: this frontend rejects its pre-existing declaration order. Full-core verification uses Verilator; pad evidence does not establish core elaboration or analog behavior."
     }
   }
 }

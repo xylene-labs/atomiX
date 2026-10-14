@@ -2,14 +2,16 @@
 
 This is the PE-09 execution plan requested by the maintainer on October 12.
 It schedules physical FPGA tests before further PE-08 width/profile work.
-It records planned work, not a completed hardware result. Dates use
+It records planned physical work and implemented preflight, not a completed hardware result. Dates use
 Asia/Calcutta and assume regular board access and roughly three bench sessions
 per week, alongside development. Missing prerequisites move the affected gate;
 they do not turn it into a pass.
 
 The maintainer confirms possession of the Tang Primer 25K Dock, a USB–UART
-adapter, Pico 2, I2C EEPROM module and logic analyzer. Exact peer markings,
-analyzer sample rate, pull-ups and miscellaneous wiring still need inventory.
+adapter, Pico 2, an AT24C256 EEPROM module and a logic analyzer marked
+24M 8CH (declared 24 MS/s, eight channels). EEPROM vendor/suffix, address
+straps, module pull-ups, adapter logic voltage and miscellaneous wiring still
+need inventory; no measured sampling or electrical result is implied.
 Previous Tang Primer CPU/GPU/kernel achievements do not establish an axpe pass.
 
 ## Deliverable and current implementation gaps
@@ -24,7 +26,11 @@ The existing Primer profile/top implements the RISC-V SoC, not this axpe
 bench. Its CST constrains only oscillator, S1 and debugger UART. PE-09 must
 provide an axpe board wrapper/profile, reviewed Pmod constraints, a physical
 SPI loader bridge and host runner, peer firmware, capture analysis, and an
-EEPROM-specific payload. These are prerequisites, not already-delivered tools.
+EEPROM-specific payload. The adapter/profiles/CST and host-bridge prototype now have local preflight;
+EEPROM byte-operation payloads and the preservation/polling host runner now
+pass digital checks. Physical bridge execution, remaining peer firmware and
+capture analysis remain prerequisites. See the
+[adapter instructions](../../components/board/tangprimer25k-axpe/README.md).
 The existing `sw/host/axhost.py` UART/aXos loader is a different contract.
 
 Use the maintained axpe core/host/store sources and the selected architecture;
@@ -77,9 +83,12 @@ in the submission wiring document is not a Tang Primer pin map.
 ## Clock, loader and payload requirements
 
 Start with a nominal 25 MHz bench clock, following the existing Primer clock
-approach, subject to fresh axpe synthesis/P&R and timing checks. A safe 1 MHz
-capture mode must use reviewed clock resources and generated-clock constraints;
-change mode only under reset with appropriate clock-switch/reset handling.
+approach, subject to fresh axpe synthesis/P&R and timing checks. The implemented 1 MHz capture profile accepts a Pico PWM clock on J6 pin 10
+and constrains that input explicitly. The active clock is observed on J6 pin 8.
+The earlier fabric divider failed hold timing; DCS and cascaded-divider attempts
+also failed the open flow. Both modes now use separate images, changed under
+reset; no dynamic clock switch is implemented. Measure the Pico clock before
+accepting waveform periods.
 Expose the active axpe clock on a reference pin. If two separately compiled
 clock profiles are needed, pin each image separately and keep each unchanged
 across its runtime programs. No 40 MHz physical FPGA claim follows from the
@@ -110,8 +119,9 @@ reject mismatches/refusals, and use bounded completion timeouts. Keep host SPI
 separate from firmware's protocol SPI.
 
 The existing I2C demo expects a synthetic target at 0x50 and is not an EEPROM
-driver. If the module is AT24C256C, its device addressing includes two word
-address bytes, followed by a self-timed write cycle; see Microchip's
+driver. The confirmed AT24C256 family uses two word address bytes and a self-timed
+write cycle. Vendor/suffix and voltage-specific limits still need confirmation;
+for the AT24C256C reference see Microchip's
 [addressing](https://onlinedocs.microchip.com/oxy/GUID-FEEC2B39-7B05-43C4-AB92-C76A6F28FB70-en-US-2/GUID-10D69718-8BB5-49ED-90C1-D1FCE55222A8.html)
 and [write-cycle timing](https://onlinedocs.microchip.com/oxy/GUID-FEEC2B39-7B05-43C4-AB92-C76A6F28FB70-en-US-2/GUID-9CCCF090-332F-4652-9638-E7C573C80B93.html).
 Use the actual module's datasheet if its part differs. Support bounded ACK
@@ -139,8 +149,8 @@ reset or removal of only one of several power sources is a different test.
 
 Implement repetition counts and deadlines as bounded bench-owned settings;
 the counts above are initial acceptance targets, not hardcoded generic limits.
-If the analyzer is the previously ordered 24 MS/s model, one sample is about
-41.7 ns: 25 MHz cycles cannot be resolved reliably. At 1 MHz there are 24
+The confirmed analyzer is marked 24M 8CH: at its declared 24 MS/s maximum,
+one sample is about 41.7 ns: 25 MHz cycles cannot be resolved reliably. At 1 MHz there are 24
 samples per cycle. Capture the clock reference, measure intervals in cycles,
 and allow only an explicitly stated sampling uncertainty; analog propagation
 and threshold effects are not exact zero-delay behavior. Quantify deviations
@@ -170,3 +180,48 @@ links and the planning receipt hash validate. Verification/registry gates and
 all 14 smoke stages pass after these documentation changes. Smoke output is
 under `build/verification/hardware-plan-2026-10-12/smoke/`; it validates existing
 software/RTL checks and does not complete any physical gate in this plan.
+
+
+## Implemented preflight checkpoint
+
+The normal/capture wrappers pass shared protocol simulations at three startup
+seeds each. A 2.5 MHz capture clock and 23-cycle reset pass the same suite.
+The open Gowin flow produces both images without waived timing checks; no
+physical programming has been performed. The FPGA store uses flip-flops after
+the initial BRAM mapping failed hold checks. Earlier routing and simulation
+failures remain in the compact preflight record with raw log hashes.
+
+`make pemu-primer-check` includes board range/pin/runtime-image contracts and
+eleven transport-fake tests, then both full adapter simulations. The optional
+`make pemu-primer-pads-check` verifies isolated four-state pads; it is not full
+Icarus core elaboration. `pemu-chip-check` includes the adapter gate, so normal
+CI/smoke/nightly exercise it. Neither CI nor a routed bitstream establishes
+Pico execution or a physical-board pass.
+
+The bridge prototype and PC runner implement reset/STOP/WRITE/READ/RUN/STATUS,
+full raw readback, request-ID matching and bounded completion. Deploying and
+measuring the bridge, independent workload peers, waveform analysis and
+completion of the full acceptance repetition runner remain work before the
+October 20 preflight gate. The timeline remains the physical target.
+
+
+## AT24C256 runtime tools checkpoint
+
+The [EEPROM runtime tools](../../sw/pemu/firmware/eeprom/README.md) fit separate
+byte write (54 words), ACK-only poll (46), and tagged low/high random read (60
+each) in the unchanged 64-word image. The runner reconstructs each byte from
+two tagged read transactions, backs up the original scratch byte before any
+requested write, verifies test patterns and finally restores/reads the original.
+Defaults are 100 reconstructed reads and 10 test writes plus one restoration
+write; custom EEPROM settings profiles are bounded and exercised. Writes are
+requested explicitly with the CLI flag; no physical access occurred here.
+
+The host readiness deadline includes complete program reload/USB/SPI/probe
+overhead. The default 1000 ms budget is not a device write-cycle claim; legacy
+AT24C256 limits vary with voltage/process marking, as recorded in the
+[matched-family reference](https://ww1.microchip.com/downloads/en/devicedoc/doc0670.pdf).
+The reported marking alone does not supply those limits. The independent
+digital peer uses its own configurable busy latency to force NACK and deferred
+commit, not a measured EEPROM time. Digital timing/ACK/release and firmware
+mutation checks pass; physical module WP/straps/pull-ups, bus quality and the
+full acceptance/recovery matrix still need the lab.

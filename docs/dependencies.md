@@ -276,6 +276,7 @@ Static analysis, sanitizers, fuzzing, and the LLVM build.
 | clang | optional | `>=14` | 14.0.0 | Second toolchain (TOOLCHAIN=llvm) and the riscv32 analyzer |
 | cppcheck | optional | any | — | Host C++ stage of make static-analysis |
 | shellcheck | optional | any | — | Shell stage of make static-analysis |
+| Icarus Verilog | optional | any | 14.0 | Optional isolated four-state axpe Primer pad-boundary check |
 
 <!-- END GENERATED -->
 

@@ -49,6 +49,22 @@ The previous queue's SDRAM, build-identity, payload-failure, headless-example,
 and evidence-view results remain recorded in their sections below. Browser
 documentation and URL replay remain partial and are included in AX-08.
 
+## axpe physical bench preflight (PE-09)
+
+- [~] Tang Primer axpe runtime image and loader prototype: normal/capture
+  adapter simulations, resolved clock/reset knobs, pad boundary, load/readback
+  refusal checks and open Gowin image preflight. Reproduce with
+  `make pemu-primer-check`, optional `make pemu-primer-pads-check`, and the
+  [workflow's](workflow.md) image commands. Source/pin/receipt identities and
+  failed attempts are recorded in `research/benchmarks/axpe-primer-preflight.json`.
+- [~] AT24C256 byte-write/read/poll programs fit 64 words; both Primer
+  simulations pass independent device peers and intended firmware mutations.
+  Host checks cover tagged data, bounded polling, scratch backup/restoration
+  and non-default limits/counts. See [EEPROM runtime tools](../sw/pemu/firmware/eeprom/README.md).
+- [ ] Physical host readback, independent UART/SPI peers, EEPROM module
+  transactions, captured-cycle analysis, repetition and real power-cycle recovery
+  per the [hardware plan](notes/axpe-hardware-test-plan-2026-10-12.md).
+
 ## Platform product gates
 
 These gates define completion; [board rows](boards/delivery.md) define the first

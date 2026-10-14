@@ -92,7 +92,10 @@ FPGA environment once per shell: `source "$HOME/opt/oss-cad-suite/environment"`.
 make pemu-model-check   # ISA drift, assembler, C model and firmware checks
 make pemu-cosim-check   # default C-model cosim plus non-default capacity probes
 make pemu-profile-check # profile-driven capacity probes (PEMU_PROFILE selects profile)
-make pemu-chip-check    # programmability, and UART/SPI/I2C against peers
+make pemu-chip-check    # programmability/peers plus both Primer adapters
+make pemu-primer-check  # loader checks, both adapters and EEPROM peers/mutants
+make pemu-eeprom-check  # EEPROM assembly/bounds and host polling/restore fakes
+make pemu-primer-pads-check # optional isolated four-state pad check (Icarus + vvp)
 make pemu-asic-check    # deterministic export plus the same suite at tt_um_*
 make pemu-netlist-contract-check # missing models/inputs fail before mapped replay
 make pemu-precheck PEMU_PRECHECK_ARGS='<explicit selected state/export/output>' # manual exact-GDS Tiny Tapeout precheck
@@ -651,6 +654,94 @@ or Emscripten this optional path is unavailable; the native experiment commands
 above remain unchanged.
 
 ---
+
+### axpe Primer bench preflight (PE-09)
+
+The [board adapter and pin map](../components/board/tangprimer25k-axpe/README.md)
+cover J4 protocol signals and J6 loader/control. Verify the delivered Dock
+revision, 3.3 V peer levels and I2C pull-ups before attachment. Simulation,
+image build and physical results remain separate. The capture image requires a
+Pico-generated clock on J6 pin 10 and exposes it on J6 pin 8 for measurement.
+
+```bash
+source "$HOME/opt/oss-cad-suite/environment"
+make -C rtl/fpga gowin-evidence COMPONENT_CONFIG="$PWD/configs/tangprimer25k-axpe.json"
+make -C rtl/fpga gowin-evidence COMPONENT_CONFIG="$PWD/configs/tangprimer25k-axpe-capture.json"
+```
+
+No runtime program is synthesized. `PROGRAM` does not select a different image;
+`RAM_INIT_FILE`/`ROM_INIT_FILE` are refused for this board. Record the image hash
+and use SRAM programming from the [lab procedure](tangprimer25k-bringup.md).
+The source pin reference does not replace revision/wiring inspection.
+
+Install `sw/pemu/host/pico_bridge.py` as `main.py` on a Pico 2 running MicroPython
+and record the firmware/version/hash. This prototype has transport-fake checks;
+Pico execution remains a physical gate. The PC sends bench-owned settings from
+`sw/pemu/host/bridge.json`; custom GPIO choices require matched wiring. The PC
+loader needs pyserial in its Python environment. Assemble payloads for the
+selected image's clock and 64-word store:
+
+```bash
+python3 sw/pemu/firmware/build_demos.py \
+  --profile sw/pemu/firmware/profiles/primer/1000000.json \
+  --output build/pemu/primer-lab-fw-1mhz --imem-words 64
+python3 sw/pemu/host/axpe_host.py --serial /dev/ttyACM0 \
+  --profile configs/tangprimer25k-axpe-capture.json \
+  --hex build/pemu/primer-lab-fw-1mhz/uart-demo.hex --output build/pemu/primer-first-load.json
+```
+
+Use the actual discovered Pico serial path. The loader resets, writes and
+compares all words before RUN, then polls with a bounded timeout. Its receipt
+records host readback/HALT; peer success, measured clock, physically programmed
+image identity and captures require a separate lab record. The existing I2C
+demo is a synthetic-peer test, not an EEPROM program. See the
+[hardware timeline/pass matrix](notes/axpe-hardware-test-plan-2026-10-12.md) for
+remaining EEPROM, peer, repeated load, capture and real power-cycle gates.
+
+### AT24C256 EEPROM runtime operations
+
+The [EEPROM programs/runner](../sw/pemu/firmware/eeprom/README.md) implement
+byte write, ACK-only polling and tagged random reads (54/46/60/60 words). The
+normal/capture adapters run independent EEPROM peers and two negative firmware
+mutations in `pemu-primer-check`, included in smoke, CI and nightly. These are
+digital tests, not physical EEPROM evidence.
+
+```bash
+python3 sw/pemu/firmware/eeprom/build.py \
+  --profile sw/pemu/firmware/profiles/primer/1000000.json \
+  --output build/pemu/primer-eeprom-fw-1mhz --imem-words 64 \
+  --device-address 0x50 --word-address 0x7f00 --data-byte 0x5a
+```
+
+The build command only creates runtime files. Before using the lab runner,
+verify the actual EEPROM address straps/WP, 3.3 V levels and SDA/SCL pull-ups,
+program the recorded FPGA SRAM image, and measure the active clock. Choose an
+exclusive scratch byte; 0x7f00 below is an example, not an assertion that this
+location is unused on the delivered module. Discover the Pico serial path and
+use its actual image receipt path. A read-only invocation is:
+
+```bash
+python3 sw/pemu/host/eeprom.py --serial /dev/ttyACM0 \
+  --profile configs/tangprimer25k-axpe-capture.json \
+  --runtime-profile sw/pemu/firmware/profiles/primer/1000000.json \
+  --image-receipt <passing-capture-image-receipt.json> \
+  --device-address 0x50 --scratch-address 0x7f00 \
+  --output build/pemu/primer-eeprom-first-read
+```
+
+Adding `--write-test` requests the configured write/read repetitions and
+verified restoration of the original byte; use a fresh output directory. The
+runner saves and fsyncs `backup.json` before writing. Read-only is the default.
+`--parameters` selects a schema/settings EEPROM profile for repetition counts,
+data and deadlines. Defaults/docs live in the EEPROM-owned `parameters.json`;
+they are validated and exercised at non-default values. Interrupted/failed
+restoration retains the backup and a failed receipt.
+
+Each program is fully read back before RUN. The readiness deadline includes
+program loading and USB/SPI overhead; it is not tWR characterization. Two
+tagged read transactions reconstruct each byte without an error/data alias.
+The receipt records runtime/source/image identities, operations and restoration;
+actual image loading, electrical checks and captured waveforms remain separate.
 
 ## 3. Test
 

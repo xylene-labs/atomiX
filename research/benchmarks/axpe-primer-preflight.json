@@ -1,0 +1,340 @@
+{
+  "schema": "org.atomix.axpe-primer-preflight.v1",
+  "date": "2026-10-12",
+  "status": "passed",
+  "level": "digital adapter/transport checks and open Gowin synthesis/place-route; no physical axpe operation",
+  "card": "PE-09",
+  "card_status": "Active",
+  "source_commit": "922094aaa342e99fcbd051b21770426bce9856ec",
+  "uncommitted_preflight_inputs": true,
+  "hardware_inputs_sha256": {
+    "rtl/fpga/Makefile": "ab42bc7c03eb789a789db8b8ab39cb631d48c0b561f64dbf748996f24b1b442f",
+    "rtl/fpga/prepare_synth.py": "15ecf284f183aa6e0854c9ee8b181260f468e4fe2bafaa3cff137b242f669aa9",
+    "tools/configure.py": "d83ce65328938fbd4cdd986d242935147b723cc023d94342b62e234525910c9f",
+    "components/board/tangprimer25k-axpe/component.json": "9d45e30e217c4c9e5592d09e01c94cd03dfc8fd20c5f0dc3ec350c259e5598db",
+    "components/board/tangprimer25k-axpe/axpe_primer_top.sv": "af03bd0d72bea0a7b6eaa9a792d1311f1813934d8fa0591168103b28409ad7ab",
+    "components/board/tangprimer25k-axpe/axpe_primer_pads.sv": "e1265a2ed02c212dd3aac2366ec45ed5ca1c319fdca6d09f1d988d9a819782fc",
+    "components/board/tangprimer25k-axpe/axpe_primer.cst": "2001c956ea7d5c43345b46b15aef7aec004d0a597ae64d326644cf3c2d2ebe35",
+    "components/board/tangprimer25k-axpe/pins.json": "42c5aee380c60f347afa1c76f1f72b2ab78928ea4fdbaaf0bb3e33b60e28cdc1",
+    "components/board/tangprimer25k-axpe/clocks.py": "f6ae90738bd2762a8770fdcabfe36245bd4309b8d2046d220d56b199084e6f68",
+    "components/pemu/axpe/component.json": "6c69e11ba3948432838540b5698036ec3cee387a72d4f03e0793f77bc0a88486",
+    "configs/tangprimer25k-axpe.json": "5659559449aeffb3d9000b2db48c96060813261ccde27e76a38d1cb39d786f56",
+    "configs/tangprimer25k-axpe-capture.json": "aade178e7b9b5fdc4317152c09c94e723f0713f882f9bfd412609ee80269c76c",
+    "sw/pemu/isa/axpe_isa.svh": "a3a64fe4ef9b858f658b41c3ffb0634dbc7ee092d8b2c43d2546172550a4950f",
+    "components/pemu/axpe/axpe.sv": "1835160b3a4c7e847de2ea86ff12976735392873980080230c8d2b02f4f3489a",
+    "components/pemu/axpe/axpe_chip.sv": "b544e9306a8b216ea5f6f3afb067f0efd90954e29d2cb6ae996672c4e7fa48a3",
+    "components/pemu/axpe/axpe_decode.sv": "6205c4559daaa96826218a8fd06b9008c8e64acd8bf947dff2289e14678e2282",
+    "components/pemu/axpe/axpe_host.sv": "88de3babed72a3e198251ee01bc130bd5bd27b7d16b5b860d5f286fa23ebe7aa",
+    "components/pemu/axpe/axpe_imem.sv": "6ef2de718178e958222e02467be2fe16ab13762a2060c5e15653cef9cf898df2",
+    "components/pemu/axpe/axpe_pads.sv": "d800e45c42dcc158560e9be8626b6e12e833e2069153f8e5c982d26b0b04a73c",
+    "components/pemu/axpe/axpe_shift.sv": "3052a6d158bab0101eba22e20e31154874638c40dd24d6193dc709d6bb3b3cd6",
+    "components/pemu/axpe/axpe_timing.sv": "f027badac4187026c884a000019660684fc40f3707ff9647b91494757faf189a"
+  },
+  "host_test_inputs_sha256": {
+    "sw/pemu/host/axpe_host.py": "956539b6ae7b6f0bac429a431f4ea68ce40e61406df153485a37d1252f35a661",
+    "sw/pemu/host/check_host.py": "d9083d98f00e062bdad75541a220811827f207f83945b926979abccd084276d4",
+    "sw/pemu/host/pico_bridge.py": "d003709394c1650588598c0132888bba443d68cd3e3a6ebfbc72a6574c32f735",
+    "sw/pemu/host/bridge.json": "08dfa376c1fdc264d3363371c01562cb31fdaae9dcf141e078fb891c7b93a0c8"
+  },
+  "images": [
+    {
+      "mode": "normal",
+      "status": "passed",
+      "receipt": {
+        "path": "build/pemu/primer-image-normal-complete.json",
+        "sha256": "4c9a9c0688bb83d80a1e1e8832b57c7cd12a33771957332cd053b98392a734d6"
+      },
+      "route_log": {
+        "path": "build/pemu/primer-route-normal-complete.log",
+        "sha256": "20bd734ac530e8834eff7662fdd15fb6cc588f0375b78af117c2d01ba1d0a1a6"
+      },
+      "bitstream": {
+        "bytes": 5946754,
+        "path": "rtl/fpga/build/_home_shubhgau_dev_atomiX_configs_tangprimer25k-axpe/axpe_primer_top_seed1.fs",
+        "sha256": "e20cb8c6f1b9608182da9c64e8c142a76d3cee1b2ab8360eb64b847894ce0d5a"
+      },
+      "clocks_mhz": {
+        "bench_clk": {
+          "achieved": 72.5847396850586,
+          "constraint": 25
+        }
+      },
+      "tools": {
+        "apycula_gowin_pack": "0.33.dev19+gdfb3c8702",
+        "nextpnr_himbaechel": "\"nextpnr-himbaechel\" -- Next Generation Place and Route (Version nextpnr-0.10-105-g77e1f19f)",
+        "openFPGALoader": "openFPGALoader v1.1.1",
+        "yosys": "Yosys 0.67+102 (git sha1 07a615a28-dirty, Release, Clang /usr/bin/clang++ 21.1.8)"
+      },
+      "observed_io_buffers": 8,
+      "block_or_lut_ram_cells": 0,
+      "hold_errors_reported": 0,
+      "timing_checks_waived": false,
+      "physical_clock_measured": false
+    },
+    {
+      "mode": "capture",
+      "status": "passed",
+      "receipt": {
+        "path": "build/pemu/primer-image-capture-ready.json",
+        "sha256": "a2c4aad1493e2b21a9a6795689482486f25f6b6aade854da68731a1d7bcee3a9"
+      },
+      "route_log": {
+        "path": "build/pemu/primer-route-capture-ready.log",
+        "sha256": "e3f2cbb377b79fc67225b3e37197dcd4132716dec9913d870b9c3646e2f5cc7d"
+      },
+      "bitstream": {
+        "bytes": 5946754,
+        "path": "rtl/fpga/build/_home_shubhgau_dev_atomiX_configs_tangprimer25k-axpe-capture/axpe_primer_top_seed1.fs",
+        "sha256": "621368ed49718497fd09b9c5b6a47e245a2f9097d41a3fce077071f5aa130359"
+      },
+      "clocks_mhz": {
+        "bench_clk": {
+          "achieved": 76.5228042602539,
+          "constraint": 1
+        }
+      },
+      "tools": {
+        "apycula_gowin_pack": "0.33.dev19+gdfb3c8702",
+        "nextpnr_himbaechel": "\"nextpnr-himbaechel\" -- Next Generation Place and Route (Version nextpnr-0.10-105-g77e1f19f)",
+        "openFPGALoader": "openFPGALoader v1.1.1",
+        "yosys": "Yosys 0.67+102 (git sha1 07a615a28-dirty, Release, Clang /usr/bin/clang++ 21.1.8)"
+      },
+      "observed_io_buffers": 8,
+      "block_or_lut_ram_cells": 0,
+      "hold_errors_reported": 0,
+      "timing_checks_waived": false,
+      "physical_clock_measured": false
+    }
+  ],
+  "adapter_simulations": [
+    {
+      "mode": "normal",
+      "receipt": {
+        "path": "build/pemu/primer/check-zb5ljcgj/evidence.json",
+        "sha256": "844daa395d2f14c6f39f26e0ae2f77b99de013c8fe3b6b456d1c9c5a6d94f68f"
+      },
+      "parameters": {
+        "pemu": {
+          "imem_words": 64,
+          "reg_count": 8,
+          "reg_width": 16,
+          "delay_bits": 16,
+          "uio_pins": 8,
+          "call_depth": 4
+        },
+        "board": {
+          "capture_mode": 0,
+          "capture_clock_hz": 1000000,
+          "reset_cycles": 16
+        }
+      },
+      "clock_hz": 25000000,
+      "startup_seeds": [
+        1,
+        17,
+        91
+      ]
+    },
+    {
+      "mode": "capture",
+      "receipt": {
+        "path": "build/pemu/primer/check-wmq8b06n/evidence.json",
+        "sha256": "8c24af0387926d8ae055ae8a68ffe3cb1cbbc17b580a9fb41dd892f2805aac11"
+      },
+      "parameters": {
+        "pemu": {
+          "imem_words": 64,
+          "reg_count": 8,
+          "reg_width": 16,
+          "delay_bits": 16,
+          "uio_pins": 8,
+          "call_depth": 4
+        },
+        "board": {
+          "capture_mode": 1,
+          "capture_clock_hz": 1000000,
+          "reset_cycles": 8
+        }
+      },
+      "clock_hz": 1000000,
+      "startup_seeds": [
+        1,
+        17,
+        91
+      ]
+    },
+    {
+      "mode": "nondefault-capture",
+      "receipt": {
+        "path": "build/pemu/primer/check-ra5a_86i/evidence.json",
+        "sha256": "2c2a81130fc676c0562c74a9e9f8bca5e25cc9ba4ef07f7f2e3fb2036a4b59dd"
+      },
+      "parameters": {
+        "pemu": {
+          "imem_words": 64,
+          "reg_count": 8,
+          "reg_width": 16,
+          "delay_bits": 16,
+          "uio_pins": 8,
+          "call_depth": 4
+        },
+        "board": {
+          "capture_mode": 1,
+          "capture_clock_hz": 2500000,
+          "reset_cycles": 23
+        }
+      },
+      "clock_hz": 2500000,
+      "startup_seeds": [
+        1,
+        17,
+        91
+      ]
+    }
+  ],
+  "transport_checks": {
+    "count": 11,
+    "status": "passed",
+    "execution": "CPython transport/machine fakes; not MicroPython/Pico execution",
+    "log": {
+      "path": "build/pemu/primer-host-check-ready.log",
+      "sha256": "395f4ba177429a162b2f04a7e5dd660a39233158ce91c848b5b64fb547fbd0ed"
+    }
+  },
+  "pad_check": {
+    "path": "build/pemu/primer/pads-1ouap3v8/evidence.json",
+    "sha256": "9933cf1313471bdf681dc06da71e58ff2509c74ad9937363968e3680a1c67450"
+  },
+  "board_build_contracts": {
+    "path": "build/pemu/primer/contracts-8l_aa59k/evidence.json",
+    "sha256": "519774c3cc404f9d0dcbd8f5f956c08965dc8f98ba84304b78a4aac2856b0bef"
+  },
+  "smoke": {
+    "passed_stages": 14,
+    "receipt": {
+      "path": "build/verification/pe09-preflight-2026-10-12/smoke/summary.json",
+      "sha256": "d094c34f79e493065b3111885b4f836656851504cf099826ef7da5b0f30f36b3"
+    }
+  },
+  "requirements_verification_registry": {
+    "path": "build/pemu/primer-gates-final.log",
+    "sha256": "e70dc17f36a24120a420534df1b2162d6123fe0d434687aa9d1f6843470d97d6"
+  },
+  "legacy_soc_dry_build": {
+    "path": "build/pemu/primer-legacy-dry.log",
+    "sha256": "efa9e0b5e2487b752aa612646346b6a293f5d6948f0eacdf41c03e0ca2dead4b"
+  },
+  "failed_attempts": [
+    {
+      "record": {
+        "path": "build/pemu/primer-route-normal.log",
+        "sha256": "071a916b5f86448bfe0c1868ad811ff5cfaf9f2799e34fadeeb2ad1be7ba4c51"
+      },
+      "reason": "BRAM address-path hold failures; switched FPGA-only store mapping to flip-flops"
+    },
+    {
+      "record": {
+        "path": "build/pemu/primer-route-capture.log",
+        "sha256": "48e594f693e49bfff0405daf31a565680d5a72d8a4a67028080e5c63b1fcb6fa"
+      },
+      "reason": "fabric capture-clock divider hold failure"
+    },
+    {
+      "record": {
+        "path": "build/pemu/primer-route-capture-dcs.log",
+        "sha256": "8bfc1e2f53e8f1f2a900e2b725cca2c227997511c77dfaa701f8f36cf8d7618b"
+      },
+      "reason": "DCS clock-packing assertion"
+    },
+    {
+      "record": {
+        "path": "build/pemu/primer-route-capture-dividers.log",
+        "sha256": "2d55fd9921b4534a5224fc8f35814bce31f6a890570961747a92a707323b2285"
+      },
+      "reason": "cascaded CLKDIV routing failure"
+    },
+    {
+      "record": {
+        "path": "build/pemu/primer-pads.log",
+        "sha256": "c773eead8cf54bded997adf6bebeb849bf1702be5a7e16a03c22ad612bb89c5e"
+      },
+      "reason": "full-core Icarus declaration-before-use errors; isolated pads only are accepted"
+    },
+    {
+      "record": {
+        "path": "build/pemu/primer/check-j56hgvte/evidence.json",
+        "sha256": "a679a1b306c9a344d9a366e6311b0ab02eefc7afe7e005e2cdca0bc715935b01"
+      },
+      "reason": "external-clock simulation driver incorrectly forced clock low; fixed driver"
+    },
+    {
+      "record": {
+        "path": "build/pemu/primer/check-1qyogfsx/evidence.json",
+        "sha256": "eea85b4d461a6a47af213e60676f9b29d480d483e5b445ca6ebb8b44eab11e9d"
+      },
+      "reason": "initial wrapper PROCASSINIT warnings; changed to explicit initial blocks"
+    },
+    {
+      "record": {
+        "path": "build/pemu/primer/check-be4s92n7/evidence.json",
+        "sha256": "925b7e0db55f44dfec00a6c3d8f1a1489724e13bb3214d73bb7cb53d6d63cae5"
+      },
+      "reason": "initial capture wrapper PROCASSINIT warnings; changed to explicit initial blocks"
+    },
+    {
+      "record": {
+        "path": "build/pemu/primer-simulation-2mhz.log",
+        "sha256": "2d3b1193154b5e07f740d7e2b804e4914e49c6b93baf8e13fde47117804cc8ad"
+      },
+      "reason": "custom 2MHz simulation rejected: harness needs even integer oscillator/capture ratio"
+    },
+    {
+      "record": {
+        "path": "build/pemu/primer/check-uno_xisj/evidence.json",
+        "sha256": "5536e10811413e366ab58187c4d9a942bd0042d13ac0aab3a0824d5c6cb76417"
+      },
+      "reason": "expected rejection: 1MHz runtime payload supplied to normal 25MHz profile"
+    }
+  ],
+  "failed_attempt_source_limit": "Intermediate adapter revisions were not committed or snapshotted. Raw diagnostics remain, but exact failed-revision source replay is unavailable. Accepted inputs and commands are hash-bound.",
+  "frozen_asic_gds": {
+    "path": "build/asic/axpe-submission-final-2026-10-11/hardened/design.gds",
+    "sha256": "a5877dd7626f05d7462ce6e629e84e1b507a606f7c6a75e083e22c09af772134"
+  },
+  "reported_kit": {
+    "board": "Tang Primer 25K Dock",
+    "usb_uart": true,
+    "pico": "Pico 2",
+    "eeprom_marking": "AT24C256",
+    "analyzer_marking": "24M 8CH",
+    "analyzer_declared_sample_rate_hz": 24000000,
+    "analyzer_channels": 8
+  },
+  "reproduction": [
+    "make pemu-primer-check",
+    "source \"$HOME/opt/oss-cad-suite/environment\"; make pemu-primer-pads-check",
+    "make -C rtl/fpga gowin-evidence COMPONENT_CONFIG=\"$PWD/configs/tangprimer25k-axpe.json\"",
+    "make -C rtl/fpga gowin-evidence COMPONENT_CONFIG=\"$PWD/configs/tangprimer25k-axpe-capture.json\"",
+    "make verify-smoke"
+  ],
+  "nondefault_reproduction": {
+    "base_profile": "configs/tangprimer25k-axpe-capture.json",
+    "board_overrides": {
+      "capture_clock_hz": 2500000,
+      "reset_cycles": 23
+    },
+    "runtime_base": "sw/pemu/firmware/profiles/primer/1000000.json",
+    "runtime_overrides": {
+      "clock_hz": 2500000
+    },
+    "command": "python3 tools/axpe_primer_check.py --profile <saved-board-profile.json> --runtime-profile <saved-runtime-profile.json>"
+  },
+  "open_gates": [
+    "delivered Dock revision/continuity and 3.3V levels/pull-ups/EEPROM straps",
+    "Pico MicroPython deployment/version/hash and measured SPI/PWM clocks",
+    "physical SRAM programming, quiet/reset and complete host readback",
+    "independent UART/SPI/autobaud peers and AT24C256 payloads/write-cycle handling",
+    "capture analysis, repeated acceptance runner and real power-cycle recovery",
+    "maintainer commit-pinned reviews and submission publication; hosted CI repair confirmation"
+  ]
+}

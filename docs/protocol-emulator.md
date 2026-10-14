@@ -20,8 +20,11 @@ completed releases. PE-12 submission compliance now precedes further PE-08 work.
 
 The maintainer's October 12 [physical test plan](notes/axpe-hardware-test-plan-2026-10-12.md)
 schedules PE-09 on the available Tang Primer Dock before further PE-08 repairs.
-It includes missing FPGA/loader tooling, peer requirements, real EEPROM
-transactions, capture-clock timing and power-cycle recovery. Dates are targets;
+Adapter simulations and routed-image preflight now exist; physical loader
+execution, independent peers, real EEPROM transactions, capture-clock timing
+and power-cycle recovery remain. [AT24C256 runtime tools](../sw/pemu/firmware/eeprom/README.md)
+now fit the 64-word store and pass independent digital peers; no physical
+EEPROM access has been performed. Dates are targets;
 no physical axpe result is claimed.
 
 | | |

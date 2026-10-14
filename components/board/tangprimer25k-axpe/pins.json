@@ -1,0 +1,53 @@
+{
+  "schema": "org.atomix.axpe-primer-pins.v1",
+  "status": "documentary reference; physical board revision/continuity not yet verified",
+  "schematic_url": "https://api.dl.sipeed.com/file/download?file_url=TANG/Primer_25K/02_Schematic/Tang_Primer_25K_Dock_60033_Schematic.pdf",
+  "schematic_sha256": "3242b0708a21e7be7e83b8d4b340ebff2d21ed1907341955940375f1b51d865a",
+  "schematic_page": 1,
+  "signals": {
+    "clk_50mhz": "E2",
+    "button_s1": "H11",
+    "host_sclk": "F5",
+    "host_mosi": "J5",
+    "host_cs_n": "H7",
+    "host_miso": "G8",
+    "design_enabled": "G5",
+    "host_rst_n": "H5",
+    "clock_ref": "H8",
+    "uio[0]": "C10",
+    "uio[1]": "C11",
+    "uio[2]": "B11",
+    "uio[3]": "B10",
+    "uio[4]": "G11",
+    "uio[5]": "G10",
+    "uio[6]": "D10",
+    "uio[7]": "D11",
+    "capture_clk": "G7"
+  },
+  "j4_pin_to_uio": {
+    "1": 0,
+    "3": 1,
+    "7": 2,
+    "9": 3,
+    "2": 4,
+    "4": 5,
+    "8": 6,
+    "10": 7
+  },
+  "j6_pin_to_signal": {
+    "1": "host_sclk",
+    "3": "host_mosi",
+    "7": "host_cs_n",
+    "9": "host_miso",
+    "2": "design_enabled",
+    "4": "host_rst_n",
+    "8": "clock_ref",
+    "10": "capture_clk"
+  },
+  "power_pins": {
+    "5": "GND",
+    "6": "3.3V",
+    "11": "GND",
+    "12": "3.3V"
+  }
+}

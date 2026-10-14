@@ -416,7 +416,7 @@ def to_make(resolved: dict[str, Any]) -> str:
             # assets. Resolve them relative to a portable external manifest
             # rather than the Makefile that happened to invoke the resolver.
             path_value_keys = {
-                "FPGA_LPF", "FPGA_CST", "SOFTWARE_MAKE_DIR", "SOFTWARE_RAM_HEX",
+                "FPGA_LPF", "FPGA_CST", "FPGA_PRE_PACK", "FPGA_INCLUDE_DIR", "SOFTWARE_MAKE_DIR", "SOFTWARE_RAM_HEX",
                 "SOFTWARE_ROM_HEX", "SOFTWARE_SD_IMAGE", "SOFTWARE_UART_INPUT",
                 "KERNEL_CONFIG", "LIBC_INCLUDE",
             }
@@ -424,13 +424,13 @@ def to_make(resolved: dict[str, Any]) -> str:
                 if not isinstance(value, str):
                     raise ConfigError(f"{component['_path']}: {key} must be a path string")
                 asset = resolve_source(component, value).resolve()
-                if upper in ("FPGA_LPF", "FPGA_CST") and not asset.is_file():
+                if upper in ("FPGA_LPF", "FPGA_CST", "FPGA_PRE_PACK") and not asset.is_file():
                     raise ConfigError(f"{component['_path']}: constraint file does not exist: {asset}")
                 if upper == "SOFTWARE_MAKE_DIR" and not asset.is_dir():
                     raise ConfigError(f"{component['_path']}: software directory does not exist: {asset}")
                 if upper == "KERNEL_CONFIG" and not asset.is_file():
                     raise ConfigError(f"{component['_path']}: kernel configuration does not exist: {asset}")
-                if upper == "LIBC_INCLUDE" and not asset.is_dir():
+                if upper in ("LIBC_INCLUDE", "FPGA_INCLUDE_DIR") and not asset.is_dir():
                     raise ConfigError(f"{component['_path']}: libc include directory does not exist: {asset}")
                 value = str(asset)
             full_key = f"COMPONENT_{upper}"

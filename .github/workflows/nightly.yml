@@ -41,6 +41,8 @@ jobs:
             build/verification/nightly-integrated
             build/pemu/profiles/**/evidence.json
             build/pemu/profiles/**/*.log
+            build/pemu/primer/**/evidence.json
+            build/pemu/primer/**/*.log
           if-no-files-found: error
           retention-days: 14
 

@@ -462,10 +462,22 @@ pemu-netlist-check:
 	$(PYTHON) tools/tt_axpe_netlist.py --state "$(PEMU_NETLIST_STATE)" \
 	  --output "$(PEMU_NETLIST_OUTPUT)" $(PEMU_NETLIST_ARGS)
 
-pemu-chip-check: pemu-asic-check tt-export pemu-netlist-contract-check
+pemu-eeprom-check:
+	$(PYTHON) sw/pemu/host/check_eeprom.py
+
+pemu-primer-check: pemu-eeprom-check
+	$(PYTHON) tools/axpe_primer_contracts.py
+	$(PYTHON) sw/pemu/host/check_host.py
+	$(PYTHON) tools/axpe_primer_check.py $(PEMU_PRIMER_ARGS)
+
+# Optional four-state pad boundary check; full axpe is verified with Verilator.
+pemu-primer-pads-check:
+	$(PYTHON) tools/axpe_primer_check.py --pads-only
+
+pemu-chip-check: pemu-asic-check tt-export pemu-netlist-contract-check pemu-primer-check pemu-eeprom-check
 	$(MAKE) -C sim/pemu chip
 
-.PHONY: pemu-profile-check pemu-model-check pemu-cosim-check pemu-chip-check pemu-asic-check tt-export \
+.PHONY: pemu-eeprom-check pemu-primer-check pemu-primer-pads-check pemu-profile-check pemu-model-check pemu-cosim-check pemu-chip-check pemu-asic-check tt-export \
         pemu-netlist-contract-check pemu-netlist-check
 .PHONY: pemu-timing-check pemu-shift-timing-check pemu-wait-timing-check pemu-core-timing-check pemu-package pemu-precheck
 

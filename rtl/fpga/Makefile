@@ -41,6 +41,12 @@ PROGRAM ?= hello
 RAM_BYTES ?= $(COMPONENT_RAM_BYTES)
 RAM_INIT_FILE ?=
 ROM_INIT_FILE ?=
+PAYLOAD_INIT_REQUIRED := $(if $(filter 1,$(COMPONENT_FPGA_RUNTIME_PAYLOADS)),,1)
+ifeq ($(PAYLOAD_INIT_REQUIRED),)
+ifneq ($(strip $(RAM_INIT_FILE)$(ROM_INIT_FILE)),)
+$(error runtime-programmable profile forbids RAM_INIT_FILE and ROM_INIT_FILE)
+endif
+endif
 RESET_PC_VALUE := $(if $(COMPONENT_RESET_PC),$(shell python3 -c 'print(int("$(COMPONENT_RESET_PC)", 0))'))
 RUNTIME_KERNEL_PROFILE := $(if $(and $(filter gowin,$(COMPONENT_FPGA_FLOW)),$(filter 4096,$(RESET_PC_VALUE))),1,)
 # A Gowin profile that resets into ROM is a runtime-software profile by
@@ -63,7 +69,7 @@ ROM_KEY := $(if $(ROM_INIT_FILE),/rom$(subst /,_,$(basename $(abspath $(ROM_INIT
 # Gowin BRAM-only images bake software into the netlist, so the payload is part
 # of the artifact identity. ECP5 boots from a separate ROM image and therefore
 # remains keyed by configuration alone.
-CONFIG_BUILD := $(BUILD)/$(COMPONENT_CONFIG_KEY)$(if $(filter gowin,$(COMPONENT_FPGA_FLOW)),/$(PROGRAM_KEY)$(ROM_KEY),)
+CONFIG_BUILD := $(BUILD)/$(COMPONENT_CONFIG_KEY)$(if $(and $(filter gowin,$(COMPONENT_FPGA_FLOW)),$(PAYLOAD_INIT_REQUIRED)),/$(PROGRAM_KEY)$(ROM_KEY),)
 BOOT_HEX := ../../sw/bootrom/build/bootrom.hex
 JSON := $(CONFIG_BUILD)/$(TOP).json
 SYNTH_SV := $(CONFIG_BUILD)/atomiX_synth.sv
@@ -72,6 +78,8 @@ SYNTH_SV := $(CONFIG_BUILD)/atomiX_synth.sv
 # parameters silently fall back to the RTL defaults during FPGA synthesis.
 SYNTH_DEFINES := $(patsubst +define+%,-D%,$(COMPONENT_DEFINES)) \
   $(patsubst %,-D%,$(COMPONENT_FPGA_DEFINES))
+SYNTH_INCLUDES := $(if $(COMPONENT_FPGA_INCLUDE_DIR),-I$(COMPONENT_FPGA_INCLUDE_DIR),)
+SYNTH_HEADERS := $(wildcard $(COMPONENT_FPGA_INCLUDE_DIR)/*.vh $(COMPONENT_FPGA_INCLUDE_DIR)/*.svh)
 
 SOURCES := $(COMPONENT_CORE_SOURCES) \
   $(COMPONENT_ALU_SOURCES) $(COMPONENT_MULDIV_SOURCES) \
@@ -82,7 +90,7 @@ SOURCES := $(COMPONENT_CORE_SOURCES) \
   $(COMPONENT_UART_SOURCES) $(COMPONENT_SPI_SOURCES) \
   $(COMPONENT_ROLE_SOURCES) \
   $(COMPONENT_FINISHER_SOURCES) $(COMPONENT_SOC_SOURCES) \
-  $(COMPONENT_BOARD_SOURCES)
+  $(COMPONENT_BOARD_SOURCES) $(COMPONENT_PEMU_SOURCES)
 
 # Synthesis only (yosys -> netlist).  Runs with just yosys installed, so it is
 # the "does the design synthesise for this board" gate that needs no P&R tools.
@@ -144,7 +152,7 @@ endif
 # The board top's RAM_BYTES follows the selected profile so a role-heavy
 # profile can trade main memory for the block RAM its accelerator needs.
 RAM_BYTES_CHPARAM := $(if $(RAM_BYTES),chparam -set RAM_BYTES $(RAM_BYTES) $(TOP);,)
-PROGRAM_CHPARAM := chparam -set RAM_INIT_FILE "$(abspath $(PROGRAM_HEX))" $(TOP);
+PROGRAM_CHPARAM := $(if $(PAYLOAD_INIT_REQUIRED),chparam -set RAM_INIT_FILE "$(abspath $(PROGRAM_HEX))" $(TOP);,)
 ROM_CHPARAM := $(if $(ROM_INIT_FILE),chparam -set ROM_INIT_FILE "$(abspath $(ROM_INIT_FILE))" $(TOP);,)
 RESET_PC_CHPARAM := $(if $(RESET_PC_VALUE),chparam -set RESET_PC $(RESET_PC_VALUE) $(TOP);,)
 
@@ -154,11 +162,11 @@ RESET_PC_CHPARAM := $(if $(RESET_PC_VALUE),chparam -set RESET_PC $(RESET_PC_VALU
 # and omit only autoname. This yields the same checked JSON netlist in seconds
 # instead of hanging for minutes.
 GOWIN_SETUNDEF_CMD := $(if $(filter -setundef,$(COMPONENT_GOWIN_SYNTH_ARGS)),setundef -undriven -params -zero;,)
-$(JSON): $(SYNTH_SV) $(PROGRAM_HEX) $(ROM_INIT_DEP) Makefile | $(CONFIG_BUILD)
-	$(YOSYS) -q -l $(CONFIG_BUILD)/synth.log -p 'read_verilog -sv $(SYNTH_DEFINES) $(SYNTH_SV); $(RAM_BYTES_CHPARAM) $(PROGRAM_CHPARAM) $(ROM_CHPARAM) $(RESET_PC_CHPARAM) synth_gowin -noabc9 -family $(SYNTH_FAMILY) $(COMPONENT_GOWIN_SYNTH_ARGS) -top $(TOP) -run begin:map_cells; techmap -map +/gowin/cells_map.v; opt_lut_ins -tech gowin; $(GOWIN_SETUNDEF_CMD) hilomap -singleton -hicell VCC V -locell GND G; clean; hierarchy -check; stat; check -noinit; blackbox =A:whitebox; write_json $@'
+$(JSON): $(SYNTH_SV) $(SYNTH_HEADERS) $(if $(PAYLOAD_INIT_REQUIRED),$(PROGRAM_HEX),) $(ROM_INIT_DEP) Makefile | $(CONFIG_BUILD)
+	$(YOSYS) -q -l $(CONFIG_BUILD)/synth.log -p 'read_verilog -sv $(SYNTH_INCLUDES) $(SYNTH_DEFINES) $(SYNTH_SV); $(RAM_BYTES_CHPARAM) $(PROGRAM_CHPARAM) $(ROM_CHPARAM) $(RESET_PC_CHPARAM) synth_gowin -noabc9 -family $(SYNTH_FAMILY) $(COMPONENT_GOWIN_SYNTH_ARGS) -top $(TOP) -run begin:map_cells; techmap -map +/gowin/cells_map.v; opt_lut_ins -tech gowin; $(GOWIN_SETUNDEF_CMD) hilomap -singleton -hicell VCC V -locell GND G; clean; hierarchy -check; stat; check -noinit; blackbox =A:whitebox; write_json $@'
 
-$(PNR_JSON): $(JSON) $(CST) | check-tools
-	$(NEXTPNR_HIMBAECHEL) $(COMPONENT_NEXTPNR_ARGS) $(PNR_EXTRA_ARGS) --seed $(PNR_SEED) --device $(DEVICE) --vopt family=$(FAMILY) --vopt cst=$(CST) --json $(JSON) --write $@ --report $(PNR_REPORT) --detailed-timing-report
+$(PNR_JSON): $(JSON) $(CST) $(COMPONENT_FPGA_PRE_PACK) | check-tools
+	ATOMIX_FPGA_PROFILE="$(abspath $(COMPONENT_CONFIG))" $(NEXTPNR_HIMBAECHEL) $(COMPONENT_NEXTPNR_ARGS) $(PNR_EXTRA_ARGS) $(if $(COMPONENT_FPGA_PRE_PACK),--pre-pack $(COMPONENT_FPGA_PRE_PACK),) --seed $(PNR_SEED) --device $(DEVICE) --vopt family=$(FAMILY) --vopt cst=$(CST) --json $(JSON) --write $@ --report $(PNR_REPORT) --detailed-timing-report
 
 $(BIT): $(PNR_JSON)
 	$(GOWIN_PACK) $(COMPONENT_GOWIN_PACK_ARGS) -d $(FAMILY) -o $@ $(PNR_JSON)
@@ -171,7 +179,7 @@ gowin-evidence: all
 	  --config "$(COMPONENT_CONFIG)" --bitstream "$(BIT)" \
 	  --pnr-seed "$(PNR_SEED)" \
 	  --timing-report "$(PNR_REPORT)" --synth-log "$(CONFIG_BUILD)/synth.log" \
-	  --input "ram=$(PROGRAM_HEX)" \
+	  $(if $(PAYLOAD_INIT_REQUIRED),--input "ram=$(PROGRAM_HEX)",) \
 	  $(if $(ROM_INIT_DEP),--input "rom=$(ROM_INIT_DEP)") \
 	  $(if $(EVIDENCE_KERNEL),--input "kernel=$(EVIDENCE_KERNEL)") \
 	  $(if $(EVIDENCE_RUNTIME_GATE),--gate "runtime-fast-switch=$(EVIDENCE_RUNTIME_GATE)") \

@@ -1,0 +1,335 @@
+{
+  "schema": "org.atomix.axpe-eeprom-evidence.v1",
+  "date": "2026-10-12",
+  "status": "passed",
+  "card": "PE-09",
+  "card_status": "Active",
+  "level": "runtime assembly, host transport fakes and digital adapter/EEPROM peers; no physical EEPROM access",
+  "source_commit": "922094aaa342e99fcbd051b21770426bce9856ec",
+  "uncommitted_inputs": true,
+  "sources_sha256": {
+    "Makefile": "dd5d8fd8cdbec175b177835eb82e30eb990218cef065c7f49a57919b7ea5ef94",
+    "sw/pemu/firmware/i2c.s": "2166c71510afbf469c0cb144769a987ca201a1f978ac0d8377efb5ba632b702d",
+    "sw/pemu/firmware/build_demos.py": "1fd5b990716849b11743638808d2046e98fc5fb5d340a57bd8adc75c67d81c99",
+    "sw/pemu/host/eeprom.py": "985403c6d5d81bbf7ce169f4aad5c9f6d6415b8605dea1a1429b3d1d81b0bb83",
+    "sw/pemu/host/check_eeprom.py": "5590fc8c979ba0de8a2d8c3869d1854c116dc522e7d984143ded9c16cac2584d",
+    "sw/pemu/host/axpe_host.py": "956539b6ae7b6f0bac429a431f4ea68ce40e61406df153485a37d1252f35a661",
+    "sim/pemu/axpe_eeprom_cases.h": "55a8ae10a504013e0062fbfddd329e2d5d01373c1ed52e8b12031d5b0edf68cc",
+    "sim/pemu/axpe_eeprom_peer.h": "06281153fd3c96f5079280ff277d8028e9582f11f1f3f1150f7162db313a2389",
+    "sim/pemu/eeprom.json": "c888bec9d1c4f91774a78f206f8685ddf1bccb8973388689517c27fe4a21ebd2",
+    "sim/pemu/axpe_primer_tb.cpp": "04d6fe983b451f61554d57701b2fd2a285b446c7df8ef7e166a00bd9c955c65e",
+    "tools/axpe_primer_check.py": "d1870d934cd4afaa3fa99dfa6c5ac298a842f3ceaa05db481781763a254e6edf",
+    "tools/axpe_eeprom_mutations.py": "784bdcf96d7af666dd34dd76c50e9f77e34a68ddcb6e4f303deb7c9fee98d45c",
+    "sw/pemu/firmware/eeprom/poll.s": "3d9557a3b383d23e89af16d5f28f3fbb975e75852291de280ca4d80b2193b011",
+    "sw/pemu/firmware/eeprom/read.s": "9c6d9b66ed5cc19025862105c6eb09d512e054cc0c08fed747a81b3ed6eee117",
+    "sw/pemu/firmware/eeprom/write.s": "cd5e0dd2a08c5bbb541c1e38da6ffb44caed8611e5def0db25b3facd3da4a0f6",
+    "sw/pemu/firmware/eeprom/build.py": "4638b1cd7ea2749215ea7afbe03b8007244e2fdf814598abd02bd4c16b690076",
+    "sw/pemu/firmware/eeprom/parameters.json": "8692e60c49ede6f4e79551a6eaa2d64949b5e2e305cfd0021e75557a6bca2cd0"
+  },
+  "adapter_checks": [
+    {
+      "mode": "normal-25MHz",
+      "receipt": {
+        "path": "build/pemu/primer/check-njzufzc7/evidence.json",
+        "sha256": "23bc22ce82a7dc73da3f1bc32f2576b0f97e41f9992da89b518201b00aabf040"
+      },
+      "startup_seeds": [
+        1,
+        17,
+        91
+      ],
+      "word_counts": {
+        "write": 54,
+        "poll": 46,
+        "read-low": 60,
+        "read-high": 60
+      },
+      "runtime_settings": {
+        "clock_hz": 25000000,
+        "uart_baud": 115200,
+        "spi_hz": 500000,
+        "i2c_hz": 100000,
+        "i2c_guard_ns": 50
+      },
+      "fixtures": {
+        "default": {
+          "device_address": 80,
+          "word_address": 32512,
+          "data_byte": 90,
+          "write_timeout_ms": 1000,
+          "poll_interval_ms": 1,
+          "program_timeout_ms": 1000,
+          "read_iterations": 100,
+          "write_iterations": 10
+        },
+        "nondefault": {
+          "device_address": 83,
+          "word_address": 4660,
+          "data_byte": 238,
+          "write_timeout_ms": 1000,
+          "poll_interval_ms": 1,
+          "program_timeout_ms": 1000,
+          "read_iterations": 100,
+          "write_iterations": 10
+        },
+        "first-byte": {
+          "device_address": 80,
+          "word_address": 0,
+          "data_byte": 0,
+          "write_timeout_ms": 1000,
+          "poll_interval_ms": 1,
+          "program_timeout_ms": 1000,
+          "read_iterations": 100,
+          "write_iterations": 10
+        },
+        "last-byte": {
+          "device_address": 87,
+          "word_address": 32767,
+          "data_byte": 255,
+          "write_timeout_ms": 1000,
+          "poll_interval_ms": 1,
+          "program_timeout_ms": 1000,
+          "read_iterations": 100,
+          "write_iterations": 10
+        }
+      },
+      "peer_busy_cycles": {
+        "default": 80000,
+        "nondefault": 120000,
+        "first-byte": 80000,
+        "last-byte": 80000
+      },
+      "mutations": [
+        {
+          "name": "swapped-word-address",
+          "status": "passed",
+          "expected_exit": 1,
+          "returncode": 1,
+          "required_oracle_witness": "EEPROM oracle: write address/data mismatch",
+          "log": {
+            "path": "/home/shubhgau/dev/atomiX/build/pemu/primer/check-njzufzc7/mutations/swapped-word-address/replay.log",
+            "sha256": "1c3aba275ced38dbbc03c97567b2832c095c27bd71cc43f9eb222d2b031a146d"
+          }
+        },
+        {
+          "name": "read-ack-instead-of-nack",
+          "status": "passed",
+          "expected_exit": 1,
+          "returncode": 1,
+          "required_oracle_witness": "EEPROM oracle: repeated START/master NACK/read pointer mismatch",
+          "log": {
+            "path": "/home/shubhgau/dev/atomiX/build/pemu/primer/check-njzufzc7/mutations/read-ack-instead-of-nack/replay.log",
+            "sha256": "73eb635bb3a7e15466e876105a7c190a9e25cb2927448d2e981239e1f6a7e46f"
+          }
+        }
+      ]
+    },
+    {
+      "mode": "capture-1MHz",
+      "receipt": {
+        "path": "build/pemu/primer/check-3byznry6/evidence.json",
+        "sha256": "4f2cb55ceac4a0638943f8f145ad79ce1e97777e028e4eec95061a126c7e2e02"
+      },
+      "startup_seeds": [
+        1,
+        17,
+        91
+      ],
+      "word_counts": {
+        "write": 54,
+        "poll": 46,
+        "read-low": 60,
+        "read-high": 60
+      },
+      "runtime_settings": {
+        "clock_hz": 1000000,
+        "uart_baud": 9600,
+        "spi_hz": 50000,
+        "i2c_hz": 10000,
+        "i2c_guard_ns": 50
+      },
+      "fixtures": {
+        "default": {
+          "device_address": 80,
+          "word_address": 32512,
+          "data_byte": 90,
+          "write_timeout_ms": 1000,
+          "poll_interval_ms": 1,
+          "program_timeout_ms": 1000,
+          "read_iterations": 100,
+          "write_iterations": 10
+        },
+        "nondefault": {
+          "device_address": 83,
+          "word_address": 4660,
+          "data_byte": 238,
+          "write_timeout_ms": 1000,
+          "poll_interval_ms": 1,
+          "program_timeout_ms": 1000,
+          "read_iterations": 100,
+          "write_iterations": 10
+        },
+        "first-byte": {
+          "device_address": 80,
+          "word_address": 0,
+          "data_byte": 0,
+          "write_timeout_ms": 1000,
+          "poll_interval_ms": 1,
+          "program_timeout_ms": 1000,
+          "read_iterations": 100,
+          "write_iterations": 10
+        },
+        "last-byte": {
+          "device_address": 87,
+          "word_address": 32767,
+          "data_byte": 255,
+          "write_timeout_ms": 1000,
+          "poll_interval_ms": 1,
+          "program_timeout_ms": 1000,
+          "read_iterations": 100,
+          "write_iterations": 10
+        }
+      },
+      "peer_busy_cycles": {
+        "default": 80000,
+        "nondefault": 120000,
+        "first-byte": 80000,
+        "last-byte": 80000
+      },
+      "mutations": [
+        {
+          "name": "swapped-word-address",
+          "status": "passed",
+          "expected_exit": 1,
+          "returncode": 1,
+          "required_oracle_witness": "EEPROM oracle: write address/data mismatch",
+          "log": {
+            "path": "/home/shubhgau/dev/atomiX/build/pemu/primer/check-3byznry6/mutations/swapped-word-address/replay.log",
+            "sha256": "cbeb9ea8dfd666a894a149d64ef597262912cb21726be02bdd936ffd18f52c38"
+          }
+        },
+        {
+          "name": "read-ack-instead-of-nack",
+          "status": "passed",
+          "expected_exit": 1,
+          "returncode": 1,
+          "required_oracle_witness": "EEPROM oracle: repeated START/master NACK/read pointer mismatch",
+          "log": {
+            "path": "/home/shubhgau/dev/atomiX/build/pemu/primer/check-3byznry6/mutations/read-ack-instead-of-nack/replay.log",
+            "sha256": "6ee2a247528f920bed8a488d345b18373b1f018cd32629bc037b545fffc7367c"
+          }
+        }
+      ]
+    }
+  ],
+  "host_checks": {
+    "count": 12,
+    "status": "passed",
+    "log": {
+      "path": "build/pemu/eeprom-host-accepted.log",
+      "sha256": "065f2a13ee6adf183bce952a53985b10a3c52d247c8fc2bee5704d91ec63c2c2"
+    },
+    "covers": [
+      "all 256 tagged byte values versus NACK",
+      "busy/late replies and bounded deadline",
+      "non-default address/data/timing/counts",
+      "backup before writes; backup failure prevents writes",
+      "read-only never writes",
+      "lost write reply still triggers restoration",
+      "Ctrl-C attempts restore and leaves a failed receipt",
+      "failed restore remains failed",
+      "test data always differs from original (WP sensitivity)",
+      "runtime source changes abort before transport",
+      "word counts, capacity/profile/output refusal"
+    ]
+  },
+  "smoke": {
+    "receipt": {
+      "path": "build/verification/pe09-eeprom-reviewed-2026-10-12/smoke/summary.json",
+      "sha256": "d51afacfd6b69bcf3f1bc10778c0c62ba4cbcc40d189c2811045381ab5985d42"
+    },
+    "passed_stages": 14,
+    "pemu_chip_duration_seconds": 128.637
+  },
+  "contracts": {
+    "path": "build/pemu/eeprom-final-contracts.log",
+    "sha256": "833499ab399d1cb64650947b80c3ad73f9fa223a19354500d2ba4f74e87c3a00"
+  },
+  "retained_failures": [
+    {
+      "receipt": {
+        "path": "build/pemu/primer/check-v8isfuuc/evidence.json",
+        "sha256": "7cf7c1bdb6755c9935003b00a48e63f8ece4654b5319c8f5d2f8f4318231ff7e"
+      },
+      "reason": "parameter file changed during first run; input guard rejected receipt despite functional cases passing"
+    },
+    {
+      "receipt": {
+        "path": "build/verification/pe09-eeprom-2026-10-12/smoke/summary.json",
+        "sha256": "11e25a50b8023040169cb1265acb683ea95c7f1ebd11368f24fa234cdaf551b2"
+      },
+      "reason": "initial nested coverage aggregate invalid; fixed by direct pemu-chip dependency/accounting"
+    },
+    {
+      "reason": "initial assembly attempt passed DATA_BYTE/WORD_ADDR overrides to the ACK-only poll source, which does not declare them",
+      "diagnostic": "override does not name a .equ: ['DATA_BYTE', 'WORD_ADDR']",
+      "resolution": "builder now forwards only overrides declared by each program",
+      "original_raw_log_available": false
+    }
+  ],
+  "hardware": {
+    "re_synthesis_performed": false,
+    "previous_preflight": {
+      "path": "research/benchmarks/axpe-primer-preflight.json",
+      "sha256": "4b1a647b7d0b71a1eae20407b5b2ac7a21908b144f3fb641bd3b2974603f62e3"
+    },
+    "fpga_images": [
+      {
+        "mode": "normal",
+        "bitstream": {
+          "bytes": 5946754,
+          "path": "rtl/fpga/build/_home_shubhgau_dev_atomiX_configs_tangprimer25k-axpe/axpe_primer_top_seed1.fs",
+          "sha256": "e20cb8c6f1b9608182da9c64e8c142a76d3cee1b2ab8360eb64b847894ce0d5a"
+        }
+      },
+      {
+        "mode": "capture",
+        "bitstream": {
+          "bytes": 5946754,
+          "path": "rtl/fpga/build/_home_shubhgau_dev_atomiX_configs_tangprimer25k-axpe-capture/axpe_primer_top_seed1.fs",
+          "sha256": "621368ed49718497fd09b9c5b6a47e245a2f9097d41a3fce077071f5aa130359"
+        }
+      }
+    ],
+    "unchanged_selected_asic_gds": {
+      "path": "build/asic/axpe-submission-final-2026-10-11/hardened/design.gds",
+      "sha256": "a5877dd7626f05d7462ce6e629e84e1b507a606f7c6a75e083e22c09af772134"
+    }
+  },
+  "commands": [
+    "make pemu-eeprom-check",
+    "make pemu-primer-check",
+    "make verification-check registry-check",
+    "python3 tools/verify.py run smoke --log-root build/verification/pe09-eeprom-reviewed-2026-10-12"
+  ],
+  "device_references": [
+    "https://ww1.microchip.com/downloads/en/devicedoc/doc0670.pdf",
+    "https://ww1.microchip.com/downloads/aemDocuments/documents/MPD/ProductDocuments/DataSheets/AT24C256C-I%C2%B2C-Compatible-%28Two-Wire%29-Serial-EEPROM-256-Kbit-%2832%2C768x8%29-Data-Sheet-DS20006042.pdf"
+  ],
+  "limits": [
+    "byte operations only; two tagged transactions per reconstructed byte",
+    "synthetic peer busy cycles are not device tWR",
+    "host deadline includes instruction reload/USB/SPI overhead",
+    "device suffix/straps distinguish legacy 0x50..0x53 from newer 0x50..0x57",
+    "no stretching/arbitration/bus-clear/page-write characterization",
+    "interruption, changed sources, power/transport loss can prevent restoration; backup retained",
+    "new payloads not replayed on mapped ASIC netlist or added to frozen archive"
+  ],
+  "remaining": [
+    "Pico deployment and measured loader/clock",
+    "physical module WP/straps/pull-ups/voltage/suffix",
+    "physical read/write/preservation runs and captures",
+    "remaining UART/SPI peers, capture/repetition/power-loss gates",
+    "maintainer review/publication and hosted CI confirmation"
+  ]
+}

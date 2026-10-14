@@ -1,0 +1,11 @@
+{
+  "schema": "org.atomix.axpe-eeprom-peer.v1",
+  "parameters": {
+    "write_cycles": {
+      "default": 80000,
+      "doc": "Digital peer busy duration in axpe cycles. Minimum retains busy NACK through the simulation host's program reload. This is a test latency, not the EEPROM's tWR rating.",
+      "minimum": 60000,
+      "maximum": 1000000
+    }
+  }
+}

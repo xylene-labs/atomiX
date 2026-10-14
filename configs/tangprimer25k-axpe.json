@@ -1,0 +1,17 @@
+{
+  "schema": 1,
+  "name": "tangprimer25k-axpe",
+  "components": {
+    "pemu": "pemu.axpe",
+    "board": "board.tangprimer25k-axpe"
+  },
+  "parameters": {
+    "pemu": {
+      "imem_words": 64
+    },
+    "board": {
+      "capture_mode": 0,
+      "reset_cycles": 16
+    }
+  }
+}

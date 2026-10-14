@@ -26,7 +26,9 @@ and full Magic/Netgen signoff reproduce the routed ODB/DEF/netlist and all
 metrics exactly; GDS non-timestamp bytes match. The final source/review
 archives are local deliverables. The maintainer requested a physical hardware
 timeline on October 12 and confirmed the Dock, USB–UART, Pico 2, EEPROM and
-logic analyzer are available. PE-09 now has a [hardware test plan](../notes/axpe-hardware-test-plan-2026-10-12.md)
+logic analyzer are available. The EEPROM is AT24C256 and analyzer is marked
+24M 8CH; module pull-ups/straps and exact electrical limits still need checks.
+PE-09 is Active with a [hardware test plan](../notes/axpe-hardware-test-plan-2026-10-12.md)
 targeting first physical readback October 21–23 and a repeatable report November
 13. PE-08 remains Ready behind this hardware work and the submission review
 gate, with its known width/model gaps retained. Physical axpe operation is untested.
@@ -111,7 +113,7 @@ card instead of taking time from the submission. All owners are unassigned.
 | PE-15: a measured period firmware can use | T2 | P0 | Review | PE-03, PE-05 both satisfied | Done in simulation: `SHPER` (opcode `0E`) writes a period register and one bit of the shift shape's unused `b` field selects it, so `SHOUT`/`SHIN`/`SHIO` take their bit period from architectural state. `autobaud-demo.s` measures an unconfigured peer and answers at its rate, checked at two different rates through one unchanged chip image. Close only after commit-pinned review of the exact-but-not-static timing split and the reserved-bit rule |
 | PE-06: timing-determinism proof | T2 | P0 | Review | Maintainer commit-pinned review owed | Complete legal instruction-stream occupancy and handoff induct for all 31 opcodes, including register-period selection, held operands, bounded waits and HALT. All 46 witnesses and five mutation counterexamples pass. The word source is abstract; memory/data correctness, invalid-program faults and non-default architecture remain outside the timing claim |
 | PE-08: profile knobs exercised | T2 | P1 | Ready | After PE-12 email compliance work; PE-05; width repair and assembler/model profile integration remain | `make pemu-profile-check` wires all six resolved parameters into a fresh Verilator build and its capacity probes. The capacity profile exercises a 64-word store, seven registers, four pins and two stack entries. `configs/sim-axpe-tiny.json` is an explicit failing experiment, not a supported profile: narrower register/delay widths still fail strict elaboration. No RTL repair or full non-default ISA conformance is claimed |
-| PE-09: Tang Primer bring-up | T3 | P1 | Next | Kit available October 12; axpe wrapper/profile/Pmod CST, physical SPI bridge and EEPROM payload still needed | Follow the [physical timeline and pass matrix](../notes/axpe-hardware-test-plan-2026-10-12.md): preflight by October 20, first SRAM load/readback October 21–23, UART/SPI/I2C peers and capture/recovery by November 6, repeatable report by November 13. Use runtime programs on one unchanged image, an observable capture clock, and the EEPROM's matched addressing/write-cycle behavior. No physical axpe pass yet |
+| PE-09: Tang Primer bring-up | T3 | P1 | Active | Kit available October 12; adapter/constraints, bridge and EEPROM runtime tools implemented; physical execution and remaining peers/capture tools remain | Follow the [physical timeline and pass matrix](../notes/axpe-hardware-test-plan-2026-10-12.md): preflight by October 20, first SRAM load/readback October 21–23, UART/SPI/I2C peers and capture/recovery by November 6, repeatable report by November 13. Normal/capture adapter simulations and routed image preflight pass; Pico capture clock is external on J6.10. Use runtime programs on one unchanged image and matched EEPROM addressing/write-cycle behavior. No physical axpe pass yet |
 | PE-11: gate-level firmware simulation | T3 | P1 | Review | Maintainer review owed; PE-10 candidate bound by hash | All mandatory protocols, two runtime-loaded programs and two autobaud rates pass the unchanged routed netlist at three startup seeds. Final signoff retains that netlist hash. A relocated standalone package repeats these cases with Liberty-derived cell functions. Two-state, zero-delay evidence; no SDF claim |
 | PE-13: firmware-vs-fixed-logic experiment | T3 | P2 | Descoped | Cut 2026-09-25 when PE-01 missed its 2026-09-22 phase date | The comparison remains a useful future platform experiment, but it is outside the competition lane; its time now belongs to PE-02 and the first PE-10 hardening run |
 | PE-12: submission package | T1 | P0 | Review | All local compliance gates pass; maintainer commit-pinned review, publication and submission owed | `make tt-export` now includes the shared standalone RTL protocol demo and a hash/level evidence index. Fresh relocation outside atomiX passes all chip cases at three seeds. The routed ECO now passes signoff and replay. A hash-bound package includes its GDS, reports, cell functions and standalone mapped demo; relocated RTL/mapped protocol suites pass at three seeds and five rejection checks pass. The complete legal-stream timing proof also passes. The relocated package repeats induction, all 46 witnesses and five mutation counterexamples. Its exact pre-ECO checkpoint restores into a fresh location with pinned input hashes. Preserve that archive as historical evidence. Current: all nine selected-GDS Tiny Tapeout prechecks pass; all three 40 MHz profiles pass nominal waveform/rate checks, with two earlier I2C timing failures retained and corrected; logical reload, pinned ETR reference mapping and AI-use disclosure are included. The updated candidate passes 24 RTL/mapped suites after fresh relocation and deeper XML/rate-asset refusal probes. Fresh ECO preparation/routing/full signoff pass and match the selected routed assets and all metrics exactly; GDS differs only in timestamps. Remaining: maintainer commit-pinned reviews, public-repository publication and submission. External I/O assumptions and maintainer review remain explicit |
@@ -1008,3 +1010,60 @@ approval and publication/submission. No card closes itself. The 4 ns I/O
 budget, 25 ps fast hold margin, checkpoint-only reproduction boundary and
 unmeasured physical operation remain explicit. PE-08 repairs and PE-09 lab
 work remain future work; no existing record or frozen archive is invalidated.
+
+
+### PE-09 adapter and loader preflight — 2026-10-12
+
+The CI/toolchain repair and physical test plan are signed off in `922094a`.
+PE-09 is the sole Active slice; PE-08 width/model repairs remain Ready behind
+it. The new board component wraps unchanged axpe RTL, exposes J4 protocol and
+J6 host/reset/clock signals, and omits all runtime firmware initialization.
+Normal mode uses dedicated divide-by-two clocking at nominal 25 MHz; capture
+mode uses the Pico's external nominal 1 MHz PWM clock. The image-specific
+clock constraints and reset parameters reach the build and simulation.
+
+The simulation suite passes at three startup seeds per mode, plus a separate
+2.5 MHz capture/23-cycle reset profile. Eleven transport-fake checks cover raw
+word order/readback, mismatch/refusal without RUN, HALT/fault/deadline handling,
+stale replies, CS cleanup and non-default GPIO/timing settings. An optional
+Icarus check covers only the four-state pad boundary. Full-core Icarus
+elaboration failed on pre-existing declaration order and remains excluded.
+
+The open Gowin flow produces normal/capture images with timing checks enabled.
+Initial BRAM hold failures, fabric-divider hold failure, DCS clock-packing
+assertion and cascaded-divider routing failure are retained. The FPGA-only
+store mapping uses flip-flops and the capture profile uses an external clock;
+the selected ASIC RTL/GDS are untouched. The bridge is a MicroPython prototype,
+not a physically tested Pico program. Pin continuity, actual clocks/voltages,
+physical readback, independent protocol peers, EEPROM payloads, capture analysis
+and repetition/power-loss runs remain open. See the
+[adapter instructions](../../components/board/tangprimer25k-axpe/README.md) and
+`research/benchmarks/axpe-primer-preflight.json`.
+
+
+### PE-09 AT24C256 runtime slice — 2026-10-12
+
+The confirmed module now has separate 54-word byte-write, 46-word ACK-poll
+and 60-word tagged random-read programs. Each ACK is checked; failure sends
+STOP and releases the open-drain lines. Tagged low/high nibbles keep all 256
+data values distinct from NACK in the existing eight-bit host result. A host
+runner defaults to reads, persists the original scratch byte before requested
+writes, verifies test writes and restores/reads the original. Deadlines and
+repetition counts are EEPROM-owned settings; the readiness deadline includes
+host loading/USB overhead and is not a tWR measurement.
+
+Both Primer simulations pass independent EEPROM peers at three startup seeds
+with default/non-default addressing/data and first/last memory locations. Busy
+NACK/deferred commit, every write/read address ACK, repeated START, final NACK,
+STOP/release and WP are exercised. Two firmware mutants fail at the intended
+peer oracle. The first simulation receipt was rejected because a parameter
+file changed during the run; it remains a failed attempt. See
+[EEPROM reproduction/limits](../../sw/pemu/firmware/eeprom/README.md) and
+`research/benchmarks/axpe-eeprom.json`.
+
+These are runtime payload and host/digital tests. No FPGA rebuild, core/ISA
+change, physical EEPROM write or board pass is implied. PE-09 stays Active:
+Pico execution, independent UART/SPI peers, waveform/cycle capture and physical
+acceptance/recovery remain. Device suffix/straps/WP/pull-ups still need matched
+physical inspection. The original generic I2C demo remains a synthetic-peer
+example.

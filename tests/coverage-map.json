@@ -556,6 +556,24 @@
     ".:pemu-profile-check": {
       "kind": "via",
       "aggregate": "pemu-cosim-check"
+    },
+    ".:pemu-primer-check": {
+      "kind": "via",
+      "aggregate": "pemu-chip-check"
+    },
+    ".:pemu-primer-pads-check": {
+      "kind": "manual",
+      "prerequisite": "Icarus Verilog and vvp on PATH (OSS CAD Suite environment)",
+      "surfaces": "fresh build/pemu/primer/pads-*/evidence.json and nonzero command status; isolated pad boundary only, full core excluded"
+    },
+    "rtl/fpga:gowin-evidence": {
+      "kind": "manual",
+      "prerequisite": "selected Gowin profile and OSS CAD Suite Yosys/nextpnr/gowin_pack; no board is needed for image build",
+      "surfaces": "nonzero synthesis/P&R/packing status plus image/timing evidence under rtl/fpga/build; physical operation is a separate lab gate"
+    },
+    ".:pemu-eeprom-check": {
+      "kind": "via",
+      "aggregate": "pemu-chip-check"
     }
   }
 }

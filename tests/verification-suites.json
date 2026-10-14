@@ -720,7 +720,7 @@
       ]
     },
     "pemu-chip": {
-      "label": "axpe programmability: two programs loaded over the host port into one design",
+      "label": "axpe runtime programmability, protocol peers and Primer adapter/loader preflight",
       "command": [
         "make",
         "pemu-chip-check"
@@ -729,7 +729,8 @@
       "requires": [
         "make",
         "cc",
-        "verilator"
+        "verilator",
+        "python3"
       ]
     }
   },

@@ -1,0 +1,79 @@
+{
+  "schema": 1,
+  "id": "board.tangprimer25k-axpe",
+  "kind": "board",
+  "title": "Tang Primer 25K axpe runtime-programmable protocol bench",
+  "sources": [
+    "components/board/tangprimer25k-axpe/axpe_primer_top.sv",
+    "components/board/tangprimer25k-axpe/axpe_primer_pads.sv"
+  ],
+  "make": {
+    "FPGA_FLOW": "gowin",
+    "FPGA_TOP": "axpe_primer_top",
+    "FPGA_CST": "components/board/tangprimer25k-axpe/axpe_primer.cst",
+    "FPGA_DEVICE": "GW5A-LV25MG121NES",
+    "FPGA_FAMILY": "GW5A-25A",
+    "FPGA_SYNTH_FAMILY": "gw5a",
+    "GOWIN_SYNTH_ARGS": [
+      "-nobram",
+      "-nolutram",
+      "-strict-gw5a-dffs",
+      "-setundef"
+    ],
+    "NEXTPNR_ARGS": [
+      "--freq",
+      "50",
+      "--vopt",
+      "sspi_as_gpio",
+      "--threads",
+      "2"
+    ],
+    "GOWIN_PACK_ARGS": [
+      "--sspi_as_gpio",
+      "--cpu_as_gpio"
+    ],
+    "FPGA_PROG_BOARD": "tangprimer25k",
+    "FPGA_RUNTIME_PAYLOADS": 1,
+    "FPGA_INCLUDE_DIR": "sw/pemu/isa",
+    "FPGA_PRE_PACK": "components/board/tangprimer25k-axpe/clocks.py",
+    "FPGA_INPUT_CLOCK_HZ": 50000000
+  },
+  "parameters": {
+    "capture_mode": {
+      "default": 0,
+      "define": "AXPE_PRIMER_CAPTURE_MODE",
+      "doc": "Zero selects the dedicated 25 MHz Dock clock; one selects a Pico-generated clock on J6 pin 10. Change FPGA clock profiles only under reset.",
+      "range": {
+        "minimum": 0,
+        "maximum": 1
+      }
+    },
+    "capture_clock_hz": {
+      "default": 1000000,
+      "define": "AXPE_PRIMER_CAPTURE_HZ",
+      "doc": "Declared external Pico capture-clock frequency, passed to constraints, simulation and loader setup. Measure clock_ref before treating it as a physical rate.",
+      "range": {
+        "minimum": 100000,
+        "maximum": 5000000
+      }
+    },
+    "reset_cycles": {
+      "default": 16,
+      "define": "AXPE_PRIMER_RESET_CYCLES",
+      "doc": "Full axpe-clock cycles held in reset after configuration or external reset release; allows clock and control synchronization.",
+      "range": {
+        "minimum": 2,
+        "maximum": 65535
+      }
+    }
+  },
+  "capabilities": [
+    "gowin",
+    "gw5a-25a",
+    "runtime-programmable",
+    "open-drain-pins",
+    "pmod",
+    "clock-reference",
+    "sram-only-bringup"
+  ]
+}

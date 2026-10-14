@@ -31,12 +31,15 @@ __pycache__/
 # generated FPGA JSON. Keep these exceptions adjacent to the broad rule so
 # new profiles are visible to Git by default.
 !components/**/component.json
+!components/board/**/pins.json
 !configs/*.json
 # The protocol ISA is a source input shared by assembler, model and decoder.
 !sw/pemu/isa/axpe-isa.json
 # Runtime demo parameters and supplied clock profiles are source inputs.
 !sw/pemu/firmware/demo.json
 !sw/pemu/firmware/profiles/*.json
+!sw/pemu/firmware/profiles/primer/*.json
+!sw/pemu/host/bridge.json
 # The tool-version requirement: source of truth for make doctor,
 # make requirements-check, and the generated tables in docs/dependencies.md.
 !tools/requirements.json
@@ -106,3 +109,7 @@ sim/fuzz/oom-*
 # rule above silently drops the regression corpus, and a checked-in seed that
 # was never checked in is worse than none: the claim outlives the file.
 !sim/fuzz/corpus/*.elf
+
+# EEPROM runtime parameter manifest is a source input.
+!sw/pemu/firmware/eeprom/*.json
+!sim/pemu/eeprom.json

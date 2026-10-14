@@ -250,8 +250,10 @@ unless the caller states that the test was re-run.
   The maintainer's October 12 [hardware plan](notes/axpe-hardware-test-plan-2026-10-12.md)
   schedules PE-09 physical FPGA tests before further PE-08 repairs, using the
   confirmed available Dock and peers. First readback is targeted October
-  21–23 and a repeatable report November 13. The FPGA adapter/constraints,
-  physical host bridge and EEPROM-specific payload still need implementation.
+  21–23 and a repeatable report November 13. The FPGA adapter/constraints and physical-host bridge prototype have local
+  simulation/image preflight. AT24C256 runtime byte operations and host
+  backup/restore now pass digital tests; Pico execution, matched module limits,
+  remaining peers and physical acceptance remain.
   FPGA operation would remain separate evidence from CMOS5L feasibility and
   returned-silicon characterization; no physical axpe result exists yet.
   All nine unchanged pinned Tiny Tapeout checks pass on the selected GDS.
