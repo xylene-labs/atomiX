@@ -3,7 +3,7 @@
 import json
 from pathlib import Path
 import tempfile
-from build_demos import HERE, build, settings
+from build_demos import HERE, build
 from axpe_as import AsmError, assemble
 
 

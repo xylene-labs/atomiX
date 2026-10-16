@@ -5,7 +5,6 @@ import hashlib
 import importlib.util
 import json
 from pathlib import Path
-import sys
 import time
 from axpe_host import Loader,SerialRequests,bridge_settings,configure
 

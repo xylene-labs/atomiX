@@ -41,7 +41,9 @@ The shared setup action installs the immutable Verilator pin declared in
 Profile elaboration failures print diagnostic excerpts; quick and integrated
 nightly artifacts also retain their raw profile logs and receipts. The
 [October 12 CI investigation](notes/ci-verilator-failure-2026-10-12.md) records
-the older-frontend failure, local reproduction and pending hosted confirmation.
+the older-frontend failure, local reproduction and pending hosted confirmation. The
+[October 14 follow-up](notes/ci-failures-2026-10-14.md) identifies the continuing
+old-source nightly failure and separate Python lint findings.
 
 ---
 

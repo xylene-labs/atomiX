@@ -43,6 +43,13 @@ ignore = [
 # nextpnr executes this file with `ctx` already bound as a global; there is no
 # import that would satisfy the linter and no way to run it standalone.
 "tools/pr_floorplan.py" = ["F821"]
+"components/board/tangprimer25k-axpe/clocks.py" = ["F821"]
+
+# This pinned runtime builder intentionally installs the repository assembler
+# path before importing it. Preserve the exact bytes bundled in the frozen
+# ASIC review archive; only the intentional bootstrap-order diagnostic is
+# exempted. Other Python defect checks still apply.
+"sw/pemu/firmware/build_demos.py" = ["E402"]
 
 # The three files below are content-addressed: a record under research/ pins
 # their SHA-256 because a recorded experimental result was produced by exactly

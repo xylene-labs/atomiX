@@ -296,7 +296,16 @@
         ]
       },
       "supported": "*",
-      "tested": [],
+      "tested": [
+        {
+          "version": "0.16.5",
+          "evidence": "python3 tools/static_analysis.py --only ruff: clean after October 14 lint repair"
+        },
+        {
+          "version": "0.17.0",
+          "evidence": "ruff check . --output-format json using build/ci-ruff-2026-10-14-venv: zero findings, same version as hosted static-analysis run 38550610415"
+        }
+      ],
       "missing_hint": "that stage of make static-analysis is skipped"
     },
     "clang": {
@@ -330,7 +339,12 @@
         ]
       },
       "supported": "*",
-      "tested": [],
+      "tested": [
+        {
+          "version": "2.7",
+          "evidence": "make static-analysis ANALYSIS_FLAGS=: complete local October 14 replay, isolated Ubuntu packages under build/ci-analyzers-2026-10-14 with required library/config assets"
+        }
+      ],
       "missing_hint": "that stage of make static-analysis is skipped"
     },
     "shellcheck": {
@@ -345,7 +359,12 @@
         ]
       },
       "supported": "*",
-      "tested": [],
+      "tested": [
+        {
+          "version": "0.8.0",
+          "evidence": "make static-analysis ANALYSIS_FLAGS=: complete local October 14 replay, isolated Ubuntu packages under build/ci-analyzers-2026-10-14 with required library/config assets"
+        }
+      ],
       "missing_hint": "that stage of make static-analysis is skipped"
     },
     "iverilog": {

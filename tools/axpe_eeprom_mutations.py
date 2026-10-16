@@ -8,9 +8,9 @@ import sys
 ROOT=Path(__file__).resolve().parents[1]
 FIRMWARE=ROOT/'sw/pemu/firmware'
 sys.path.insert(0,str(FIRMWARE.parent/'as'))
-from axpe_as import assemble
+from axpe_as import assemble  # noqa: E402 -- repository assembler path bootstrap
 sys.path.insert(0,str(FIRMWARE))
-from build_demos import settings,i2c_period
+from build_demos import settings,i2c_period  # noqa: E402 -- runtime builder path bootstrap
 
 
 def check(output,runtime_profile,capacity):

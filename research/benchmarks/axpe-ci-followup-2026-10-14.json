@@ -1,0 +1,150 @@
+{
+  "schema": "org.atomix.axpe-ci-followup.v1",
+  "date": "2026-10-14",
+  "status": "local-repair-passed-hosted-confirmation-pending",
+  "requested_commit": "d29cd4286dda64c7fd5bb196f0c25d5075be8077",
+  "commit_dco_signoff": true,
+  "commit_codex_coauthor": true,
+  "remote_main_observed": "386ff3c0d456195dc1cf972d3e17b6f3b63f592f",
+  "push_performed": false,
+  "followup_repairs_uncommitted": true,
+  "sources_sha256": {
+    "docs/dependencies.md": "ec8cff1b85768720cc879fca387027603a658b982304e83fff7577cc6717dd90",
+    "docs/workflow.md": "ddd82c47e36a8619695cd51681047f975f89673622e5c94c9287023d249cd73a",
+    "ruff.toml": "2c61fd8b1311477175bf58d2426c6d4e560177b205062c047c8120cda7cfb9d4",
+    "sim/pemu/axpe_primer_tb.cpp": "f15d687771318ee0b0298fd4b8647385c5e8cb656364ca84e7ac084c11589f38",
+    "sw/pemu/firmware/check_demos.py": "504622182259478480e756ca1f92675d8b4807744bd8acd42668807ee96fa14d",
+    "sw/pemu/firmware/eeprom/build.py": "95c0c008d7d0d1997fa6c5e09b102fbfbc0d4369a25a2e6aa7dec8c256801800",
+    "sw/pemu/host/axpe_host.py": "3fa9da9637e3ba266f6b43c8cd3a878e52bcdcdcb5a3cdd004a5716067ec46a6",
+    "sw/pemu/host/check_eeprom.py": "95444c52ffbdcd7e2738f66d71cc3927f666fd6841def6dfb66cbbcbe1bd27d6",
+    "sw/pemu/host/check_host.py": "3d1f58d5dc98d1c9c028b1be6ff007d9bcbdd3098a332fa649ea2bb2110a8b52",
+    "sw/pemu/host/eeprom.py": "aae29dec6e7363177d2673001dc768f78083b94e128e3ae815c444b1246ada2b",
+    "tools/axpe_eeprom_mutations.py": "6f84d8cb3257c15677a30a42fe9e1cfd60840fae69e420e0800a265e9fb23fa5",
+    "tools/axpe_primer_check.py": "76a112c27a69a0206817a0d63ad5ddb741b8bbac1fe5ddaaaca537adda0c162e",
+    "tools/requirements.json": "09bb4523271af89a3294380b23939a91034b8145bbb6f2568b383ab247e9d3e6",
+    "tools/static_analysis.py": "60347ec8ef1ec9da28bb11a6cf1badf089e10d0e0e9bf24dc570a2da2d7860a2",
+    "docs/notes/ci-failures-2026-10-14.md": "d508a30452308efe38c24f1d37046ba69c00f697565deefd5b24d27a5e242469"
+  },
+  "hosted_runs": [
+    {
+      "workflow": "Nightly",
+      "id": 38537077473,
+      "url": "https://github.com/xylene-labs/atomiX/actions/runs/38537077473",
+      "source": "386ff3c",
+      "passed_integrated_stages": 35,
+      "failed_integrated_stages": [
+        "pemu-cosim",
+        "pemu-chip"
+      ],
+      "other_jobs": "all three pass",
+      "observed_verilator": "4.038",
+      "cause": "older frontend rejects UNUSEDPARAM/UNUSEDSIGNAL",
+      "local_fix_commit": "922094a",
+      "log": {
+        "path": "build/ci-nightly-2026-10-14/2_Full integrated software and RTL ladder.txt",
+        "sha256": "e64fb5ef68f676a2e833dd4dbb39c423d29403fb851e6202f94373f287d32510"
+      }
+    },
+    {
+      "workflow": "Static analysis",
+      "id": 38550610415,
+      "url": "https://github.com/xylene-labs/atomiX/actions/runs/38550610415",
+      "source": "386ff3c",
+      "observed_ruff": "0.17.0",
+      "cause": [
+        "build_demos.py intentional bootstrap import E402",
+        "check_demos.py unused settings import F401"
+      ],
+      "other_analyzers": "five pass",
+      "kernel_clang_and_fuzz": "pass",
+      "log": {
+        "path": "build/ci-static-2026-10-14/0_Static analysis and binary-format regression fuzzing.txt",
+        "sha256": "cc4e02634780c2140f9c24f94a6aa8c208d9e79eef5b74cb0967db6b9979ea12"
+      }
+    }
+  ],
+  "ruff_before": {
+    "finding_count": 17,
+    "scope": "local PE-09 source, includes two hosted findings",
+    "report": {
+      "path": "build/ci-ruff-before-2026-10-14.json",
+      "sha256": "0e728d692966cd387ea2523354e1335882e99e5e9e27ad4a295f2b9eb931628c"
+    }
+  },
+  "ruff_after_hosted_version": {
+    "finding_count": 0,
+    "version": "0.17.0",
+    "report": {
+      "path": "build/ci-ruff-017-after-2026-10-14.json",
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    }
+  },
+  "static_analysis": {
+    "analyzers_passed": 6,
+    "report": {
+      "path": "build/static-analysis/report.json",
+      "sha256": "9d5a540dbe24410fc493cc1ce545ce59cc3903202ebbe178e8b4c1159f3cd722"
+    },
+    "log": {
+      "path": "build/ci-static-final-2026-10-14.log",
+      "sha256": "b65b3b1c7d73796618a01b620b691e5368cd1546ea0d9526a59f5067daa44993"
+    },
+    "isolated_cppcheck": "2.7",
+    "isolated_shellcheck": "0.8.0",
+    "python_count_limit": "reported glob count includes generated trees; not a source coverage count"
+  },
+  "cppcheck_negative_probe": {
+    "path": "build/ci-cppcheck-negative-2026-10-14/evidence.json",
+    "sha256": "8daf01e45614774c664987804ef131cf9f08821451489e7dfd9d950d6490be31"
+  },
+  "smoke": {
+    "passed_stages": 14,
+    "report": {
+      "path": "build/verification/ci-followup-final-2026-10-14/smoke/summary.json",
+      "sha256": "a4fc7a4882e6f932e3205f0394f67721a67c2280e61fe2c77dc409f00c7e2c33"
+    },
+    "pemu_chip_seconds": 35.175,
+    "stage_timeout_seconds": 180
+  },
+  "nondefault_clock_probe": {
+    "scope": "2.5MHz external capture and 23-cycle reset, three startup seeds plus EEPROM mutations",
+    "receipt": {
+      "path": "build/pemu/primer/check-rl172d2p/evidence.json",
+      "sha256": "df8a048600d08d967bf354881b6b344e06bb226c6655852ff27c3485bd87cbc2"
+    }
+  },
+  "retained_local_failures": [
+    {
+      "scope": "strict local run without cppcheck/shellcheck",
+      "log": {
+        "path": "build/ci-static-local-2026-10-14.log",
+        "sha256": "6d9fc706f26a8801b85817cb08f03ba8dc9064bd9eb898f7a4774cad4e59a995"
+      }
+    },
+    {
+      "scope": "isolated cppcheck lacked relocated std.cfg; all groups refused",
+      "log": {
+        "path": "build/ci-static-complete-2026-10-14.log",
+        "sha256": "50346ef99cfbeffd94c57e75752f4e0d2e9c8b8e97e7e55ed4c2a09f8a5e4c8a"
+      }
+    },
+    {
+      "scope": "slow capture replay exceeded protocol stage budget",
+      "report": {
+        "path": "build/verification/ci-lint-repair-2026-10-14/smoke/summary.json",
+        "sha256": "97f9c589c2b0021efb6b2de1e097b8d2b0430e76e2a42697327207dd747bb1b6"
+      }
+    }
+  ],
+  "hardware_boundary": "core/ISA, FPGA input/pin/clock sources, selected GDS and frozen archive unchanged; no physical operation",
+  "reproduction": [
+    "ruff check .",
+    "make static-analysis ANALYSIS_FLAGS= (requires all six tools with usable dependencies/config)",
+    "make pemu-primer-check",
+    "make verify-smoke"
+  ],
+  "remaining": [
+    "publish committed and reviewed local fixes with explicit authorization",
+    "run new hosted CI/static-analysis workflows on repaired source; old reruns keep old setup"
+  ]
+}

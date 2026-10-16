@@ -116,7 +116,7 @@ class HostEepromChecks(unittest.TestCase):
             self.assertEqual(json.loads((output/'backup.json').read_text())['original_byte'],0)
     def test_bad_halting_status_and_refused_write_are_errors(self):
         for status in [0,0x0680,0x0a80,False]:
-            client=EepromClient(lambda w,t:status,PROFILE,64)
+            client=EepromClient(lambda w,t,status=status:status,PROFILE,64)
             with self.assertRaises(RuntimeError):client.run('poll')
         client=self.client()
         with patch.object(client,'run',return_value=0),self.assertRaises(RuntimeError):client.write_byte(0x21)

@@ -303,13 +303,20 @@ def analyse_cpp():
                       "--inline-suppr", "--quiet",
                       "--template={file}:{line}:{column}: {severity}: {message} [{id}]",
                       *unit])
+        unit_findings = []
         for raw in result.stderr.splitlines():
             m = re.match(r"^(?P<file>[^:]+):(?P<line>\d+):(?P<col>\d+): "
                          r"(?P<sev>\w+): (?P<msg>.*?) \[(?P<rule>[\w-]+)\]$", raw)
             if m:
-                findings.append(finding("cppcheck", m.group("file"), m.group("line"),
-                                        m.group("col"), "warning", m.group("rule"),
-                                        m.group("msg")))
+                unit_findings.append(finding("cppcheck", m.group("file"), m.group("line"),
+                                             m.group("col"), "warning", m.group("rule"),
+                                             m.group("msg")))
+        findings += unit_findings
+        if result.returncode != 0 and not unit_findings:
+            findings.append(finding(
+                "cppcheck", unit[0], 1, 1, "error", "analysis-did-not-run",
+                (result.stderr or result.stdout).strip() or
+                f"cppcheck exited {result.returncode} without diagnostics"))
     files = len({src for unit in units for src in unit})
     return findings, f"{files} host C++ file(s) checked in {len(units)} program(s)"
 

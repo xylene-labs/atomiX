@@ -2,7 +2,6 @@
 """Transport fakes test wire encoding/refusals; they are not Pico evidence."""
 import json
 from pathlib import Path
-import tempfile
 import unittest
 from unittest.mock import patch
 from types import SimpleNamespace
@@ -75,7 +74,7 @@ class HostChecks(unittest.TestCase):
         self.assertEqual(chip.frames[-1],b'\x04')
     def test_malformed_transport_data(self):
         for data in [[],[256],[True],'x']:
-            with self.assertRaises(RuntimeError):Loader(lambda m:{'ok':True,'data':data},64).exchange(b'\x05')
+            with self.assertRaises(RuntimeError):Loader(lambda m,data=data:{'ok':True,'data':data},64).exchange(b'\x05')
     def test_sequence_and_stale_reply(self):
         class Port:
             def __init__(self,lines):self.lines=iter(lines);self.sent=[]

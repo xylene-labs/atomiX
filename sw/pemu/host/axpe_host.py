@@ -10,7 +10,7 @@ import uuid
 
 ROOT=Path(__file__).resolve().parents[3]
 sys.path.insert(0,str(ROOT/'tools'))
-import configure
+import configure  # noqa: E402 -- repository tool path is installed above
 
 
 class Loader:

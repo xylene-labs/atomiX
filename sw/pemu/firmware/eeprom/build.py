@@ -2,7 +2,6 @@
 """Build AT24C256 byte operations using the selected runtime clock profile."""
 import argparse
 import hashlib
-import importlib.util
 import json
 from pathlib import Path
 import sys
@@ -10,9 +9,9 @@ HERE=Path(__file__).resolve().parent
 FIRMWARE=HERE.parent
 ROOT=FIRMWARE.parents[2]
 sys.path.insert(0,str(FIRMWARE.parent/'as'))
-from axpe_as import assemble,format_listing,AsmError
+from axpe_as import assemble,format_listing,AsmError  # noqa: E402 -- assembler needs repository path bootstrap
 sys.path.insert(0,str(FIRMWARE))
-from build_demos import settings as rates, i2c_period
+from build_demos import settings as rates, i2c_period  # noqa: E402 -- runtime builder needs repository path bootstrap
 
 
 def settings(overrides=None):

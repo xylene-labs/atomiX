@@ -272,10 +272,10 @@ Static analysis, sanitizers, fuzzing, and the LLVM build.
 
 | Tool | Required | Supported | Tested here | Use |
 |---|---|---|---|---|
-| ruff | optional | any | — | Python lint stage of make static-analysis |
+| ruff | optional | any | 0.16.5<br>0.17.0 | Python lint stage of make static-analysis |
 | clang | optional | `>=14` | 14.0.0 | Second toolchain (TOOLCHAIN=llvm) and the riscv32 analyzer |
-| cppcheck | optional | any | — | Host C++ stage of make static-analysis |
-| shellcheck | optional | any | — | Shell stage of make static-analysis |
+| cppcheck | optional | any | 2.7 | Host C++ stage of make static-analysis |
+| shellcheck | optional | any | 0.8.0 | Shell stage of make static-analysis |
 | Icarus Verilog | optional | any | 14.0 | Optional isolated four-state axpe Primer pad-boundary check |
 
 <!-- END GENERATED -->

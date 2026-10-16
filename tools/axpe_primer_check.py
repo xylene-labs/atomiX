@@ -19,7 +19,7 @@ def sha(path):
 
 def run(profile, runtime_profile=None):
     resolved = configure.resolved_config(profile)
-    make = configure.to_make(resolved)
+    configure.to_make(resolved)
     if {k: v['id'] for k, v in resolved['components'].items()} != {
             'board': 'board.tangprimer25k-axpe', 'pemu': 'pemu.axpe'}:
         raise ValueError('expected the axpe Primer board and pemu components')
@@ -85,7 +85,8 @@ def run(profile, runtime_profile=None):
                    '-Wno-DECLFILENAME', '-I'+str(ROOT/'sw/pemu/isa'), *flags,
                    '--top-module','axpe_primer_sim','--Mdir',str(output/'obj'),
                    '-CFLAGS', f"-DPRIMER_DIVISOR={divisor} "
-                   f"-DPRIMER_CAPTURE_DIVISOR={capture_divisor} -DPRIMER_RESET_CYCLES={values['board']['reset_cycles']}",
+                   f"-DPRIMER_CAPTURE_DIVISOR={capture_divisor} -DPRIMER_CAPTURE_MODE={values['board']['capture_mode']} "
+                   f"-DPRIMER_RESET_CYCLES={values['board']['reset_cycles']}",
                    *map(str,sources),str(sim),str(bench),str(ROOT/'sw/pemu/model/axpe_model.c')]
         for name, argv in [('version',['verilator','--version']),('build',command), *[(f'seed-{seed}',
                [str(output/'obj/Vaxpe_primer_sim'),str(output/'fw'),str(output/'eeprom'),

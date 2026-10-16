@@ -37,6 +37,14 @@ struct PrimerDevice : Device {
         rtl.clk_50mhz = 0; rtl.eval();
     }
     void cycle() override {
+        if (PRIMER_CAPTURE_MODE) {
+            // Capture RTL uses only this external clock. Elide the unused Dock
+            // oscillator between its edges; oscillator_tick still measures the
+            // resolved clock ratio explicitly below.
+            rtl.capture_clk = 0; rtl.eval();
+            rtl.capture_clk = 1; rtl.eval();
+            return;
+        }
         bool seen_low = !rtl.clock_ref;
         for (unsigned i=0; i<2u * PRIMER_DIVISOR; ++i) {
             oscillator_tick();
